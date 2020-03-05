@@ -1,11 +1,19 @@
 mod fina;
 
 fn main() {
-    let fv_answer = fina::fv(3.4,250000.0,5.0);
-    println!("{}", fv_answer);
+    let starting_cash: f64 = 250000.0;
+    let rate: f64 = 3.4;
+    let years: u32 = 5;
+    println!("Starting cash: {}", &starting_cash);
+    let fv_answer = fina::fv(rate, starting_cash, years as f64);
+    println!("Future value in {} years with {}% rate of return: {}", &years, &rate, &fv_answer);
 
-    let fv_vec_answer = fv_vec(3.4,250000.0,5);
-    println!("{:?}", fv_vec_answer);
+    let fv_vec_answer = fv_vec(rate, starting_cash, years);
+    println!("{:?}", &fv_vec_answer);
+
+    let pv_answer = pv(rate, fv_answer, years);
+    println!("Present Value of the future value answer: {}", pv_answer);
+
 }
 
 // shan's idea to make a secondary function of the FutureValue function which
@@ -25,3 +33,7 @@ fn fv_vec(rate:f64,cf0:f64,num_of_period:u32) -> Vec<f64> {
     }
     period_vals
 }
+
+pub fn pv(rate:f64,cf1:f64, n:u32) -> f64{
+    (cf1 / (1_f64 + rate/(100_f64)).powf(n.into()) ).round()
+    }
