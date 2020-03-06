@@ -192,6 +192,7 @@ mod tests {
         let expected_value = 295489.941778856;
         let actual_value = future_value(rate_of_return, present_value_1, periods);
         assert_eq!(round_to_cent(expected_value), round_to_cent(actual_value));
+        assert!( float_cmp::approx_eq!(f64, expected_value, actual_value, ulps = 4) );
     }
 
     #[test]
@@ -217,7 +218,7 @@ mod tests {
     }
 
     #[test]
-    fn test_present_value_1() {
+    fn test_present_value_2() {
         let rate_of_return = 0.08;
         let future_value = 20_629.37;
         let periods = 6;
