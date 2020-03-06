@@ -1,6 +1,15 @@
+#![allow(dead_code)]
+
 mod fina;
 
+use experiment::*;
+
 fn main() {
+    try_fv_vec();
+    alternative_1::finance::main();
+}
+
+fn try_fv_vec() {
     let starting_cash: f64 = 250000.0;
     let rate: f64 = 3.4;
     let years: u32 = 5;
