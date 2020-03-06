@@ -5,7 +5,7 @@ mod fina;
 use experiment::*;
 
 fn main() {
-    try_fv_vec();
+    // try_fv_vec();
     alternative_1::finance::main();
 }
 
