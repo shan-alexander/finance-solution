@@ -18,7 +18,8 @@ pub fn main() {
     env_logger::from_env(Env::default().default_filter_or("info")).init();
     // try_future_and_present_value();
     // try_net_present_value();
-    try_net_present_value_constant_cash_flow_sum();
+    // try_net_present_value_constant_cashflow();
+    try_net_present_value_variable_cashflow();
 }
 
 fn try_future_and_present_value() {
@@ -45,25 +46,33 @@ fn try_net_present_value() {
     let discount_rate = 0.10;
     let n = 10;
     let cash_flow = 20_000.0;
-    dbg!(net_present_value_constant_cash_flow_sum(initial_investment, discount_rate, n, cash_flow));
+    dbg!(net_present_value_constant_cashflow(initial_investment, discount_rate, n, cash_flow));
 
     // dbg!(net_present_value_constant_cash_flow_single(initial_investment, discount_rate, n, cash_flow));
 }
 
 // try with negative initial investment, to test warning
-fn try_net_present_value_constant_cash_flow_sum() {
+fn try_net_present_value_constant_cashflow() {
     // Expect $22,891.34.
     let initial_investment = -100_000.0;
     let discount_rate = 0.10;
     let n = 10;
     let cash_flow = 20_000.0;
-    let npv = net_present_value_constant_cash_flow_sum(initial_investment, discount_rate, n, cash_flow);
+    let npv = net_present_value_constant_cashflow(initial_investment, discount_rate, n, cash_flow);
     dbg!(npv);
 
 }
 
+fn try_net_present_value_variable_cashflow() {
+    // Expect $80,015.02  https://financeformulas.net/Net_Present_Value.html
+    let cashflows = vec![-500_000.,200_000.,300_000.,200_000.];
+    let discount_rate = 0.10;
+    let npv = net_present_value_variable_cashflow(discount_rate, &cashflows);
+    dbg!(npv);
+}
+
 /// Return the Net Present Value (NPV) of a constant cash flow (cf_1..cf_n are all equal). 
-pub fn net_present_value_constant_cash_flow_sum(initial_investment: f64, discount_rate: f64, n: u16, cash_flow: f64) -> f64 {
+pub fn net_present_value_constant_cashflow(initial_investment: f64, discount_rate: f64, n: u16, cash_flow: f64) -> f64 {
     // assertions to ensure valid financial computation
     assert!(initial_investment.is_finite());
     assert!(discount_rate.is_finite());
@@ -71,14 +80,14 @@ pub fn net_present_value_constant_cash_flow_sum(initial_investment: f64, discoun
     assert!(cash_flow.is_finite());
     // warning to ensure developer did not mistake rate with percentage
     if initial_investment < 0. { 
-        warn!("You used a negative initial investment amount (your cf0 = {}). Are you sure? The fn net_present_value_constant_cash_flow_sum() will sum the NPV of cash flows and then subtract the initial investment amount.", initial_investment);
-        info!(target: "net_present_value_constant_cash_flow_sum", "This function expects your initial investment (cf0) to be a positive number when it is a cash outflow. The formula will subtract cf0 from the sum(npv of cashflows). cf0 should not be negative unless you actually receive cash inflow in cf0, which is a rare financial situation.");
+        warn!("You used a negative initial investment amount (your cf0 = {}). Are you sure? The fn net_present_value_constant_cashflow() will sum the NPV of cash flows and then subtract the initial investment amount.", initial_investment);
+        info!(target: "net_present_value_constant_cashflow", "This function expects your initial investment (cf0) to be a positive number when it is a cash outflow. The formula will subtract cf0 from the sum(npv of cashflows). cf0 should not be negative unless you actually receive cash inflow in cf0, which is a rare financial situation.");
     }
     // if INFO logs are enabled, show the computation of each cashflow
     if log_enabled!(Level::Info) {
         let mut cf_vec = vec![initial_investment];
         for t in 1..=n {
-            let cf_n = cash_flow / (1.0 + discount_rate).powi(t as i32);
+            let cf_n = cash_flow / (1. + discount_rate).powi(t as i32);
             assert!(cf_n.is_finite());
             cf_vec.push(cf_n);
         }
@@ -102,31 +111,68 @@ pub fn net_present_value_constant_cash_flow_single(initial_investment: f64, disc
 }
 */
 
+/// Return the Net Present Value (NPV) of a variable cash flow (cf_1..cf_n can vary). The 
+pub fn net_present_value_variable_cashflow(rate: f64, cashflows: &Vec<f64>) -> f64 {
+    let initial_investment = cashflows[0];
+    let n = cashflows.len()-1;
+    // assertions to ensure valid financial computation
+    assert!(initial_investment.is_finite());
+    assert!(rate.is_finite());
+    assert!(n > 0);
+    for cf in cashflows {
+        assert!(cf.is_finite());
+    }
+    
+    // warning to ensure developer did not mistake rate with percentage
+    if initial_investment > 0. { 
+        warn!("You used a positive initial investment amount (your cf0 = {}). Are you sure? The fn net_present_value_constant_cashflow() will sum the NPV of cash flows and then add the (usually negative) initial investment amount.", initial_investment);
+        info!(target: "net_present_value_constant_cashflow", "This function expects your initial investment (cf0) to be a negative number when it is a cash outflow. The formula will sum the npv of cashflows. cf0 should not be positive unless there is a cash inflow in cf0, which is a rare financial situation.");
+    }
+    // if INFO logs are enabled, show the computation of each cashflow
+    if log_enabled!(Level::Info) {
+        let mut cf_vec = vec![initial_investment];
+        for t in 1..=n {
+            let cf_n = cashflows[t] / (1. + rate).powi(t as i32);
+            assert!(cf_n.is_finite());
+            cf_vec.push(cf_n);
+        }
+        info!(target: "NPV of each cash flow, in order from 0 --> period n", "{:?}", cf_vec);
+    }
+    
+    // final computation for NPV with variable cashflow (cf1..cf_n can vary)
+    let mut sum = 0.0f64;
+    for t in 0..=n {
+        sum += cashflows[t] / (1.0 + rate).powi(t as i32);
+        assert!(sum.is_finite());
+    }
+    sum
+}
+
 /// Returns a Future Value of a present amount.
 pub fn future_value(interest_rate: f64, present_value: f64, periods: u16) -> f64 {
     // assertions to ensure valid financial computation
     assert!(interest_rate.is_finite());
-    assert!(interest_rate >= 0.0);
+    assert!(interest_rate >= 0.);
     assert!(present_value.is_finite());
-    assert!(present_value >= 0.0);
+    assert!(present_value >= 0.);
     // warning to ensure developer did not mistake rate with percentage
     if interest_rate > 1. { 
         warn!("You provided a rate ({}) greater than 1. Are you sure you expect a {}% return?", interest_rate, interest_rate*100.0); 
     }
     // final computation for future value
-    present_value * (1.0 + interest_rate).powi(periods as i32)
+    present_value * (1. + interest_rate).powi(periods as i32)
 }
 
 /// Return a vector of future values for each period, starting with Period0 (present value) to Period_n (future value).
 pub fn future_value_series(interest_rate: f64, present_value: f64, periods: u16) -> Vec<f64> {
     // assertions to ensure valid financial computation
     assert!(interest_rate.is_finite());
-    assert!(interest_rate >= 0.0);
+    assert!(interest_rate >= 0.);
     assert!(present_value.is_finite());
-    assert!(present_value >= 0.0);
+    assert!(present_value >= 0.);
     // final computation for returning a series of future values
     let mut v = vec![];
-    let interest_mult = 1.0 + interest_rate;
+    let interest_mult = 1. + interest_rate;
     for period in 1..=periods {
         v.push(present_value * interest_mult.powi(period as i32));
     }
@@ -138,9 +184,9 @@ pub fn present_value(rate_of_return: f64, future_value: f64, periods: u16) -> f6
     // assertions to ensure valid financial computation
     assert!(rate_of_return.is_finite());
     assert!(future_value.is_finite());
-    assert!(future_value >= 0.0);
+    assert!(future_value >= 0.);
     // final computation for returning a present value
-    future_value / (1.0 + rate_of_return).powi(periods as i32)
+    future_value / (1. + rate_of_return).powi(periods as i32)
 }
 
 /*
