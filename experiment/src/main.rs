@@ -11,8 +11,8 @@ fn main() {
     // try_fv_vec();
     // alternative_1::finance::main();
     // verbose::present_value::main();
-    // verbose::future_value::main();
-    verbose::net_present_value::main();
+    verbose::future_value::main();
+    // verbose::net_present_value::main();
 
 }
 
