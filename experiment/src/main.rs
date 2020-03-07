@@ -4,9 +4,16 @@ mod fina;
 
 use experiment::*;
 
+use env_logger::Env;
+
 fn main() {
+    env_logger::from_env(Env::default().default_filter_or("info")).init();
     // try_fv_vec();
-    alternative_1::finance::main();
+    // alternative_1::finance::main();
+    // verbose::present_value::main();
+    // verbose::future_value::main();
+    verbose::net_present_value::main();
+
 }
 
 fn try_fv_vec() {

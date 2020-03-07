@@ -5,3 +5,4 @@
 extern crate float_cmp;
 
 pub mod alternative_1;
+pub mod verbose;
