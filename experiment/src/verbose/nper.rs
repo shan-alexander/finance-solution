@@ -4,7 +4,9 @@
 use float_cmp::ApproxEq;
 use log::Level;
 use log::{info, warn, log_enabled};
-use libm;
+use libm::log10;
+
+// https://math.stackexchange.com/questions/820094/what-is-the-best-way-to-calculate-log-without-a-calculator
 
 pub fn main() { 
     try_nper();
@@ -44,11 +46,11 @@ fn try_nper() {
 
 #[derive(Debug)]
 pub struct NperSolution {
-    periodic_rate: f64,
-    periods: f64,
-    payment_amount: f64,
-    present_value_total: f64,
-    future_value_total: f64,
+    pub periodic_rate: f64,
+    pub periods: f64,
+    pub payment_amount: f64,
+    pub present_value_total: f64,
+    pub future_value_total: f64,
     
 }
 impl NperSolution {

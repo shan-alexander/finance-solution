@@ -74,10 +74,10 @@ fn try_future_value_annuity_general_due() {
 
 #[derive(Debug)]
 pub struct FutureValueAnnuitySolution {
-    annuity_payment_amount: f64,
-    periodic_rate: f64,
-    num_periods: u16,
-    future_value_annuity: f64,
+    pub annuity_payment_amount: f64,
+    pub periodic_rate: f64,
+    pub num_periods: u16,
+    pub future_value_annuity: f64,
 }
 impl FutureValueAnnuitySolution {
     pub fn new(annuity_payment_amount: f64, periodic_rate: f64, num_periods: u16, future_value_annuity: f64) -> Self {
@@ -105,11 +105,11 @@ pub fn future_value_annuity_due(annuity_payment_amount: f64, periodic_rate: f64,
 
 #[derive(Debug)]
 pub struct FutureValueAnnuityGeneralSolution {
-    annuity_payment_amount: f64,
-    periodic_rate: f64,
-    num_periods: u16,
-    compound_intervals_per_payment_period: u16,
-    future_value_annuity: f64,
+    pub annuity_payment_amount: f64,
+    pub periodic_rate: f64,
+    pub num_periods: u16,
+    pub compound_intervals_per_payment_period: u16,
+    pub future_value_annuity: f64,
 }
 impl FutureValueAnnuityGeneralSolution {
     pub fn new(annuity_payment_amount: f64, periodic_rate: f64, num_periods: u16, compound_intervals_per_payment_period: u16, future_value_annuity: f64) -> Self {

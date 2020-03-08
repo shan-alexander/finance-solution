@@ -8,11 +8,13 @@ fn main() {
     // try_fv_vec();
     // alternative_1::finance::main();
     // verbose::present_value::main();
+    // verbose::present_value_annuity::main();
     // verbose::future_value::main();
+    // verbose::future_value_annuity::main();
     // verbose::net_present_value::main();
     // verbose::payment::main();
     // verbose::nper::main();
-    // verbose::present_value_annuity::main();
     // verbose::convert_rates::main();
-    verbose::perpetuity::main();
+    // verbose::perpetuity::main();
+    verbose::bilbo_baggins::main();
 }

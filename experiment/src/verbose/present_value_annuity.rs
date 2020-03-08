@@ -24,10 +24,10 @@ fn try_present_value_annuity() {
 
 #[derive(Debug)]
 pub struct PresentValueAnnuitySolution {
-    annuity_payment_amount: f64,
-    periodic_rate: f64,
-    num_periods: u16,
-    present_value_annuity: f64,
+    pub annuity_payment_amount: f64,
+    pub periodic_rate: f64,
+    pub num_periods: u16,
+    pub present_value_annuity: f64,
 }
 impl PresentValueAnnuitySolution {
     pub fn new(annuity_payment_amount: f64, periodic_rate: f64, num_periods: u16, present_value_annuity: f64) -> Self {

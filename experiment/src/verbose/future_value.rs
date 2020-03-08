@@ -68,10 +68,10 @@ fn try_future_value_schedule() {
 
 #[derive(Debug)]
 pub struct FutureValue {
-    rate: f64,
-    periods: u16,
-    present_value: f64,
-    future_value: f64,
+    pub rate: f64,
+    pub periods: u16,
+    pub present_value: f64,
+    pub future_value: f64,
 }
 impl FutureValue {
     pub fn new(rate: f64, periods: u16, present_value: f64, future_value: f64) -> Self {
@@ -101,11 +101,11 @@ pub fn future_value(interest_rate: f64, present_value: f64, periods: u16) -> Fut
 
 #[derive(Debug)]
 pub struct FutureValuePeriod {
-    period: u16,
-    rate: f64,
-    present_value: f64,
-    period_value: f64,
-    future_value: f64,
+    pub period: u16,
+    pub rate: f64,
+    pub present_value: f64,
+    pub period_value: f64,
+    pub future_value: f64,
 }
 impl FutureValuePeriod {
     pub fn new(period: u16, rate: f64, present_value: f64, period_value: f64, future_value: f64) -> Self {
@@ -138,11 +138,11 @@ pub fn future_value_series(interest_rate: f64, present_value: f64, periods: u16)
 
 #[derive(Debug)]
 pub struct FutureValueSchedule {
-    rates: Vec<f64>,
-    num_periods: u16,
-    present_value: f64,
-    future_value: f64,
-    period_values: Vec<f64>,
+    pub rates: Vec<f64>,
+    pub num_periods: u16,
+    pub present_value: f64,
+    pub future_value: f64,
+    pub period_values: Vec<f64>,
 }
 impl FutureValueSchedule {
     pub fn new(rates: Vec<f64>, num_periods: u16, present_value: f64, future_value: f64, period_values: Vec<f64>) -> Self {

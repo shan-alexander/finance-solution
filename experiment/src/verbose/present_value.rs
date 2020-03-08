@@ -61,11 +61,11 @@ fn try_present_value_series() {
 
 #[derive(Debug)]
 pub struct PresentValue {
-    rate: f64,
-    periods: u16,
-    present_value: f64,
-    future_value: f64,
-    period_values: Vec<PresentValuePeriod>,
+    pub rate: f64,
+    pub periods: u16,
+    pub present_value: f64,
+    pub future_value: f64,
+    pub period_values: Vec<PresentValuePeriod>,
 }
 impl PresentValue {
     pub fn new(rate: f64, periods: u16, present_value: f64, future_value: f64, period_values: Vec<PresentValuePeriod>) -> Self {
@@ -78,6 +78,10 @@ impl PresentValue {
         }
     }
 }
+
+// note: we should bench these two methods of PV:
+// PV = FV (1 + i)^-n  OR PV = 𝐅𝐕 / (𝟏 + 𝐢)^n
+
 /// Return the Present Value of a future amount.
 pub fn present_value(rate_of_return: f64, future_value: f64, periods: u16) -> PresentValue {
     // assertions to ensure valid financial computation
@@ -101,11 +105,11 @@ pub fn present_value(rate_of_return: f64, future_value: f64, periods: u16) -> Pr
 
 #[derive(Debug)]
 pub struct PresentValuePeriod {
-    period: u16,
-    rate: f64,
-    future_value: f64,
-    period_value: f64,
-    present_value: f64,
+    pub period: u16,
+    pub rate: f64,
+    pub future_value: f64,
+    pub period_value: f64,
+    pub present_value: f64,
 }
 impl PresentValuePeriod {
     pub fn new(period: u16, rate: f64, future_value: f64, period_value: f64, present_value: f64) -> Self {

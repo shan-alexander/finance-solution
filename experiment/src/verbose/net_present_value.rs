@@ -73,14 +73,14 @@ fn try_npv_var_rates_cfs() {
 
 #[derive(Debug)]
 pub struct NetPresentValue {
-    rate: f64,
-    periods: u16,
-    cashflows: Vec<f64>,
-    present_value_cashflows: Vec<f64>,
-    initial_investment: f64,
-    sum_of_future_cashflows: f64,
-    npv_of_future_cashflows: f64,
-    npv: f64,
+    pub rate: f64,
+    pub periods: u16,
+    pub cashflows: Vec<f64>,
+    pub present_value_cashflows: Vec<f64>,
+    pub initial_investment: f64,
+    pub sum_of_future_cashflows: f64,
+    pub npv_of_future_cashflows: f64,
+    pub npv: f64,
 }
 impl NetPresentValue {
     pub fn new(rate: f64, periods: u16, cashflows: Vec<f64>, present_value_cashflows: Vec<f64>, initial_investment: f64, sum_of_future_cashflows: f64, npv_of_future_cashflows: f64, npv: f64,) -> Self {
@@ -129,11 +129,11 @@ pub fn npv(initial_investment: f64, discount_rate: f64, periods: u16, cashflow: 
 
 #[derive(Debug)]
 pub struct NpvPeriod {
-    period: u16,
-    initial_investment: f64, 
-    rate: f64, 
-    cash_flow: f64,
-    present_value: f64,
+    pub period: u16,
+    pub initial_investment: f64, 
+    pub rate: f64, 
+    pub cash_flow: f64,
+    pub present_value: f64,
 }
 impl NpvPeriod {
    pub fn new(period: u16, initial_investment: f64, rate: f64, cash_flow: f64, present_value: f64) -> Self {
@@ -173,14 +173,14 @@ pub fn npv_series(initial_investment: f64, discount_rate: f64, n: u16, cash_flow
 
 #[derive(Debug)]
 pub struct NpvVarRate {
-    rate: Vec<f64>,
-    periods: u16,
-    cashflows: Vec<f64>,
-    present_value_cashflows: Vec<f64>,
-    initial_investment: f64,
-    sum_future_cashflows: f64,
-    npv_future_cashflows: f64,
-    npv: f64,
+    pub rate: Vec<f64>,
+    pub periods: u16,
+    pub cashflows: Vec<f64>,
+    pub present_value_cashflows: Vec<f64>,
+    pub initial_investment: f64,
+    pub sum_future_cashflows: f64,
+    pub npv_future_cashflows: f64,
+    pub npv: f64,
 }
 impl NpvVarRate {
     pub fn new(rate: Vec<f64>, periods: u16, cashflows: Vec<f64>, present_value_cashflows: Vec<f64>, initial_investment: f64, sum_future_cashflows: f64, npv_future_cashflows: f64, npv: f64,) -> Self {
@@ -238,14 +238,14 @@ pub fn npv_var_rates(rates: &[f64], initial_investment: f64, constant_cashflow: 
 
 #[derive(Debug)]
 pub struct NpvVarCashflow {
-    rate: f64,
-    periods: u16,
-    cashflows: Vec<f64>,
-    present_value_cashflows: Vec<f64>,
-    initial_investment: f64,
-    sum_future_cashflows: f64,
-    npv_future_cashflows: f64,
-    npv: f64,
+    pub rate: f64,
+    pub periods: u16,
+    pub cashflows: Vec<f64>,
+    pub present_value_cashflows: Vec<f64>,
+    pub initial_investment: f64,
+    pub sum_future_cashflows: f64,
+    pub npv_future_cashflows: f64,
+    pub npv: f64,
 }
 impl NpvVarCashflow {
     pub fn new(rate: f64, periods: u16, cashflows: Vec<f64>, present_value_cashflows: Vec<f64>, initial_investment: f64, sum_future_cashflows: f64, npv_future_cashflows: f64, npv: f64,) -> Self {
@@ -295,14 +295,14 @@ pub fn npv_var_cfs(rate: f64, cashflows: &[f64]) -> NpvVarCashflow {
 
 #[derive(Debug)]
 pub struct NpvVarRatesCfs {
-    rate: Vec<f64>,
-    periods: u16,
-    cashflows: Vec<f64>,
-    present_value_cashflows: Vec<f64>,
-    initial_investment: f64,
-    sum_future_cashflows: f64,
-    npv_future_cashflows: f64,
-    npv: f64,
+    pub rate: Vec<f64>,
+    pub periods: u16,
+    pub cashflows: Vec<f64>,
+    pub present_value_cashflows: Vec<f64>,
+    pub initial_investment: f64,
+    pub sum_future_cashflows: f64,
+    pub npv_future_cashflows: f64,
+    pub npv: f64,
 }
 impl NpvVarRatesCfs {
     pub fn new(rate: Vec<f64>, periods: u16, cashflows: Vec<f64>, present_value_cashflows: Vec<f64>, initial_investment: f64, sum_future_cashflows: f64, npv_future_cashflows: f64, npv: f64,) -> Self {
