@@ -9,7 +9,12 @@ use log::{info, warn, log_enabled};
 pub fn main() { 
     try_convert_apr_to_periodic();
     try_convert_apr_to_ear();
+    try_convert_periodic_to_ear();
 }
+
+// note: APR is also called "standard interest rate" or just "interest rate"
+// EAR and APY are the same thing. EAR is more polite than APY because the "Y" for yield reminds people that someone is earning a yield from the deal
+// To remember simply, a monthly periodic rate is the APR/12.
 
 fn try_convert_apr_to_periodic() {
     // expect 0.0045833333 repeating
@@ -24,6 +29,9 @@ fn try_convert_apr_to_periodic() {
     let periodic_rate = convert_apr_to_periodic(apr, num_periods);
     dbg!(periodic_rate);    
 }
+
+// calculator to check EAR conversions
+// https://www.calculatorsoup.com/calculators/financial/effective-annual-rate-calculator.php
 
 fn try_convert_apr_to_ear() {
     // expect 3.2989%
@@ -42,6 +50,16 @@ fn try_convert_apr_to_ear() {
     let apr = 0.0125;
     let apr_to_ear = convert_apr_to_ear_continuous_compound(apr);
     dbg!(apr_to_ear);
+}
+
+fn try_convert_periodic_to_ear() {
+    // https://www.investopedia.com/articles/investing/121713/interest-rates-apr-apy-and-ear.asp
+    // expect 25.72% EAR (also known as APY)
+    let apr: f64 = 0.228964;
+    let num_compounding_periods: f64 = 365_f64; // daily compounding
+    let periodic_rate = apr / num_compounding_periods;
+    let ear_solution = convert_periodic_to_ear(periodic_rate, num_compounding_periods);
+    dbg!(ear_solution);
 }
 
 fn try_find_apr() {
@@ -75,7 +93,15 @@ pub fn convert_apr_to_ear_continuous_compound(apr: f64) -> f64 {
     e.powf(apr) - 1_f64
 }
 
+/// Convert a periodic interest rate (APR / num of compounding periods) to EAR (effective annual rate).
+pub fn convert_periodic_to_ear(periodic_rate: f64, compounding_periods_in_year: f64) -> f64 {
+    (1_f64 + periodic_rate).powi(compounding_periods_in_year as i32) - 1_f64
+}
 
+pub fn convert_ear_to_periodic(ear: f64, periods_per_year: u8) -> f64 {
+    // EPR = (1 + annual rate)^(1/#ofPeriodsPerYear) 
+    (1. + ear).powf(1./periods_per_year as f64) - 1.
+}
 
 pub struct FindAprSolution {
     num_periods: u16,
