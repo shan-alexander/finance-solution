@@ -7,9 +7,7 @@ use log::{info, warn, log_enabled};
 
 pub fn main() {
     try_present_value();
-    // try_future_value();
     // try_present_value_series()
-
 }
 
 fn try_present_value() {
@@ -121,7 +119,7 @@ impl PresentValuePeriod {
         }
     }
 }
-/// Return the Present Value of a future amount.
+/// Return the Present Value of a future amount, as a Vec of periods showing details about each period calculation.
 pub fn present_value_series(rate_of_return: f64, future_value: f64, periods: u16) -> Vec<PresentValuePeriod> {
     // assertions to ensure valid financial computation
     assert!(rate_of_return.is_finite());
