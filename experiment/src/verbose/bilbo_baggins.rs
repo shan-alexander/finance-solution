@@ -7,6 +7,7 @@ use crate::verbose::present_value;
 use crate::verbose::present_value_annuity;
 use crate::verbose::future_value;
 use crate::verbose::future_value_annuity;
+use crate::verbose::payment;
 
 pub fn main() {
     try_bilbo_baggins();
@@ -38,13 +39,13 @@ fn try_bilbo_baggins() {
     // EPR = (1 + EAR)^(1/#ofPeriodsPerYear) 
     let epr_before_retire = convert_rates::convert_ear_to_periodic(effective_annual_rate_before_retire, 12);
     let epr_after_retire = convert_rates::convert_ear_to_periodic(effective_annual_rate_after_retire, 12);
-    // dbg!(epr_before_retire);
-    // dbg!(epr_after_retire);
+    dbg!(epr_before_retire);
+    dbg!(epr_after_retire);
 
     // step two: Calculate the Future Value of Annuity of years 0 - &buy_cabin_in_years_from_now
     // Now we need the Future Value of Bilbo's savings cashflow (i.e., Annuity) from years 0 - &buy_cabin_in_years_from_now
-    
-    let fv_savings_before_buying_cabin = future_value_annuity::future_value_annuity(currently_save_per_month, epr_before_retire, buy_cabin_in_years_from_now as u16);
+    let months_of_savings_before_buying_cabin = buy_cabin_in_years_from_now * 12;
+    let fv_savings_before_buying_cabin = future_value_annuity::future_value_annuity(currently_save_per_month, epr_before_retire, months_of_savings_before_buying_cabin as u16);
     dbg!(&fv_savings_before_buying_cabin);
 
     // step three: how much money do we have at yearX when we buy the cabin?
@@ -54,7 +55,7 @@ fn try_bilbo_baggins() {
     // step four: calculate the Present Value of Bilbo's intended retirement income at year &retire_in_years_from_now
     // thus, use present_value_annuity
 
-    let retirement_income_at_beginning_of_retirement = present_value_annuity::present_value_annuity(retirement_income_per_month, epr_after_retire, retirement_income_for_how_many_years as u16);
+    let retirement_income_at_beginning_of_retirement = present_value_annuity::present_value_annuity(retirement_income_per_month, epr_after_retire, (retirement_income_for_how_many_years*12) as u16);
     dbg!(&retirement_income_at_beginning_of_retirement);
     dbg!(&retirement_income_at_beginning_of_retirement.present_value_annuity);
     
@@ -87,6 +88,9 @@ fn try_bilbo_baggins() {
     let monthly_savings_needed = payment(epr_before_retire, months_between as u16, amount_needed);
     dbg!(monthly_savings_needed);
     
+
+    let monthly_savings_needed = payment::payment(epr_before_retire, months_between as u16, 0., amount_needed, false);
+    dbg!(monthly_savings_needed);
 
 
 }
