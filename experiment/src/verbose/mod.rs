@@ -8,5 +8,6 @@ pub mod nper;
 pub mod convert_rates;
 pub mod perpetuity;
 pub mod bilbo_baggins;
+pub mod weird_enum_solver;
 pub mod tvm_solver;
 

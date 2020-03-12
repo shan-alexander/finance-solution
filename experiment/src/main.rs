@@ -19,16 +19,7 @@ fn main() {
     // verbose::convert_rates::main();
     // verbose::perpetuity::main();
     // verbose::bilbo_baggins::main();
+    // verbose::weird_enum_solver::main();
     verbose::tvm_solver::main();
-
-    
-    // let decimal_test = dec!(12.123456789123456789123456789123456789123456789123456789);
-    // dbg!(&decimal_test);
-    // let decimal_test2 = dec!(12.123456789123456789123456789123456789123456789123456789);
-    // assert_eq!(decimal_test,decimal_test2);
-    // dbg!(decimal_test * dec!(0.39));
-    // let f64_test = 12.123456789123456789123456789123456789123456789123456789;
-    // dbg!(&f64_test);
-    // dbg!(f64_test * 0.39);
-    
+   
 }
