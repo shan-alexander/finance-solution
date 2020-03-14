@@ -66,13 +66,15 @@ impl NperSolution {
 }
 
 //To calculate the number of periods needed for an annuity to reach a given future value, you can use the NPER function.
-pub fn nper(periodic_rate: f64, payment_amount: f64, present_value_total: f64, future_value_total: f64) -> NperSolution {
-    
-    assert!(payment_amount < 0_f64); // payment must be negative, same as Excel.
+pub fn nper<C: Into<f64> + Copy, P: Into<f64> + Copy, F: Into<f64> + Copy>(periodic_rate: f64, payment_amount: C, present_value: P, future_value: F) -> NperSolution {
+    let pmt = payment_amount.into();
+    let pv = present_value.into();
+    let fv = future_value.into();
+    assert!(pmt < 0_f64); // payment must be negative, same as Excel.
 
     // LN((pmt - fv*r_)/(pmt + pv*r_))/LN(1 + r_)
     // =Log10(Payment/(Payment+Capital+Rate))/Log10(1+Rate)
-    let numerator = libm::log10( (payment_amount - future_value_total * periodic_rate) / (payment_amount +  present_value_total * periodic_rate) );
+    let numerator = libm::log10( (pmt - fv * periodic_rate) / (pmt +  pv * periodic_rate) );
     let num_periods = numerator / libm::log10(1. + periodic_rate); 
-    NperSolution::new(periodic_rate, num_periods, payment_amount, present_value_total, future_value_total)
+    NperSolution::new(periodic_rate, num_periods, pmt, pv, fv)
 }

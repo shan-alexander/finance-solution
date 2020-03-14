@@ -73,12 +73,13 @@ fn try_present_value_series() {
 #[derive(Debug)]
 pub struct PresentValueSolution {
     pub rate: f64,
-    pub periods: u16,
+    pub periods: f64,
     pub present_value: f64,
     pub future_value: f64,
 }
+
 impl PresentValueSolution {
-    pub fn new(rate: f64, periods: u16, present_value: f64, future_value: f64, ) -> Self {
+    pub fn new(rate: f64, periods: f64, present_value: f64, future_value: f64, ) -> Self {
         Self {
             rate,
             periods,
@@ -94,10 +95,10 @@ impl PresentValueSolution {
         // final computation for returning a series of present values
         let interest_mult = 1. + self.rate;
         let _present_value = self.future_value / (interest_mult).powi(self.periods as i32);
-        let mut present_value_periods = vec![PresentValuePeriod::new(self.periods, self.rate, self.future_value, self.future_value, self.present_value)];
-        for period in 1..=self.periods {
+        let mut present_value_periods = vec![PresentValuePeriod::new(self.periods as u16, self.rate, self.future_value, self.future_value, self.present_value)];
+        for period in 1..=self.periods as u16 {
             let period_value = self.future_value / (interest_mult).powi(period as i32);
-            present_value_periods.insert(0, PresentValuePeriod::new(self.periods-period, self.rate, self.future_value, period_value, self.present_value));
+            present_value_periods.insert(0, PresentValuePeriod::new(self.periods as u16 - period, self.rate, self.future_value, period_value, self.present_value));
         }
         present_value_periods
     }
@@ -105,27 +106,31 @@ impl PresentValueSolution {
 type PV = PresentValueSolution; // Creates a type alias
 
 /// Return the Present Value of a future amount.
-pub fn present_value(rate_of_return: f64, future_value: f64, periods: u16) -> PV {
+pub fn present_value<T: Into<f64> + Copy, F: Into<f64> + Copy>(rate_of_return: f64, future_value: F, periods: T) -> PV {
     // Bench: 1.4776 us  when including PeriodValues
     // Bench: 26.650 ns  when removing the PeriodValues calculation
     // assertions to ensure valid financial computation
+    let fv = future_value.into();
     assert!(rate_of_return.is_finite());
-    assert!(future_value.is_finite());
-    assert!(future_value >= 0.);
+    assert!(fv.is_finite());
+    assert!(fv >= 0.);
     if rate_of_return > 1. { 
         warn!("You used a rate of return ({}) greater than 1, therefore implying a return of {}%. Are you sure?", rate_of_return, rate_of_return*100.);
     }
+    let n = periods.into();
     // final computation for returning a present value
-    let present_value = future_value / (1. + rate_of_return).powi(periods as i32);
+    let present_value = fv / (1. + rate_of_return).powf(n);
 
-    PresentValueSolution::new(rate_of_return, periods, present_value, future_value)
+    PresentValueSolution::new(rate_of_return, n, present_value, fv)
 }
 
 
-pub fn pv(r: f64, n: u16, fv: f64) -> f64 {
+pub fn pv<T: Into<f64> + Copy, C: Into<f64> + Copy>(r: f64, n: T, fv: C) -> f64 {
     // PV = 𝐅𝐕 / (𝟏 + 𝐢)^n
     // Bench:  17.781 ns
-    fv / (1. + r).powi(n as i32)
+    let c = fv.into();
+    let t = n.into();
+    c / (1. + r).powf(t)
 }
 
 #[derive(Debug)]

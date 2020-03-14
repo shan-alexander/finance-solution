@@ -30,50 +30,15 @@ fn try_payment() {
     let annual_percentage_rate = 0.034_f64; // APR
     let periodic_rate = annual_percentage_rate / 12_f64; // monthly periods/payments
     let num_periods = 60_u16; // 5 years of monthly payments
-    let payment_solution = payment(periodic_rate, num_periods, present_value, future_value, false);
+    let payment_solution = payment(periodic_rate, num_periods, present_value, future_value);
     dbg!(&payment_solution);
     println!("Monthly payment: {}", payment_solution.period_payment);
 }
 
-// #[derive(Debug)]
-// pub struct PaymentSolution {
-//     pub loan_amount: f64,
-//     pub periodic_rate: f64,
-//     pub num_periods: u16,
-//     pub period_payment: f64,
-//     pub total_payment: f64,
-//     pub total_interest_amount: f64,
-// }
-// impl PaymentSolution {
-//     pub fn new(loan_amount: f64, periodic_rate: f64, num_periods: u16, period_payment: f64, total_payment: f64, total_interest_amount: f64) -> Self {
-//         Self {
-//             loan_amount,
-//             periodic_rate,
-//             num_periods,
-//             period_payment,
-//             total_payment,
-//             total_interest_amount,
-//         }
-//     }
-// }
-// // https://superuser.com/questions/871404/what-would-be-the-the-mathematical-equivalent-of-this-excel-formula-pmt
-// // https://www.quora.com/What-is-the-actual-formula-behind-PMT-function-in-Excel-and-how-is-it-used
-// /// Returns a Payment solution. Typically, the rate of a loan is quoted as an APR (annual percentage rate), and must be converted into a periodic rate (APR/num_periods_in_year) for this function. Payments due at end of period. Currenttly, this function does not support Payments due at beginning of the period.
-// pub fn payment(loan_amount: f64, periodic_rate: f64, num_periods: u16) -> PaymentSolution {
-//     // PV*((1+Rate)^nper) + pmt(1+rate*type) * (((1+rate)^Nper) -1 )/ rate) + FV = 0
-//     // ( PV*((1+Rate)^nper) + FV ) / (((1+rate)^Nper) -1 )/ rate) / (1+rate*type)   = -pmt
-//     // If rate =0 then (Pmt * Nper)+PV+FV=0
-//     // https://www.techrepublic.com/forums/discussions/the-real-math-behind-excel-formulas/
-//     let period_payment = (loan_amount * periodic_rate) / (1. - (1. + periodic_rate).powi(-1 * (num_periods) as i32));
-//     let total_payment = period_payment * num_periods as f64;
-//     let total_interest_amount = total_payment - loan_amount;
-//     PaymentSolution::new(loan_amount, periodic_rate, num_periods, period_payment, total_payment, total_interest_amount)
-// }
-
 #[derive(Debug)]
 pub struct PaymentSolution {
     pub periodic_rate: f64,
-    pub num_periods: u16,
+    pub num_periods: f64,
     pub present_value: f64,
     pub future_value: f64,
     pub period_payment: f64,
@@ -82,7 +47,7 @@ pub struct PaymentSolution {
     pub due: bool,
 }
 impl PaymentSolution {
-    pub fn new(periodic_rate: f64, num_periods: u16, present_value: f64, future_value: f64, period_payment: f64, total_payment: f64, total_interest_amount: f64, due: bool) -> Self {
+    pub fn new(periodic_rate: f64, num_periods: f64, present_value: f64, future_value: f64, period_payment: f64, total_payment: f64, total_interest_amount: f64, due: bool) -> Self {
         Self {
             periodic_rate,
             num_periods, 
@@ -95,16 +60,37 @@ impl PaymentSolution {
         }
     }
 }
-// not working... attempt to duplicate excel function with this (feel free to overwrite)
-pub fn payment(periodic_rate: f64, num_periods: u16, present_value: f64, future_value: f64, due: bool) -> PaymentSolution {
+
+pub fn payment<T: Into<f64> + Copy, P: Into<f64> + Copy, F: Into<f64> + Copy>(periodic_rate: f64, num_periods: T, present_value: P, future_value: F) -> PaymentSolution {
     
     // https://www.techrepublic.com/forums/discussions/the-real-math-behind-excel-formulas/   
     // If rate =0 then (Pmt * Nper)+PV+FV=0
+
+
     // ultimate formula:pv*(1+rate)^nper + pmt(1+rate*type)*((1+rate)^nper-1)/rate +fv = 0
     // (pv*(1+rate)^nper + fv) / ((1+rate)^nper-1)/rate  / (1+rate*type) = - pmt
+    let n = num_periods.into();
+    let pv = present_value.into();
+    let fv = future_value.into();
+    let pmt = pv * ( (1. + periodic_rate).powf(n) + fv) / (((1. + periodic_rate).powf(n) - 1.) / periodic_rate);
+    let total_payment = pmt * n;
+    let total_interest_amount = total_payment - (fv + pv);
+    PaymentSolution::new(periodic_rate, n, pv, fv, pmt, total_payment, total_interest_amount, true)
+}
 
-    let pmt = present_value * ( (1. + periodic_rate).powi(num_periods as i32) + future_value) / (((1. + periodic_rate).powi(num_periods as i32) - 1.) / periodic_rate) / (1. + (periodic_rate * due as i32 as f64));
-    let total_payment = pmt * num_periods as f64;
-    let total_interest_amount = total_payment - (future_value + present_value);
-    PaymentSolution::new(periodic_rate, num_periods, present_value, future_value, pmt, total_payment, total_interest_amount, due)
+pub fn payment_due<T: Into<f64> + Copy, P: Into<f64> + Copy, F: Into<f64> + Copy>(periodic_rate: f64, num_periods: T, present_value: P, future_value: F) -> PaymentSolution {
+    
+    // https://www.techrepublic.com/forums/discussions/the-real-math-behind-excel-formulas/   
+    // If rate =0 then (Pmt * Nper)+PV+FV=0
+
+
+    // ultimate formula:pv*(1+rate)^nper + pmt(1+rate*type)*((1+rate)^nper-1)/rate +fv = 0
+    // (pv*(1+rate)^nper + fv) / ((1+rate)^nper-1)/rate  / (1+rate*type) = - pmt
+    let n = num_periods.into();
+    let pv = present_value.into();
+    let fv = future_value.into();
+    let pmt = pv * ( (1. + periodic_rate).powf(n) + fv) / (((1. + periodic_rate).powf(n) - 1.) / periodic_rate) / (1. + periodic_rate);
+    let total_payment = pmt * n;
+    let total_interest_amount = total_payment - (fv + pv);
+    PaymentSolution::new(periodic_rate, n, pv, fv, pmt, total_payment, total_interest_amount, true)
 }

@@ -128,7 +128,7 @@ fn calculate_bilbo_solution(b: BilboBagginsInputs) -> BilboBagginsSolution {
     // dbg!(&monthly_savings_needed_after_cabin);
     
 
-    let monthly_savings_needed_after_cabin: PaymentSolution = super::payment::payment(epr_before_retire, months_between_cabin_and_retirement as u16, 0., net_amount_needed_at_retirement, false);
+    let monthly_savings_needed_after_cabin: PaymentSolution = super::payment::payment(epr_before_retire, months_between_cabin_and_retirement, 0., net_amount_needed_at_retirement);
     // dbg!(&monthly_savings_needed_after_cabin);
 
     BilboBagginsSolution::new(

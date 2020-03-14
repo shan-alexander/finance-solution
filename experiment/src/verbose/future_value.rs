@@ -6,9 +6,9 @@ use log::Level;
 use log::{info, warn, log_enabled};
 
 pub fn main() { 
-    // try_future_value();
+    try_future_value();
     // try_future_value_series();
-    try_future_value_schedule();
+    // try_future_value_schedule();
 }
 
 
@@ -27,12 +27,19 @@ fn try_future_value() {
     let future_value_2 = future_value(rate_of_return, present_value_2, periods);
     dbg!(future_value_2);
 
-    // expect 250_000
+    
     let rate_of_return = 1.034f64;
     let present_value_3 = 7_181.0056f64;
     let periods = 5;
-    let present_value_3 = future_value(rate_of_return, present_value_3, periods);
-    dbg!(present_value_3);
+    let future_value_3 = future_value(rate_of_return, present_value_3, periods);
+    dbg!(future_value_3);
+
+    
+    let rate_of_return = 0.03_f64;
+    let present_value_4 = 7_181_i32;
+    let periods = 5.;
+    let future_value_4 = future_value(rate_of_return, present_value_4, periods);
+    dbg!(future_value_4);
 }
 
 fn try_future_value_series() {
@@ -67,14 +74,14 @@ fn try_future_value_schedule() {
 }
 
 #[derive(Debug)]
-pub struct FutureValue {
+pub struct FutureValueSolution {
     pub rate: f64,
-    pub periods: u16,
+    pub periods: f64,
     pub present_value: f64,
     pub future_value: f64,
 }
-impl FutureValue {
-    pub fn new(rate: f64, periods: u16, present_value: f64, future_value: f64) -> Self {
+impl FutureValueSolution {
+    pub fn new(rate: f64, periods: f64, present_value: f64, future_value: f64) -> Self {
         Self {
             rate,
             periods,
@@ -83,32 +90,37 @@ impl FutureValue {
         }
     }
 }
+
+type FV = FutureValueSolution; // Creates a type alias
+
 /// Returns a Future Value of a present amount.
-pub fn future_value(interest_rate: f64, present_value: f64, periods: u16) -> FutureValue {
+pub fn future_value<T: Into<f64> + Copy, P: Into<f64> + Copy>(periodic_rate: f64, present_value: P, periods: T) -> FutureValueSolution {
+    let pv = present_value.into();
+    let n = periods.into();
+    let r = periodic_rate;
     // assertions to ensure valid financial computation
-    assert!(interest_rate.is_finite());
-    assert!(interest_rate >= 0.);
-    assert!(present_value.is_finite());
-    assert!(present_value >= 0.);
-    // warning to ensure developer did not mistake rate with percentage
-    if interest_rate > 1. { 
-        warn!("You provided a rate ({}) greater than 1. Are you sure you expect a {}% return?", interest_rate, interest_rate*100.0); 
+    assert!(r.is_finite());
+    assert!(r >= 0.);
+    assert!(pv.is_finite());
+    assert!(pv >= 0.);
+    if r > 1. || r < -1.{ 
+        warn!("You provided a rate ({}) greater than 1. Are you sure you expect a {}% return?", r, r*100.0); 
     }
     // final computation for future value
-    let future_value = present_value * (1. + interest_rate).powi(periods as i32);
-    FutureValue::new(interest_rate, periods, present_value, future_value)
+    let future_value = pv * (1. + r).powf(n);
+    FutureValueSolution::new(r, n, pv, future_value)
 }
 
 #[derive(Debug)]
 pub struct FutureValuePeriod {
-    pub period: u16,
+    pub period: f64,
     pub rate: f64,
     pub present_value: f64,
     pub period_value: f64,
     pub future_value: f64,
 }
 impl FutureValuePeriod {
-    pub fn new(period: u16, rate: f64, present_value: f64, period_value: f64, future_value: f64) -> Self {
+    pub fn new(period: f64, rate: f64, present_value: f64, period_value: f64, future_value: f64) -> Self {
         Self {
             period,
             rate,
@@ -119,7 +131,8 @@ impl FutureValuePeriod {
     }
 }
 /// Return a vector of future values for each period, starting with Period0 (present value) to Period_n (future value).
-pub fn future_value_series(interest_rate: f64, present_value: f64, periods: u16) -> Vec<FutureValuePeriod> {
+pub fn future_value_series<T: Into<f64> + Copy>(interest_rate: f64, present_value: f64, periods: T) -> Vec<FutureValuePeriod> {
+    let n = periods.into();
     // assertions to ensure valid financial computation
     assert!(interest_rate.is_finite());
     assert!(interest_rate >= 0.);
@@ -127,11 +140,12 @@ pub fn future_value_series(interest_rate: f64, present_value: f64, periods: u16)
     assert!(present_value >= 0.);
     // final computation for returning a series of future values
     let interest_mult = 1. + interest_rate;
-    let future_value = present_value * interest_mult.powi(periods as i32);
-    let mut v = vec![FutureValuePeriod::new(0, interest_rate, present_value, present_value, future_value)];
-    for period in 1..=periods {
+    let future_value = present_value * interest_mult.powf(n);
+    let mut v = vec![FutureValuePeriod::new(0.0, interest_rate, present_value, present_value, future_value)];
+    // to do: how do we handle fractional periods? should we allow fractions in this function?
+    for period in 1..=n as i32 {
         let period_value = present_value * interest_mult.powi(period as i32);
-        v.push(FutureValuePeriod::new(period, interest_rate, present_value, period_value, future_value));
+        v.push(FutureValuePeriod::new(period as f64, interest_rate, present_value, period_value, future_value));
     }
     v
 }
@@ -139,13 +153,13 @@ pub fn future_value_series(interest_rate: f64, present_value: f64, periods: u16)
 #[derive(Debug)]
 pub struct FutureValueSchedule {
     pub rates: Vec<f64>,
-    pub num_periods: u16,
+    pub num_periods: f64,
     pub present_value: f64,
     pub future_value: f64,
     pub period_values: Vec<f64>,
 }
 impl FutureValueSchedule {
-    pub fn new(rates: Vec<f64>, num_periods: u16, present_value: f64, future_value: f64, period_values: Vec<f64>) -> Self {
+    pub fn new(rates: Vec<f64>, num_periods: f64, present_value: f64, future_value: f64, period_values: Vec<f64>) -> Self {
         Self {
             rates,
             num_periods,
@@ -156,7 +170,7 @@ impl FutureValueSchedule {
     }
 }
 /// Returns a Future Value of a present amount with variable rates.
-pub fn future_value_schedule(rates: &[f64], present_value: f64) -> FutureValueSchedule {
+pub fn future_value_schedule<P: Into<f64> + Copy>(rates: &[f64], present_value: P) -> FutureValueSchedule {
     // assertions to ensure valid financial computation
     for r in rates {
         assert!(r.is_finite());
@@ -166,20 +180,30 @@ pub fn future_value_schedule(rates: &[f64], present_value: f64) -> FutureValueSc
             warn!("You provided a rate ({}) greater than 1. Are you sure you expect a {}% return?", r, r*100.); 
         }
     }
-    assert!(present_value.is_finite());
-    assert!(present_value >= 0.);
+    let pv = present_value.into();
+    assert!(pv.is_finite());
+    assert!(pv >= 0.);
     let num_periods = rates.len();
     let all_rates = rates.to_vec();
-    let mut period_values = vec![present_value * (1. + rates[0])];
+    let mut period_values = vec![pv * (1. + rates[0])];
     for i in 1..num_periods {
         let period_value = period_values[i-1] * (1. + rates[i]);
         period_values.push(period_value);
     }
     let future_value = period_values[num_periods-1];
     // final computation for future value
-    FutureValueSchedule::new(all_rates, num_periods as u16, present_value, future_value, period_values)
+    FutureValueSchedule::new(all_rates, num_periods as f64, pv, future_value, period_values)
 }
 
+
+
+pub fn round_to_fraction_of_cent(val: f64) -> f64 {
+    (val * 10_000.0).round() / 10_000.0
+}
+
+pub fn round_to_cent(val: f64) -> f64 {
+    (val * 100.0).round() / 100.0
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -190,7 +214,7 @@ mod tests {
         let present_value_1 = 250_000.0;
         let periods = 5;
         let expected_value = 295489.941778856;
-        let actual_value = future_value(rate_of_return, present_value_1, periods);
+        let actual_value = future_value(rate_of_return, present_value_1, periods).future_value;
         assert_eq!(round_to_cent(expected_value), round_to_cent(actual_value));
         assert!( float_cmp::approx_eq!(f64, expected_value, actual_value, ulps = 4) );
     }
@@ -201,7 +225,7 @@ mod tests {
         let present_value_1 = 13_000.0;
         let periods = 6;
         let expected_value = 20_629.37;
-        let actual_value = future_value(rate_of_return, present_value_1, periods);
+        let actual_value = future_value(rate_of_return, present_value_1, periods).future_value;
         assert_eq!(round_to_cent(expected_value), round_to_cent(actual_value));
         // assert!(exp_value.approx_eq(act_value, (0.0, 2)));
 

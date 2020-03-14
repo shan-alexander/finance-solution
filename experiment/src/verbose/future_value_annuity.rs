@@ -76,43 +76,48 @@ fn try_future_value_annuity_general_due() {
 pub struct FutureValueAnnuitySolution {
     pub annuity_payment_amount: f64,
     pub periodic_rate: f64,
-    pub num_periods: u16,
+    pub num_periods: f64,
     pub future_value_annuity: f64,
+    pub due_at_beginning: bool,
 }
 impl FutureValueAnnuitySolution {
-    pub fn new(annuity_payment_amount: f64, periodic_rate: f64, num_periods: u16, future_value_annuity: f64) -> Self {
+    pub fn new(annuity_payment_amount: f64, periodic_rate: f64, num_periods: f64, future_value_annuity: f64, due_at_beginning: bool) -> Self {
         Self {
             annuity_payment_amount,
             periodic_rate,
             num_periods,
             future_value_annuity,
+            due_at_beginning,
         }
     }
 }
-pub fn future_value_annuity(annuity_payment_amount: f64, periodic_rate: f64, num_periods: u16) -> FutureValueAnnuitySolution {
+pub fn future_value_annuity<T: Into<f64> + Copy, C: Into<f64> + Copy>(annuity_payment_amount: C, periodic_rate: f64, num_periods: T) -> FutureValueAnnuitySolution {
+    let c = annuity_payment_amount.into();
+    let n = num_periods.into();
     // FV_ann = Constant_Cashflow * [ ( (1+periodic_rate)^n -1 )/ periodic_rate ]
-    let fv_ann = annuity_payment_amount * ((1. + periodic_rate).powi(num_periods as i32) - 1.) / periodic_rate;
-
-    FutureValueAnnuitySolution::new(annuity_payment_amount, periodic_rate, num_periods, fv_ann)
+    let fv_ann = c * ((1. + periodic_rate).powf(n) - 1.) / periodic_rate;
+    FutureValueAnnuitySolution::new(c, periodic_rate, n, fv_ann, false)
 }
 
-pub fn future_value_annuity_due(annuity_payment_amount: f64, periodic_rate: f64, num_periods: u16) -> FutureValueAnnuitySolution {
+pub fn future_value_annuity_due<T: Into<f64> + Copy, C: Into<f64> + Copy>(annuity_payment_amount: C, periodic_rate: f64, num_periods: T) -> FutureValueAnnuitySolution {
+    let c = annuity_payment_amount.into();
+    let n = num_periods.into();
     //  FV_ann_due = PMT * (((1 + r)^n -1)/i)  * (1 + r)
-    let fv_ann_due = (annuity_payment_amount * ((1. + periodic_rate).powi(num_periods as i32) - 1.) / periodic_rate) * (1. + periodic_rate);
+    let fv_ann_due = (c * ((1. + periodic_rate).powf(n) - 1.) / periodic_rate) * (1. + periodic_rate);
 
-    FutureValueAnnuitySolution::new(annuity_payment_amount, periodic_rate, num_periods, fv_ann_due)
+    FutureValueAnnuitySolution::new(c, periodic_rate, n, fv_ann_due, true)
 }
 
 #[derive(Debug)]
 pub struct FutureValueAnnuityGeneralSolution {
     pub annuity_payment_amount: f64,
     pub periodic_rate: f64,
-    pub num_periods: u16,
-    pub compound_intervals_per_payment_period: u16,
+    pub num_periods: f64,
+    pub compound_intervals_per_payment_period: f64,
     pub future_value_annuity: f64,
 }
 impl FutureValueAnnuityGeneralSolution {
-    pub fn new(annuity_payment_amount: f64, periodic_rate: f64, num_periods: u16, compound_intervals_per_payment_period: u16, future_value_annuity: f64) -> Self {
+    pub fn new(annuity_payment_amount: f64, periodic_rate: f64, num_periods: f64, compound_intervals_per_payment_period: f64, future_value_annuity: f64) -> Self {
         Self {
             annuity_payment_amount,
             periodic_rate,
@@ -122,24 +127,30 @@ impl FutureValueAnnuityGeneralSolution {
         }
     }
 }
-pub fn future_value_annuity_general(annuity_payment_amount: f64, periodic_rate: f64, num_payment_periods: u16, num_compounding_periods_per_payment_period: u16) -> FutureValueAnnuityGeneralSolution {
+pub fn future_value_annuity_general<T: Into<f64> + Copy, TT:Into<f64> + Copy, C: Into<f64> + Copy>(annuity_payment_amount: C, periodic_rate: f64, num_payment_periods: T, num_compounding_periods_per_payment_period: TT) -> FutureValueAnnuityGeneralSolution {
+    let pmt = annuity_payment_amount.into();
+    let n = num_payment_periods.into();
+    let c = num_compounding_periods_per_payment_period.into();
     // p = (1+i)^c ─1   where i is the periodic rate of interest and c is the number of interest conversion periods per payment interval.
     // p is the "equivalent rate of interest per payment period"
-    let p: f64 = (1. + periodic_rate).powi(num_compounding_periods_per_payment_period as i32) - 1.;
+    let p: f64 = (1. + periodic_rate).powf(c) - 1.;
     // FV_ann_general = Constant_Cashflow * [ ( (1+p)^n -1 )/ p ]
-    let fv_ann_gen = annuity_payment_amount * ((1. + p).powi(num_payment_periods as i32) - 1.) / p;
+    let fv_ann_gen = pmt * ((1. + p).powf(n) - 1.) / p;
 
-    FutureValueAnnuityGeneralSolution::new(annuity_payment_amount, periodic_rate, num_payment_periods, num_compounding_periods_per_payment_period, fv_ann_gen)
+    FutureValueAnnuityGeneralSolution::new(pmt, periodic_rate, n, c, fv_ann_gen)
 }
 
-pub fn future_value_annuity_general_due(annuity_payment_amount: f64, periodic_rate: f64, num_payment_periods: u16, num_compounding_periods_per_payment_period: u16) -> FutureValueAnnuityGeneralSolution {
+pub fn future_value_annuity_general_due<T: Into<f64> + Copy, TT:Into<f64> + Copy, C:Into<f64> + Copy>(annuity_payment_amount: C, periodic_rate: f64, num_payment_periods: T, num_compounding_periods_per_payment_period: TT) -> FutureValueAnnuityGeneralSolution {
+    let pmt = annuity_payment_amount.into();
+    let n = num_payment_periods.into();
+    let c = num_compounding_periods_per_payment_period.into();
     // p = (1+i)^c ─1   where i is the periodic rate of interest and c is the number of interest conversion periods per payment interval.
     // p is the "equivalent rate of interest per payment period"
-    let p: f64 = (1. + periodic_rate).powi(num_compounding_periods_per_payment_period as i32) - 1.;
+    let p: f64 = (1. + periodic_rate).powf(c) - 1.;
     // FV_ann_general_due = Constant_Cashflow * [ ( (1+p)^n -1 )/ p ] * (1 + i)
-    let fv_ann_gen_due = (annuity_payment_amount * ((1. + p).powi(num_payment_periods as i32) - 1.) / p) * (1. + periodic_rate);
+    let fv_ann_gen_due = (pmt * ((1. + p).powf(n) - 1.) / p) * (1. + periodic_rate);
 
-    FutureValueAnnuityGeneralSolution::new(annuity_payment_amount, periodic_rate, num_payment_periods, num_compounding_periods_per_payment_period, fv_ann_gen_due)
+    FutureValueAnnuityGeneralSolution::new(pmt, periodic_rate, n, c, fv_ann_gen_due)
 }
 
 

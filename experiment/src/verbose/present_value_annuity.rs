@@ -26,30 +26,36 @@ fn try_present_value_annuity() {
 pub struct PresentValueAnnuitySolution {
     pub annuity_payment_amount: f64,
     pub periodic_rate: f64,
-    pub num_periods: u16,
+    pub num_periods: f64,
     pub present_value_annuity: f64,
+    pub due_at_beginning: bool,
 }
 impl PresentValueAnnuitySolution {
-    pub fn new(annuity_payment_amount: f64, periodic_rate: f64, num_periods: u16, present_value_annuity: f64) -> Self {
+    pub fn new(annuity_payment_amount: f64, periodic_rate: f64, num_periods: f64, present_value_annuity: f64, due_at_beginning: bool) -> Self {
         Self {
             annuity_payment_amount,
             periodic_rate,
             num_periods,
             present_value_annuity,
+            due_at_beginning,
         }
     }
 }
-pub fn present_value_annuity(annuity_payment_amount: f64, periodic_rate: f64, num_periods: u16) -> PresentValueAnnuitySolution {
+pub fn present_value_annuity<T: Into<f64> + Copy, C: Into<f64> + Copy>(annuity_payment_amount: C, periodic_rate: f64, num_periods: T) -> PresentValueAnnuitySolution {
     //  P = (PMT [(1 - (1 / (1 + r)^n)) / r])
-    let pv = annuity_payment_amount * ((1. - (1. / (1. + periodic_rate)).powi(num_periods as i32)) / periodic_rate);
+    let pmt = annuity_payment_amount.into();
+    let n = num_periods.into();
+    let pv = pmt * ((1. - (1. / (1. + periodic_rate)).powf(n)) / periodic_rate);
 
-    PresentValueAnnuitySolution::new(annuity_payment_amount, periodic_rate, num_periods, pv)
+    PresentValueAnnuitySolution::new(pmt, periodic_rate, n, pv, false)
 }
 
-pub fn present_value_annuity_due(annuity_payment_amount: f64, periodic_rate: f64, num_periods: u16) -> PresentValueAnnuitySolution {
+pub fn present_value_annuity_due<T: Into<f64> + Copy, C: Into<f64> + Copy>(annuity_payment_amount: C, periodic_rate: f64, num_periods: T) -> PresentValueAnnuitySolution {
+    let pmt = annuity_payment_amount.into();
+    let n = num_periods.into();
     //  P = (PMT [(1 - (1 / (1 + r)^n)) / r]) x (1+r)
-    let pv = annuity_payment_amount * ((1. - (1. / (1. + periodic_rate)).powi(num_periods as i32)) / periodic_rate) * (1. + periodic_rate);
+    let pv = pmt * ((1. - (1. / (1. + periodic_rate)).powf(n)) / periodic_rate) * (1. + periodic_rate);
 
-    PresentValueAnnuitySolution::new(annuity_payment_amount, periodic_rate, num_periods, pv)
+    PresentValueAnnuitySolution::new(pmt, periodic_rate, n, pv, true)
 }
 
