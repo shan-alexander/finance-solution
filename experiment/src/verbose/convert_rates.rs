@@ -166,11 +166,7 @@ mod tests {
     use super::*;
 
     #[should_panic]
-    pub fn test_negative_period_convert_apr_to_periodic() {
-        convert_apr_to_periodic(0.03, -3.4);
-    }
-    #[should_panic]
-    pub fn test_fractional_period() {
+    fn test_fractional_period() {
         convert_apr_to_periodic(0.03, 0.4);
     }
 }

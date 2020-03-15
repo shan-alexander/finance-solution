@@ -114,12 +114,16 @@ pub fn present_value<T: Into<f64> + Copy, F: Into<f64> + Copy>(rate_of_return: f
     assert!(rate_of_return.is_finite());
     assert!(fv.is_finite());
     assert!(fv >= 0.);
-    if rate_of_return > 1. { 
+    if rate_of_return > 1. || rate_of_return < -1. { 
         warn!("You used a rate of return ({}) greater than 1, therefore implying a return of {}%. Are you sure?", rate_of_return, rate_of_return*100.);
     }
     let n = periods.into();
     // final computation for returning a present value
     let present_value = fv / (1. + rate_of_return).powf(n);
+
+    if rate_of_return < 0.0 {
+        assert!(present_value > fv);
+    }
 
     PresentValueSolution::new(rate_of_return, n, present_value, fv)
 }
@@ -195,12 +199,37 @@ mod tests {
 
     #[test]
     fn test_present_value_2() {
+        // test different types
         let rate_of_return = 0.08;
-        let future_value = 20_629.37;
-        let periods = 6;
+        let future_value = 20_629.37_f32;
+        let periods = 6_u8;
         let expected_value = 13_000.0;
         let actual_value = present_value(rate_of_return, future_value, periods).present_value;
         assert_eq!(round_to_cent(expected_value), round_to_cent(actual_value));
     }
+    #[test]
+    fn test_present_value_3() {
+        // test negative rate
+        let rate_of_return = -0.09;
+        let future_value = 5_000_u32;
+        let periods = 6.0;
+        let expected_value = 8_804.84368898;
+        let actual_value = present_value(rate_of_return, future_value, periods).present_value;
+        assert_eq!(round_to_cent(expected_value), round_to_cent(actual_value));
+    }
+    
+    #[should_panic]
+    #[test]
+    fn test_present_value_4() {
+        // test negative future value 
+        let rate_of_return = 0.09;
+        let future_value = -5_000_i32;
+        let periods = 6;
+        // let expected_value = 8_804.84368898;
+        let actual_value = present_value(rate_of_return, future_value, periods).present_value;
+        // assert_eq!(round_to_cent(expected_value), round_to_cent(actual_value));
+
+    }
+ 
 
 }

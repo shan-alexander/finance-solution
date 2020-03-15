@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-mod fina; // a copy&paste of the finance-math crate library, for quick reference
+// mod fina; // a copy&paste of the finance-math crate library, for quick reference
 use experiment::*;
 use env_logger::Env;
 
@@ -20,6 +20,7 @@ fn main() {
     // verbose::perpetuity::main();
     // verbose::bilbo_baggins::main();
     // verbose::weird_enum_solver::main();
-    verbose::tvm_solver::main();
+    // verbose::tvm_solver::main();
+    verbose::find_rate::main();
    
 }
