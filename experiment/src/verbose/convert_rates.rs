@@ -87,11 +87,11 @@ fn try_convert_periodic_to_ear_f64() {
 
 #[derive(Debug)]
 pub struct AprEarSolution {
-    annual_percentage_rate: f64,
-    num_periods_in_year: f64,
-    effective_annual_rate: f64,
-    input_in_percent: String,
-    output_in_percent: String,
+    pub annual_percentage_rate: f64,
+    pub num_periods_in_year: f64,
+    pub effective_annual_rate: f64,
+    pub input_in_percent: String,
+    pub output_in_percent: String,
 }
 impl AprEarSolution {
     pub fn new(annual_percentage_rate: f64,num_periods_in_year: f64,effective_annual_rate: f64, input_in_percent: String, output_in_percent: String) -> Self {
@@ -107,11 +107,11 @@ impl AprEarSolution {
 
 #[derive(Debug)]
 pub struct AprPeriodicSolution {
-    annual_percentage_rate: f64,
-    num_periods_in_year: f64,
-    periodic_rate: f64,
-    input_in_percent: String,
-    output_in_percent: String,
+    pub annual_percentage_rate: f64,
+    pub num_periods_in_year: f64,
+    pub periodic_rate: f64,
+    pub input_in_percent: String,
+    pub output_in_percent: String,
 }
 impl AprPeriodicSolution {
     pub fn new(annual_percentage_rate: f64,num_periods_in_year: f64,periodic_rate: f64, input_in_percent: String, output_in_percent: String) -> Self {

@@ -11,4 +11,5 @@ pub mod bilbo_baggins;
 pub mod weird_enum_solver;
 pub mod tvm_solver;
 // pub mod find_rate;
+pub mod examples_1;
 

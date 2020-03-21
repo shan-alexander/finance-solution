@@ -79,14 +79,17 @@ pub struct FutureValueSolution {
     pub periods: f64,
     pub present_value: f64,
     pub future_value: f64,
+    pub formula: String,
 }
 impl FutureValueSolution {
     pub fn new(rate: f64, periods: f64, present_value: f64, future_value: f64) -> Self {
+        let formula = format!("{} * (1 + {})^{}", present_value, rate, periods);
         Self {
             rate,
             periods,
             present_value,
             future_value,
+            formula,
         }
     }
 }
