@@ -186,12 +186,19 @@ pub fn convert_apr_to_ear<T: Into<f64> + Copy>(apr: f64, compounding_periods_in_
     if apr > 1. || apr < -1. {
         warn!("You provided an APR of {}%. Are you sure?", apr*100.);
     }
+    if apr < 0.  {
+        warn!("You provided a negative APR of {}%. Are you sure?", apr*100.);
+    }
     if n > 366. {
         warn!("You provided more than 366 compounding periods in a year (You provided {}). Are you sure?", n);
     }
     let ear: f64;
     if n == 1. { 
         ear = apr;
+    } else if apr < 0. {
+        // for the rare case of negative nominal rates...
+        let pos_apr = apr * -1.0;
+        ear = ((1_f64 + (pos_apr/n)).powf(n) - 1_f64) * -1.0;
     } else {
         ear = (1_f64 + (apr/n)).powf(n) - 1_f64;
     }
@@ -882,6 +889,15 @@ mod tests {
         let _should_panic = convert_periodic_to_apr(input_rate, periods);
     }
 
+    #[should_panic]
+    #[test]
+    fn test_periodic_to_apr_15() {
+        //  rate = 0
+        let input_rate = 0.0;
+        let periods = 1_f64 / 0_f64;
+        let _should_panic = convert_periodic_to_apr(input_rate, periods);
+    }
+
     /* 
     ****************************************
     ************* apr to ear ***************
@@ -895,12 +911,12 @@ mod tests {
         let periods = 12;
         let expected_output = 0.03298851181;
         let actual_output = convert_apr_to_ear_f64(input_rate, periods);
-        assert_eq!( round_to_ulps_8(expected_output), round_to_ulps_8(actual_output) );
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
     }
     
     #[test]
     fn test_apr_to_ear_f64_2() {
-        // normal case, negative rate
+        // rate < 0
         let input_rate = -0.0325;
         let periods = 12;
         let expected_output = -0.03298851181;
@@ -908,6 +924,339 @@ mod tests {
         assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
     }
 
+    #[test]
+    fn test_apr_to_ear_f64_3() {
+        // rate over 1.0 
+        let input_rate = 1.34;
+        let periods = 12;
+        let expected_output = 2.562008918;
+        let actual_output = convert_apr_to_ear_f64(input_rate, periods);
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_f64_4() {
+        // rate = 1.0 
+        let input_rate = 1.0;
+        let periods = 12;
+        let expected_output = 1.61303529;
+        let actual_output = convert_apr_to_ear_f64(input_rate, periods);
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_f64_5() {
+        // rate = 0.0 
+        let input_rate = 0.0;
+        let periods = 12;
+        let expected_output = 0.0;
+        let actual_output = convert_apr_to_ear_f64(input_rate, periods);
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_f64_6() {
+        // rate < -1.0
+        let input_rate = -3.5;
+        let periods = 12;
+        let expected_output = -20.56777904;
+        let actual_output = convert_apr_to_ear_f64(input_rate, periods);
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_f64_7() {
+        // rate = -1.0
+        let input_rate = -1.0;
+        let periods = 12;
+        let expected_output = -1.61303529;
+        let actual_output = convert_apr_to_ear_f64(input_rate, periods);
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_apr_to_ear_f64_8() {
+        // rate = infinity
+        let input_rate = 1_f64/0_f64;
+        let periods = 12;
+        let _should_panic = convert_apr_to_ear_f64(input_rate, periods);
+    }
+
+    #[test]
+    fn test_apr_to_ear_f64_9() {
+        // periods = 1
+        let input_rate = 0.034;
+        let periods = 1;
+        let expected_output = 0.034;
+        let actual_output = convert_apr_to_ear_f64(input_rate, periods);
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_f64_10() {
+        // - periods as float, > 1 (float)
+        let input_rate = 0.034;
+        let periods = 36.5;
+        let expected_output = 0.03456823374;
+        let actual_output = convert_apr_to_ear_f64(input_rate, periods);
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_apr_to_ear_f64_11() {
+        // - periods as fractional, 0 < n < 1 
+        let input_rate = 0.034;
+        let periods = 0.5;
+        let _should_panic = convert_apr_to_ear_f64(input_rate, periods);
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_apr_to_ear_f64_12() {
+        // - periods = 0 
+        let input_rate = 0.034;
+        let periods = 0.0;
+        let _should_panic = convert_apr_to_ear_f64(input_rate, periods);
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_apr_to_ear_f64_13() {
+        // - periods < 0 
+        let input_rate = 0.034;
+        let periods = -3;
+        let _should_panic = convert_apr_to_ear_f64(input_rate, periods);
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_apr_to_ear_f64_14() {
+        // - periods = infinity 
+        let input_rate = 0.034;
+        let periods = 1_f64 / 0_f64;
+        let _should_panic = convert_apr_to_ear_f64(input_rate, periods);
+    }
+
+    #[test]
+    fn test_apr_to_ear_f64_15() {
+        // periods as various types
+        let input_rate = 0.0325;
+        let periods = 12_u8;
+        let expected_output = 0.03298851181;
+        let actual_output = convert_apr_to_ear_f64(input_rate, periods);
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_f64_16() {
+        // periods as various types
+        let input_rate = 0.0325;
+        let periods = 12_i8;
+        let expected_output = 0.03298851181;
+        let actual_output = convert_apr_to_ear_f64(input_rate, periods);
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_f64_17() {
+        // periods as various types 
+        let input_rate = 0.0325;
+        let periods = 12_f32;
+        let expected_output = 0.03298851181;
+        let actual_output = convert_apr_to_ear_f64(input_rate, periods);
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    /* 
+    ****************************************
+    ******* apr to ear Solution type *******
+    ****************************************
+    */
+
+    #[test]
+    fn test_apr_to_ear_1() {
+        // normal case
+        let input_rate = 0.0325;
+        let periods = 12;
+        let expected_output = 0.03298851181;
+        let actual_output = convert_apr_to_ear(input_rate, periods).effective_annual_rate;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+    
+    #[test]
+    fn test_apr_to_ear_2() {
+        // rate < 0
+        let input_rate = -0.0325;
+        let periods = 12;
+        let expected_output = -0.03298851181;
+        let actual_output = convert_apr_to_ear(input_rate, periods).effective_annual_rate;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_3() {
+        // rate over 1.0 
+        let input_rate = 1.34;
+        let periods = 12;
+        let expected_output = 2.562008918;
+        let actual_output = convert_apr_to_ear(input_rate, periods).effective_annual_rate;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_4() {
+        // rate = 1.0 
+        let input_rate = 1.0;
+        let periods = 12;
+        let expected_output = 1.61303529;
+        let actual_output = convert_apr_to_ear(input_rate, periods).effective_annual_rate;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_5() {
+        // rate = 0.0 
+        let input_rate = 0.0;
+        let periods = 12;
+        let expected_output = 0.0;
+        let actual_output = convert_apr_to_ear(input_rate, periods).effective_annual_rate;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_6() {
+        // rate < -1.0
+        let input_rate = -3.5;
+        let periods = 12;
+        let expected_output = -20.56777904;
+        let actual_output = convert_apr_to_ear(input_rate, periods).effective_annual_rate;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_7() {
+        // rate = -1.0
+        let input_rate = -1.0;
+        let periods = 12;
+        let expected_output = -1.61303529;
+        let actual_output = convert_apr_to_ear(input_rate, periods).effective_annual_rate;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_apr_to_ear_8() {
+        // rate = infinity
+        let input_rate = 1_f64/0_f64;
+        let periods = 12;
+        let _should_panic = convert_apr_to_ear(input_rate, periods);
+    }
+
+    #[test]
+    fn test_apr_to_ear_9() {
+        // periods = 1
+        let input_rate = 0.034;
+        let periods = 1;
+        let expected_output = 0.034;
+        let actual_output = convert_apr_to_ear(input_rate, periods).effective_annual_rate;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_10() {
+        // - periods as float, > 1 (float)
+        let input_rate = 0.034;
+        let periods = 36.5;
+        let expected_output = 0.03456823374;
+        let actual_output = convert_apr_to_ear(input_rate, periods).effective_annual_rate;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_apr_to_ear_11() {
+        // - periods as fractional, 0 < n < 1 
+        let input_rate = 0.034;
+        let periods = 0.5;
+        let _should_panic = convert_apr_to_ear(input_rate, periods);
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_apr_to_ear_12() {
+        // - periods = 0 
+        let input_rate = 0.034;
+        let periods = 0.0;
+        let _should_panic = convert_apr_to_ear(input_rate, periods);
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_apr_to_ear_13() {
+        // - periods < 0 
+        let input_rate = 0.034;
+        let periods = -3;
+        let _should_panic = convert_apr_to_ear(input_rate, periods);
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_apr_to_ear_14() {
+        // - periods = infinity 
+        let input_rate = 0.034;
+        let periods = 1_f64 / 0_f64;
+        let _should_panic = convert_apr_to_ear(input_rate, periods);
+    }
+
+    #[test]
+    fn test_apr_to_ear_15() {
+        // periods as various types
+        let input_rate = 0.0325;
+        let periods = 12_u8;
+        let expected_output = 0.03298851181;
+        let actual_output = convert_apr_to_ear(input_rate, periods).effective_annual_rate;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_16() {
+        // periods as various types
+        let input_rate = 0.0325;
+        let periods = 12_i8;
+        let expected_output = 0.03298851181;
+        let actual_output = convert_apr_to_ear(input_rate, periods).effective_annual_rate;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_17() {
+        // periods as various types 
+        let input_rate = 0.0325;
+        let periods = 12_f32;
+        let expected_output = 0.03298851181;
+        let actual_output = convert_apr_to_ear(input_rate, periods).effective_annual_rate;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+
+// test cases 
+// - normal
+// - rate over 1.0 
+// - rate = 1.0 
+// - rate < 0.0
+// - rate = 0.0 
+// - rate < -1.0 
+// - rate = -1.0 
+// - rate = infinity
+// - periods = 1
+// - periods as float, > 1 (float) 
+// - periods between 0 and 1 (fractional)
+// - periods = 0 
+// - periods < 0 
+// - periods = infinity
+// - periods as different types (float, int)
 
     
 }
