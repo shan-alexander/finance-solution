@@ -100,9 +100,11 @@ pub fn future_value<T: Into<f64> + Copy, P: Into<f64> + Copy>(periodic_rate: f64
     let r = periodic_rate;
     // assertions to ensure valid financial computation
     assert!(r.is_finite());
-    assert!(r >= 0.);
+    assert!(n.is_finite());
     assert!(pv.is_finite());
     assert!(pv >= 0.);
+    assert!(r >= -1.); 
+    assert!(n >= 1.); 
     if r > 1. || r < -1.{ 
         warn!("You provided a rate ({}) greater than 1. Are you sure you expect a {}% return?", r, r*100.0); 
     }
@@ -174,7 +176,7 @@ pub fn future_value_schedule<P: Into<f64> + Copy>(rates: &[f64], present_value: 
     // assertions to ensure valid financial computation
     for r in rates {
         assert!(r.is_finite());
-        assert!(r >= &0.);
+        assert!(r > &-1.);
         // warning to ensure developer did not mistake rate with percentage
         if r > &1. { 
             warn!("You provided a rate ({}) greater than 1. Are you sure you expect a {}% return?", r, r*100.); 
@@ -230,5 +232,77 @@ mod tests {
         // assert!(exp_value.approx_eq(act_value, (0.0, 2)));
 
     }
+
+    #[test]
+    fn test_future_value_3() {
+        // test negative rate
+        let rate_of_return = -0.09;
+        let present_value = 8_804.84368898; 
+        let periods = 6.0;
+        let expected_value = 5_000_f64;
+        let actual_value = future_value(rate_of_return, present_value, periods).future_value;
+        assert_eq!(round_to_cent(expected_value), round_to_cent(actual_value));
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_future_value_5() {
+        // test negative periods
+        let rate_of_return = 0.09;
+        let present_value = 5_000_i32;
+        let periods = -6;
+        let _should_panic = future_value(rate_of_return, present_value, periods);
+    }
+
+
+    #[should_panic]
+    #[test]
+    fn test_future_value_6() {
+        // test infinity on rate
+        let rate_of_return = 1.0f64 / 0.0f64;
+        let present_value = 5_000_i32;
+        let periods = -6;
+        let _should_panic = future_value(rate_of_return, present_value, periods);
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_future_value_7() {
+        // test infinity on fv
+        let rate_of_return = 0.03;
+        let present_value = 1.0f64 / 0.0f64;
+        let periods = -6;
+        let _should_panic = future_value(rate_of_return, present_value, periods);
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_future_value_8() {
+        // test infinity on periods
+        let rate_of_return = 0.03;
+        let present_value = 500;
+        let periods = 1.0f64 / 0.0f64;
+        let _should_panic = future_value(rate_of_return, present_value, periods);
+    }
+
+    #[test]
+    fn test_future_value_9() {
+        // test various negative rates, pv should be > fv
+        let rate_of_return = -0.03;
+        let present_value = 5000.;
+        let periods = 12;
+        let try_1 = future_value(rate_of_return, present_value, periods).future_value;
+        assert!(try_1 < present_value);
+        
+        let rate_of_return = -0.9;
+        let try_2 = future_value(rate_of_return, present_value, periods).future_value;
+        assert!(try_2 < present_value);
+        
+        let rate_of_return = -3.2;
+        let result = std::panic::catch_unwind(|| future_value(rate_of_return, present_value, periods));
+        assert!(result.is_err());  //probe further for specific error type here, if desired
+
+    }
+
 }
 

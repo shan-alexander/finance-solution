@@ -16,11 +16,11 @@ fn main() {
     // verbose::net_present_value::main();
     // verbose::payment::main();
     // verbose::nper::main();
-    // verbose::convert_rates::main();
+    verbose::convert_rates::main();
     // verbose::perpetuity::main();
     // verbose::bilbo_baggins::main();
     // verbose::weird_enum_solver::main();
     // verbose::tvm_solver::main();
-    verbose::find_rate::main();
+    // verbose::find_rate::main();
    
 }

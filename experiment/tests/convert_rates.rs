@@ -1,8 +1,8 @@
 use experiment::verbose::*;
 mod common;
 
-use log::Level;
-use log::{info, warn, log_enabled};
+// use log::Level;
+// use log::{info, warn, log_enabled};
 
 #[test]
 fn test_convert_apr_to_periodic_fn() {
@@ -11,11 +11,11 @@ fn test_convert_apr_to_periodic_fn() {
     //<-- Any panics here inside the test, will cause test failure (good)
     
     // this should panic due to fractional period provided
-    let result = std::panic::catch_unwind(|| convert_rates::convert_apr_to_periodic(common::get_rate(), 0.02));
+    let result = std::panic::catch_unwind(|| convert_rates::convert_apr_to_periodic_f64(common::get_rate(), 0.02));
     assert!(result.is_err());  //probe further for specific error type here, if desired
 
     // this should pass
-    let r = convert_rates::convert_apr_to_periodic(common::get_rate(), 4);
+    let r = convert_rates::convert_apr_to_periodic_f64(common::get_rate(), 4);
     assert!(r.is_finite());
 }
 
