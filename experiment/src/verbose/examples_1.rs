@@ -3,15 +3,14 @@
 
 use super::convert_rates;
 use super::present_value::{present_value, PresentValueSolution};
-use super::present_value_annuity::{present_value_annuity, PresentValueAnnuitySolution};
 use super::future_value::{future_value, FutureValueSolution};
-use super::future_value_annuity::{future_value_annuity, FutureValueAnnuitySolution};
-use super::payment::{payment, PaymentSolution};
+use super::nper::{nper, NperSolution};
 
 
 pub fn main() {
     try_problem_1();
     try_problem_2();
+    try_problem_3();
 }
 
 /* PROBLEM 1a, 1b
@@ -49,3 +48,37 @@ fn try_problem_2() {
     // expect $14,802.44
     dbg!(fv_answer);
 }
+
+/* PROBLEM 3
+Suppose you want to have $0.5 million saved by the time you are age 40 
+and you are 30 years old today. You can earn 5% on your funds. 
+How much do you you need to invest today, to reach your goal?
+PV = 500,000 / (1 + 0.05)^10
+PV = $306,959.63
+*/
+fn try_problem_3() {
+    let apr = 0.05;
+    let num_periods = 10;
+    let fv_amount = 500_000;
+    let pv_answer = present_value(apr, fv_amount, num_periods);
+    // expect $306,959.63
+    dbg!(pv_answer);
+}
+
+/* PROBLEM 4
+Suppose you want to be able to withdraw $5,000 at the end of five years
+and withdraw $6,000 at the end of 6 years, leaving a zero balance in the
+account after the last withdrawal. If you can earn 5%, how much must you
+deposit today to satisfy your withdrawals needs?
+Answer: $8,394.92
+*/
+
+
+
+/* PROBLEM 5
+Suppose you deposit $100,000 in an account today
+that pays 6% interest, compounded annually.
+How long before your balance is $500,000?
+Answer: 28 
+*/
+
