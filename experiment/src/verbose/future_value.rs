@@ -4,13 +4,16 @@
 use float_cmp::ApproxEq;
 use log::Level;
 use log::{info, warn, log_enabled};
+use std::fmt::{Debug, Formatter, Error};
+use crate::format;
+use std::fmt;
+use std::ops::{Deref, DerefMut};
 
 pub fn main() { 
     try_future_value();
-    // try_future_value_series();
+    try_future_value_series();
     // try_future_value_schedule();
 }
-
 
 fn try_future_value() {
     // expect 1100
@@ -18,28 +21,30 @@ fn try_future_value() {
     let present_value_1 = 1_047.6190f64;
     let periods = 1;
     let future_value_1 = future_value(rate_of_return, present_value_1, periods);
-    dbg!(future_value_1);
-    
+    dbg!(&future_value_1);
+    future_value_1.print(&num_format::Locale::en);
+    future_value_1.print(&num_format::Locale::vi);
+
     // expect 250_000
     let rate_of_return = 0.034f64;
     let present_value_2 = 211_513.1216f64;
     let periods = 5;
     let future_value_2 = future_value(rate_of_return, present_value_2, periods);
-    dbg!(future_value_2);
+    dbg!(&future_value_2);
+    future_value_2.print(&num_format::Locale::en);
+    future_value_2.print(&num_format::Locale::vi);
 
-    
     let rate_of_return = 1.034f64;
     let present_value_3 = 7_181.0056f64;
     let periods = 5;
     let future_value_3 = future_value(rate_of_return, present_value_3, periods);
-    dbg!(future_value_3);
+    dbg!(&future_value_3);
 
-    
     let rate_of_return = 0.03_f64;
     let present_value_4 = 7_181_i32;
     let periods = 5.;
     let future_value_4 = future_value(rate_of_return, present_value_4, periods);
-    dbg!(future_value_4);
+    dbg!(&future_value_4);
 }
 
 fn try_future_value_series() {
@@ -73,7 +78,6 @@ fn try_future_value_schedule() {
     dbg!(future_value_1);
 }
 
-#[derive(Debug)]
 pub struct FutureValueSolution {
     pub rate: f64,
     pub periods: f64,
@@ -81,6 +85,7 @@ pub struct FutureValueSolution {
     pub future_value: f64,
     pub formula: String,
 }
+
 impl FutureValueSolution {
     pub fn new(rate: f64, periods: f64, present_value: f64, future_value: f64) -> Self {
         let formula = format!("{} * (1 + {})^{}", present_value, rate, periods);
@@ -91,6 +96,26 @@ impl FutureValueSolution {
             future_value,
             formula,
         }
+    }
+
+    fn print(&self, locale: &num_format::Locale) {
+        println!("{{ {}, {}, {}, {} }}",
+               &format!("rate: {}", format::format_rate_locale(self.rate, locale)),
+               &format!("periods: {}", format::format_period_locale(self.periods, locale)),
+               &format!("present_value: {}", format::format_money_locale(self.present_value, locale)),
+               &format!("future_value: {}", format::format_money_locale(self.future_value, locale)),
+        )
+    }
+}
+
+impl Debug for FutureValueSolution {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{{ {}, {}, {}, {} }}",
+               &format!("rate: {}", format::format_rate(self.rate)),
+               &format!("periods: {}", format::format_period(self.periods)),
+               &format!("present_value: {}", format::format_money(self.present_value)),
+               &format!("future_value: {}", format::format_money(self.future_value)),
+        )
     }
 }
 
@@ -116,7 +141,6 @@ pub fn future_value<T: Into<f64> + Copy, P: Into<f64> + Copy>(periodic_rate: f64
     FutureValueSolution::new(r, n, pv, future_value)
 }
 
-#[derive(Debug)]
 pub struct FutureValuePeriod {
     pub period: f64,
     pub rate: f64,
@@ -124,6 +148,7 @@ pub struct FutureValuePeriod {
     pub period_value: f64,
     pub future_value: f64,
 }
+
 impl FutureValuePeriod {
     pub fn new(period: f64, rate: f64, present_value: f64, period_value: f64, future_value: f64) -> Self {
         Self {
@@ -134,7 +159,30 @@ impl FutureValuePeriod {
             future_value,
         }
     }
+
+    fn print(&self, locale: &num_format::Locale) {
+        println!("{{ {}, {}, {}, {}, {} }}",
+               &format!("period: {}", format::format_period_locale(self.period, locale)),
+               &format!("rate: {}", format::format_rate_locale(self.rate, locale)),
+               &format!("present_value: {}", format::format_money_locale(self.present_value, locale)),
+               &format!("period_value: {}", format::format_money_locale(self.period_value, locale)),
+               &format!("future_value: {}", format::format_money_locale(self.future_value, locale)),
+        )
+    }
 }
+
+impl Debug for FutureValuePeriod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{{ {}, {}, {}, {}, {} }}",
+               &format!("period: {}", format::format_period(self.period)),
+               &format!("rate: {}", format::format_rate(self.rate)),
+               &format!("present_value: {}", format::format_money(self.present_value)),
+               &format!("period_value: {}", format::format_money(self.period_value)),
+               &format!("future_value: {}", format::format_money(self.future_value)),
+        )
+    }
+}
+
 /// Return a vector of future values for each period, starting with Period0 (present value) to Period_n (future value).
 pub fn future_value_series<T: Into<f64> + Copy>(interest_rate: f64, present_value: f64, periods: T) -> Vec<FutureValuePeriod> {
     let n = periods.into();
@@ -163,6 +211,7 @@ pub struct FutureValueSchedule {
     pub future_value: f64,
     pub period_values: Vec<f64>,
 }
+
 impl FutureValueSchedule {
     pub fn new(rates: Vec<f64>, num_periods: f64, present_value: f64, future_value: f64, period_values: Vec<f64>) -> Self {
         Self {
@@ -173,7 +222,34 @@ impl FutureValueSchedule {
             period_values,
         }
     }
+
+    /*
+    fn print(&self, locale: &num_format::Locale) {
+        println!("{{ {}, {}, {}, {}, {} }}",
+                 &format!("period: {}", format::format_period_locale(self.period, locale)),
+                 &format!("rate: {}", format::format_rate_locale(self.rate, locale)),
+                 &format!("present_value: {}", format::format_money_locale(self.present_value, locale)),
+                 &format!("period_value: {}", format::format_money_locale(self.period_value, locale)),
+                 &format!("future_value: {}", format::format_money_locale(self.future_value, locale)),
+        )
+    }
+    */
 }
+
+/*
+impl Debug for FutureValueSchedule {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{{ {}, {}, {}, {}, {} }}",
+               &format!("period: {}", format::format_period(self.period)),
+               &format!("rate: {}", format::format_rate(self.rate)),
+               &format!("present_value: {}", format::format_money(self.present_value)),
+               &format!("period_value: {}", format::format_money(self.period_value)),
+               &format!("future_value: {}", format::format_money(self.future_value)),
+        )
+    }
+}
+*/
+
 /// Returns a Future Value of a present amount with variable rates.
 pub fn future_value_schedule<P: Into<f64> + Copy>(rates: &[f64], present_value: P) -> FutureValueSchedule {
     // assertions to ensure valid financial computation
@@ -199,7 +275,6 @@ pub fn future_value_schedule<P: Into<f64> + Copy>(rates: &[f64], present_value: 
     // final computation for future value
     FutureValueSchedule::new(all_rates, num_periods as f64, pv, future_value, period_values)
 }
-
 
 
 pub fn round_to_fraction_of_cent(val: f64) -> f64 {

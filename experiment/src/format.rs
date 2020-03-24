@@ -271,6 +271,18 @@ pub fn format_rate_locale<T>(val: T, locale: &Locale) -> String
     }
 }
 
+pub fn format_period<T>(val: T) -> String
+    where T: Into<f64> + Debug
+{
+    format_f64(val.into())
+}
+
+pub fn format_period_locale<T>(val: T, locale: &Locale) -> String
+    where T: Into<f64> + Debug
+{
+    format_f64_locale(val.into(), locale)
+}
+
 fn format_f64(val: f64) -> String {
     if val.is_finite() {
         let precision = 4;
