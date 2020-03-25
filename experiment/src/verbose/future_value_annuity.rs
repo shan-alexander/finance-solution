@@ -4,11 +4,14 @@
 use float_cmp::ApproxEq;
 use log::Level;
 use log::{info, warn, log_enabled};
+use std::fmt::Debug;
+use std::fmt;
+use crate::format;
 
 pub fn main() { 
-    // try_future_value_annuity();
+    try_future_value_annuity();
     // try_future_value_annuity_due();
-    try_future_value_annuity_general();
+    // try_future_value_annuity_general();
     // try_future_value_annuity_general_due();
 }
 
@@ -80,6 +83,7 @@ pub struct FutureValueAnnuitySolution {
     pub future_value_annuity: f64,
     pub due_at_beginning: bool,
 }
+
 impl FutureValueAnnuitySolution {
     pub fn new(annuity_payment_amount: f64, periodic_rate: f64, num_periods: f64, future_value_annuity: f64, due_at_beginning: bool) -> Self {
         Self {
@@ -91,6 +95,21 @@ impl FutureValueAnnuitySolution {
         }
     }
 }
+
+/*
+impl Debug for FutureValueAnnuitySolution {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{{ {}, {}, {}, {}, {} }}",
+               &format!("annuity_payment_amount: {}", format::format_money(self.annuity_payment_amount)),
+               &format!("periodic_rate: {}", format::format_rate(self.periodic_rate)),
+               &format!("num_periods: {}", format::format_period(self.num_periods)),
+               &format!("future_value_annuity: {}", format::format_money(self.future_value_annuity)),
+               &format!("due_at_beginning: {:?}", self.due_at_beginning),
+        )
+    }
+}
+*/
+
 pub fn future_value_annuity<T: Into<f64> + Copy, C: Into<f64> + Copy>(annuity_payment_amount: C, periodic_rate: f64, num_periods: T) -> FutureValueAnnuitySolution {
     let c = annuity_payment_amount.into();
     let n = num_periods.into();

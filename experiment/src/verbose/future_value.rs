@@ -10,9 +10,9 @@ use std::fmt;
 use std::ops::{Deref, DerefMut};
 
 pub fn main() { 
-    try_future_value();
-    try_future_value_series();
-    // try_future_value_schedule();
+    // try_future_value();
+    // try_future_value_series();
+    try_future_value_schedule();
 }
 
 fn try_future_value() {
@@ -22,8 +22,6 @@ fn try_future_value() {
     let periods = 1;
     let future_value_1 = future_value(rate_of_return, present_value_1, periods);
     dbg!(&future_value_1);
-    future_value_1.print(&num_format::Locale::en);
-    future_value_1.print(&num_format::Locale::vi);
 
     // expect 250_000
     let rate_of_return = 0.034f64;
@@ -31,8 +29,6 @@ fn try_future_value() {
     let periods = 5;
     let future_value_2 = future_value(rate_of_return, present_value_2, periods);
     dbg!(&future_value_2);
-    future_value_2.print(&num_format::Locale::en);
-    future_value_2.print(&num_format::Locale::vi);
 
     let rate_of_return = 1.034f64;
     let present_value_3 = 7_181.0056f64;
@@ -97,15 +93,6 @@ impl FutureValueSolution {
             formula,
         }
     }
-
-    fn print(&self, locale: &num_format::Locale) {
-        println!("{{ {}, {}, {}, {} }}",
-               &format!("rate: {}", format::format_rate_locale(self.rate, locale)),
-               &format!("periods: {}", format::format_period_locale(self.periods, locale)),
-               &format!("present_value: {}", format::format_money_locale(self.present_value, locale)),
-               &format!("future_value: {}", format::format_money_locale(self.future_value, locale)),
-        )
-    }
 }
 
 impl Debug for FutureValueSolution {
@@ -158,16 +145,6 @@ impl FutureValuePeriod {
             period_value,
             future_value,
         }
-    }
-
-    fn print(&self, locale: &num_format::Locale) {
-        println!("{{ {}, {}, {}, {}, {} }}",
-               &format!("period: {}", format::format_period_locale(self.period, locale)),
-               &format!("rate: {}", format::format_rate_locale(self.rate, locale)),
-               &format!("present_value: {}", format::format_money_locale(self.present_value, locale)),
-               &format!("period_value: {}", format::format_money_locale(self.period_value, locale)),
-               &format!("future_value: {}", format::format_money_locale(self.future_value, locale)),
-        )
     }
 }
 
