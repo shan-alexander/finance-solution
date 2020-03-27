@@ -10,9 +10,9 @@ use std::fmt;
 use std::ops::{Deref, DerefMut};
 
 pub fn main() { 
-    // try_future_value();
+    try_future_value();
     // try_future_value_series();
-    try_future_value_schedule();
+    // try_future_value_schedule();
 }
 
 fn try_future_value() {
@@ -76,14 +76,14 @@ fn try_future_value_schedule() {
 
 pub struct FutureValueSolution {
     pub rate: f64,
-    pub periods: f64,
+    pub periods: usize,
     pub present_value: f64,
     pub future_value: f64,
     pub formula: String,
 }
 
 impl FutureValueSolution {
-    pub fn new(rate: f64, periods: f64, present_value: f64, future_value: f64) -> Self {
+    pub fn new(rate: f64, periods: usize, present_value: f64, future_value: f64) -> Self {
         let formula = format!("{} * (1 + {})^{}", present_value, rate, periods);
         Self {
             rate,
@@ -97,11 +97,12 @@ impl FutureValueSolution {
 
 impl Debug for FutureValueSolution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{{ {}, {}, {}, {} }}",
-               &format!("rate: {}", format::format_rate(self.rate)),
-               &format!("periods: {}", format::format_period(self.periods)),
-               &format!("present_value: {}", format::format_money(self.present_value)),
-               &format!("future_value: {}", format::format_money(self.future_value)),
+        write!(f, "{{ {}, {}, {}, {}, {} }}",
+               &format!("rate: {:.6}", self.rate),
+               &format!("periods: {}", self.periods),
+               &format!("present_value: {:.4}", self.present_value),
+               &format!("future_value: {:.4}", self.future_value),
+               &format!("formula: {:?}", self.formula),
         )
     }
 }
@@ -109,7 +110,12 @@ impl Debug for FutureValueSolution {
 type FV = FutureValueSolution; // Creates a type alias
 
 /// Returns a Future Value of a present amount.
-pub fn future_value<T: Into<f64> + Copy, P: Into<f64> + Copy>(periodic_rate: f64, present_value: P, periods: T) -> FutureValueSolution {
+// pub fn future_value<T: Into<f64> + Copy, P: Into<f64> + Copy>(periodic_rate: f64, present_value: P, periods: T) -> FutureValueSolution {
+pub fn future_value<T, P>(periodic_rate: f64, present_value: P, periods: T) -> FutureValueSolution
+    where
+        P: Into<f64> + Copy,
+        T: Into<f64> + Copy,
+{
     let pv = present_value.into();
     let n = periods.into();
     let r = periodic_rate;
@@ -188,6 +194,22 @@ pub struct FutureValueSchedule {
     pub future_value: f64,
     pub period_values: Vec<f64>,
 }
+
+/*
+#[derive(Debug)]
+pub struct FutureValueSchedule {
+    pub periods: Vec<FutureValuePeriod>,
+    pub num_periods: f64,
+    pub present_value: f64,
+    pub future_value: f64,
+}
+
+pub struct FutureValuePeriod {
+    pub period: usize,
+    pub rate: f64,
+    pub value: f64,
+}
+*/
 
 impl FutureValueSchedule {
     pub fn new(rates: Vec<f64>, num_periods: f64, present_value: f64, future_value: f64, period_values: Vec<f64>) -> Self {
