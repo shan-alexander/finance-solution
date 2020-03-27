@@ -33,36 +33,45 @@ pub fn main() {
 struct BilboBagginsInputs {
     // chronological order of the BilboBagginsProblem timeline 
     currently_save_per_month: f64,
-    buy_cabin_in_years_from_now: u8,
+    buy_cabin_in_years_from_now: u32,
     cost_of_cabin: f64,
-    retire_in_years_from_now: u8,
+    retire_in_years_from_now: u32,
     retirement_income_per_month: f64,
-    retirement_income_for_how_many_years: u8,
-    inheretance_left_behind: f64, 
+    retirement_income_for_how_many_years: u32,
+    inheretance_left_behind: f64,
     effective_annual_rate_before_retire: f64,
     effective_annual_rate_after_retire: f64,
 }
 impl BilboBagginsInputs {
     pub fn new(currently_save_per_month: f64, 
-                buy_cabin_in_years_from_now: u8,
+                buy_cabin_in_years_from_now: u32,
                 cost_of_cabin: f64,
-                retire_in_years_from_now: u8,
+                retire_in_years_from_now: u32,
                 retirement_income_per_month: f64,
-                retirement_income_for_how_many_years: u8,
+                retirement_income_for_how_many_years: u32,
                 inheretance_left_behind: f64,
                 effective_annual_rate_before_retire: f64,
                 effective_annual_rate_after_retire: f64,
             ) -> Self {
-                    Self { currently_save_per_month, buy_cabin_in_years_from_now, cost_of_cabin, retire_in_years_from_now, retirement_income_per_month, retirement_income_for_how_many_years, inheretance_left_behind,effective_annual_rate_before_retire, effective_annual_rate_after_retire,
-                    }
+        Self {
+            currently_save_per_month,
+            buy_cabin_in_years_from_now,
+            cost_of_cabin,
+            retire_in_years_from_now,
+            retirement_income_per_month,
+            retirement_income_for_how_many_years,
+            inheretance_left_behind,
+            effective_annual_rate_before_retire,
+            effective_annual_rate_after_retire,
+        }
     }
 }
 fn make_bilbo_problem_1() -> BilboBagginsInputs {
     // Inputs here are listed in order that occured in the word problem.
-    let retire_in_years_from_now: u8 = 30;
+    let retire_in_years_from_now= 30;
     let retirement_income_per_month: f64 = 4_000.;
-    let retirement_income_for_how_many_years: u8 = 20;
-    let buy_cabin_in_years_from_now: u8 = 20;
+    let retirement_income_for_how_many_years = 20;
+    let buy_cabin_in_years_from_now= 20;
     let cost_of_cabin: f64 = 50_000.;
     let inheretance_left_behind: f64 = 200_000.;
     let currently_save_per_month: f64 = 2_500.;
@@ -83,7 +92,7 @@ fn calculate_bilbo_solution(b: BilboBagginsInputs) -> BilboBagginsSolution {
     // step two: Calculate the Future Value of Annuity of years 0 - &buy_cabin_in_years_from_now
     // Now we need the Future Value of Bilbo's savings cashflow (i.e., Annuity) from years 0 - &buy_cabin_in_years_from_now
     let months_of_savings_before_buying_cabin = b.buy_cabin_in_years_from_now * 12;
-    let fv_savings_before_buying_cabin: FutureValueAnnuitySolution = future_value_annuity(b.currently_save_per_month, epr_before_retire, months_of_savings_before_buying_cabin as u16);
+    let fv_savings_before_buying_cabin: FutureValueAnnuitySolution = future_value_annuity(b.currently_save_per_month, epr_before_retire, months_of_savings_before_buying_cabin);
     // dbg!(&fv_savings_before_buying_cabin);
 
     // step three: how much money do we have at yearX when we buy the cabin?
@@ -93,13 +102,13 @@ fn calculate_bilbo_solution(b: BilboBagginsInputs) -> BilboBagginsSolution {
     // step four: calculate the Present Value of Bilbo's intended retirement income at year &retire_in_years_from_now
     // thus, use present_value_annuity
 
-    let retirement_income_at_beginning_of_retirement: PresentValueAnnuitySolution = present_value_annuity(b.retirement_income_per_month, epr_after_retire, (b.retirement_income_for_how_many_years*12) as u16);
+    let retirement_income_at_beginning_of_retirement: PresentValueAnnuitySolution = present_value_annuity(b.retirement_income_per_month, epr_after_retire, b.retirement_income_for_how_many_years*12);
     // dbg!(&retirement_income_at_beginning_of_retirement);
     // dbg!(&retirement_income_at_beginning_of_retirement.present_value_annuity);
     
     // step five: Calculate the Present Value of the inheretance Bilbo plans to leave his nephew Frodo
     // we can use ear here because the periods are yearly, not monthly
-    let inheretance_at_time_of_retirement: PresentValueSolution = present_value(b.effective_annual_rate_after_retire, b.inheretance_left_behind, b.retirement_income_for_how_many_years as u16);
+    let inheretance_at_time_of_retirement: PresentValueSolution = present_value(b.effective_annual_rate_after_retire, b.inheretance_left_behind, b.retirement_income_for_how_many_years);
     // dbg!(&inheretance_at_time_of_retirement.present_value);
 
     // step six: Determine how much Bilbo needs at year &retire_in_years_from_now to acheive his retirement goals
@@ -108,7 +117,7 @@ fn calculate_bilbo_solution(b: BilboBagginsInputs) -> BilboBagginsSolution {
 
     // step seven: determine future_value (at time of retirement) of remaining money after buying the cabin
     let years_between_cabin_purchase_and_retirement = b.retire_in_years_from_now - b.buy_cabin_in_years_from_now;
-    let fv_of_money_after_cabin_purchase_at_retirement: FutureValueSolution = super::future_value::future_value(b.effective_annual_rate_before_retire, money_remaining_after_cabin_purchase, years_between_cabin_purchase_and_retirement as u16);
+    let fv_of_money_after_cabin_purchase_at_retirement: FutureValueSolution = super::future_value::future_value(b.effective_annual_rate_before_retire, money_remaining_after_cabin_purchase, years_between_cabin_purchase_and_retirement);
     // dbg!(&fv_of_money_after_cabin_purchase_at_retirement);
 
     // step eight: compare and solve the final problem.
@@ -120,11 +129,11 @@ fn calculate_bilbo_solution(b: BilboBagginsInputs) -> BilboBagginsSolution {
     let months_between_cabin_and_retirement = (b.retire_in_years_from_now - b.buy_cabin_in_years_from_now) * 12;
     // dbg!(&months_between_cabin_and_retirement);
     
-    fn payment(r: f64, n: u16, fv: f64) -> f64 {
+    fn payment(r: f64, n: u32, fv: f64) -> f64 {
         // C = FV / [ ((1 + i)^n -1) / i ]
         fv / (((1. + r).powi(n as i32) -1.) / r)
     } 
-    let monthly_savings_needed_after_cabin = payment(epr_before_retire, months_between_cabin_and_retirement as u16, net_amount_needed_at_retirement);
+    let monthly_savings_needed_after_cabin = payment(epr_before_retire, months_between_cabin_and_retirement, net_amount_needed_at_retirement);
     // dbg!(&monthly_savings_needed_after_cabin);
     
 
@@ -152,31 +161,31 @@ fn calculate_bilbo_solution(b: BilboBagginsInputs) -> BilboBagginsSolution {
 struct BilboBagginsSolution {
     epr_before_retire: f64,
     epr_after_retire: f64,
-    months_of_savings_before_buying_cabin: u8,
+    months_of_savings_before_buying_cabin: u32,
     fv_savings_before_buying_cabin: FutureValueAnnuitySolution,
     money_remaining_after_cabin_purchase: f64,
     retirement_income_at_beginning_of_retirement: PresentValueAnnuitySolution,
     inheretance_at_time_of_retirement: PresentValueSolution,
     how_much_needed_at_moment_of_retirement_to_achieve_goals: f64,
-    years_between_cabin_purchase_and_retirement: u8,
+    years_between_cabin_purchase_and_retirement: u32,
     fv_of_money_after_cabin_purchase_at_retirement: FutureValueSolution,
     net_amount_needed_at_retirement: f64,
-    months_between_cabin_and_retirement: u8,
+    months_between_cabin_and_retirement: u32,
     monthly_savings_needed_after_cabin: PaymentSolution,
 }
 impl BilboBagginsSolution {
     pub fn new(epr_before_retire: f64,
         epr_after_retire: f64,
-        months_of_savings_before_buying_cabin: u8,
+        months_of_savings_before_buying_cabin: u32,
         fv_savings_before_buying_cabin: FutureValueAnnuitySolution,
         money_remaining_after_cabin_purchase: f64,
         retirement_income_at_beginning_of_retirement: PresentValueAnnuitySolution,
         inheretance_at_time_of_retirement: PresentValueSolution,
         how_much_needed_at_moment_of_retirement_to_achieve_goals: f64,
-        years_between_cabin_purchase_and_retirement: u8,
+        years_between_cabin_purchase_and_retirement: u32,
         fv_of_money_after_cabin_purchase_at_retirement: FutureValueSolution,
         net_amount_needed_at_retirement: f64,
-        months_between_cabin_and_retirement: u8,
+        months_between_cabin_and_retirement: u32,
         monthly_savings_needed_after_cabin: PaymentSolution,
     ) -> Self {
         Self {
