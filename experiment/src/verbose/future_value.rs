@@ -108,8 +108,12 @@ impl Debug for FutureValueSolution {
 
 type FV = FutureValueSolution; // Creates a type alias
 
-/// Returns a Future Value of a present amount.
-// pub fn future_value<T: Into<f64> + Copy, P: Into<f64> + Copy>(periodic_rate: f64, present_value: P, periods: T) -> FutureValueSolution {
+pub fn future_value_f64<T>(periodic_rate: f64, present_value: T, periods: u32) -> f64
+    where T: Into<f64> + Copy
+{
+    future_value(periodic_rate, present_value, periods).future_value
+}
+
 pub fn future_value<T>(periodic_rate: f64, present_value: T, periods: u32) -> FutureValueSolution
     where T: Into<f64> + Copy
 {
@@ -274,6 +278,13 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_future_value_f64() {
+        assert_eq!(295_489.9418, round_to_fraction_of_cent(future_value_f64(0.034, 250_000.00, 5)));
+        assert_eq!(20_629.3662, round_to_fraction_of_cent(future_value_f64(0.08, 13_000.0, 6)));
+        assert_eq!(5_000.0000, round_to_fraction_of_cent(future_value_f64(-0.09, 8_804.84368898, 6)));
+    }
+
+    #[test]
     fn test_future_value_1() {
         let rate_of_return = 0.034;
         let present_value_1 = 250_000.00;
@@ -310,10 +321,10 @@ mod tests {
     #[should_panic]
     #[test]
     fn test_future_value_5() {
-        // test negative periods
+        // test zero for periods
         let rate_of_return = 0.09;
         let present_value = 5_000.00;
-        let periods = -6;
+        let periods = 0;
         let _should_panic = future_value(rate_of_return, present_value, periods);
     }
 
@@ -324,7 +335,7 @@ mod tests {
         // test infinity on rate
         let rate_of_return = 1.0f64 / 0.0f64;
         let present_value = 5_000.00;
-        let periods = -6;
+        let periods = 6;
         let _should_panic = future_value(rate_of_return, present_value, periods);
     }
 
@@ -334,7 +345,7 @@ mod tests {
         // test infinity on fv
         let rate_of_return = 0.03;
         let present_value = 1.0f64 / 0.0f64;
-        let periods = -6;
+        let periods = 6;
         let _should_panic = future_value(rate_of_return, present_value, periods);
     }
 
