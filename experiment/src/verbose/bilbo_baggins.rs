@@ -116,7 +116,7 @@ fn calculate_bilbo_solution(b: BilboBagginsInputs) -> BilboBagginsSolution {
 
     // step seven: determine future_value (at time of retirement) of remaining money after buying the cabin
     let years_between_cabin_purchase_and_retirement = b.retire_in_years_from_now - b.buy_cabin_in_years_from_now;
-    let fv_of_money_after_cabin_purchase_at_retirement: finance::FutureValueSolution = finance::future_value(b.effective_annual_rate_before_retire, money_remaining_after_cabin_purchase, years_between_cabin_purchase_and_retirement);
+    let fv_of_money_after_cabin_purchase_at_retirement: finance::FutureValueSolution = finance::future_value_solution(b.effective_annual_rate_before_retire, money_remaining_after_cabin_purchase, years_between_cabin_purchase_and_retirement);
     // dbg!(&fv_of_money_after_cabin_purchase_at_retirement);
 
     // step eight: compare and solve the final problem.
