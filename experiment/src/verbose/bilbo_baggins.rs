@@ -5,7 +5,6 @@
 use super::convert_rates;
 use super::present_value::{present_value, PresentValueSolution};
 use super::present_value_annuity::{present_value_annuity, PresentValueAnnuitySolution};
-use super::future_value::{future_value, FutureValueSolution};
 use super::future_value_annuity::{future_value_annuity, FutureValueAnnuitySolution};
 use super::payment::{payment, PaymentSolution};
 
@@ -117,7 +116,7 @@ fn calculate_bilbo_solution(b: BilboBagginsInputs) -> BilboBagginsSolution {
 
     // step seven: determine future_value (at time of retirement) of remaining money after buying the cabin
     let years_between_cabin_purchase_and_retirement = b.retire_in_years_from_now - b.buy_cabin_in_years_from_now;
-    let fv_of_money_after_cabin_purchase_at_retirement: FutureValueSolution = super::future_value::future_value(b.effective_annual_rate_before_retire, money_remaining_after_cabin_purchase, years_between_cabin_purchase_and_retirement);
+    let fv_of_money_after_cabin_purchase_at_retirement: finance::FutureValueSolution = finance::future_value(b.effective_annual_rate_before_retire, money_remaining_after_cabin_purchase, years_between_cabin_purchase_and_retirement);
     // dbg!(&fv_of_money_after_cabin_purchase_at_retirement);
 
     // step eight: compare and solve the final problem.
@@ -168,7 +167,7 @@ struct BilboBagginsSolution {
     inheretance_at_time_of_retirement: PresentValueSolution,
     how_much_needed_at_moment_of_retirement_to_achieve_goals: f64,
     years_between_cabin_purchase_and_retirement: u32,
-    fv_of_money_after_cabin_purchase_at_retirement: FutureValueSolution,
+    fv_of_money_after_cabin_purchase_at_retirement: finance::FutureValueSolution,
     net_amount_needed_at_retirement: f64,
     months_between_cabin_and_retirement: u32,
     monthly_savings_needed_after_cabin: PaymentSolution,
@@ -183,7 +182,7 @@ impl BilboBagginsSolution {
         inheretance_at_time_of_retirement: PresentValueSolution,
         how_much_needed_at_moment_of_retirement_to_achieve_goals: f64,
         years_between_cabin_purchase_and_retirement: u32,
-        fv_of_money_after_cabin_purchase_at_retirement: FutureValueSolution,
+        fv_of_money_after_cabin_purchase_at_retirement: finance::FutureValueSolution,
         net_amount_needed_at_retirement: f64,
         months_between_cabin_and_retirement: u32,
         monthly_savings_needed_after_cabin: PaymentSolution,

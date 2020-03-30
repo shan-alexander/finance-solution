@@ -3,9 +3,7 @@
 
 use super::convert_rates;
 use super::present_value::{present_value, PresentValueSolution};
-use super::future_value::{future_value, FutureValueSolution};
 use super::nper::{nper, NperSolution};
-
 
 pub fn main() {
     try_problem_1();
@@ -22,12 +20,12 @@ fn try_problem_1() {
     let t = 10;
     let pv = 2500;
     let r = 0.04;
-    let answer_a = future_value(r, pv, t);
+    let answer_a = finance::future_value(r, pv, t);
     // expect $3,700.61
     dbg!(answer_a);
 
     // Compounded quarterly, thus 4 compounding periods per year
-    let answer_b = future_value(r, pv, t * 4);
+    let answer_b = finance::future_value(r, pv, t * 4);
     // expect $3,722.16
     dbg!(answer_b);
 }
@@ -44,7 +42,7 @@ fn try_problem_2() {
     let periodic_rate = convert_rates::convert_apr_to_periodic(apr, num_compounding_periods_in_year).periodic_rate;
     let num_periods = 5 * num_compounding_periods_in_year; // 5 years, 2 compounds per year
     let pv_amount = 10_000;
-    let fv_answer = future_value(periodic_rate, pv_amount, num_periods);
+    let fv_answer = finance::future_value(periodic_rate, pv_amount, num_periods);
     // expect $14,802.44
     dbg!(fv_answer);
 }
