@@ -141,14 +141,7 @@ pub fn convert_apr_to_periodic<T: Into<f64> + Copy>(apr: f64, num_periods_in_yea
 }
 /// Convert APR (annual rate) to periodic rate. Returns f64.
 pub fn convert_apr_to_periodic_f64<T: Into<f64> + Copy>(apr: f64, num_periods_in_year: T) -> f64 {
-    let n = num_periods_in_year.into();
-    assert!(n >= 1.);
-    assert!(n.is_finite());
-    assert!(apr.is_finite());
-    if apr > 1. || apr < -1. {
-        warn!("You provided an APR of {}%. Are you sure?", apr*100.);
-    }
-    apr / n
+    convert_apr_to_periodic(apr, num_periods_in_year).periodic_rate
 }
 
 /// Convert periodic rate to APR (aka Annual rate, nominal interest rate, Annual Percentage Rate). Returns a custom solution type.
@@ -283,39 +276,136 @@ pub fn convert_ear_to_apr_f64<T: Into<f64> + Copy>(ear: f64, compounding_periods
     ((1_f64 + ear).powf(1_f64/n) - 1_f64) * n
 }
 
+pub struct AprEarContinous {
+    pub apr: f64,
+    pub ear: f64,
+    pub formula: String
+}
+impl AprEarContinous {
+    pub fn new(apr: f64, ear: f64) -> Self {
+        let formula = format!("{}^{} - 1", 2.71828182845904, apr);
+        Self {
+            apr,
+            ear,
+            formula,
+        }
+    }
+}
 /// Convert a nominal interest rate (Annual rate) to EAR (effective annual rate) using continuous compounding.
-pub fn convert_apr_to_ear_continuous_compound_f64(apr: f64) -> f64 {
+pub fn convert_apr_to_ear_continuous_compound(apr: f64) -> AprEarContinous {
+    assert!(apr.is_finite());
     if apr > 1. || apr < -1. {
         warn!("You provided an APR of {}%. Are you sure?", apr*100.);
     }
     // formula: e^apr - 1
     let e: f64 = 2.71828182845904; 
-    e.powf(apr) - 1_f64
+    let ear: f64;
+    if apr < 0.0 {
+        // when apr is negative...
+        ear = (e.powf(apr.abs()) - 1_f64) * -1_f64;
+    } else {
+        ear = e.powf(apr) - 1_f64;
+    }
+    AprEarContinous::new(apr, ear)
+}
+
+/// Convert a nominal interest rate (Annual rate) to EAR (effective annual rate) using continuous compounding.
+pub fn convert_apr_to_ear_continuous_compound_f64(apr: f64) -> f64 {
+    convert_apr_to_ear_continuous_compound(apr).ear
 }
 
 
+#[derive(Debug)]
+pub struct PeriodicToEarSolution {
+    pub periodic_rate: f64,
+    pub compounding_periods_in_year: f64,
+    pub effective_annual_rate: f64,
+    pub input_in_percent: String,
+    pub output_in_percent: String,
+    pub formula: String,
+}
+impl PeriodicToEarSolution {
+    pub fn new(periodic_rate: f64,compounding_periods_in_year: f64,effective_annual_rate: f64, input_in_percent: String, output_in_percent: String) -> Self {
+        let formula = format!("(1 + {})^{} - 1", periodic_rate, compounding_periods_in_year);
+        Self {
+            periodic_rate,
+            compounding_periods_in_year,
+            effective_annual_rate,
+            input_in_percent,
+            output_in_percent,
+            formula,
+        }
+    }
+}
 
 /// Convert a periodic interest rate (APR / num of compounding periods) to EAR (effective annual rate).
-pub fn convert_periodic_to_ear_f64<T: Into<f64> + Copy>(periodic_rate: f64, compounding_periods_in_year: T) -> f64 {
+pub fn convert_periodic_to_ear_solution<T: Into<f64> + Copy>(periodic_rate: f64, compounding_periods_in_year: T) -> PeriodicToEarSolution {
     let n = compounding_periods_in_year.into();
     assert!(n > 0.);
     if periodic_rate > 1. || periodic_rate < -1. {
         warn!("You provided an periodic rate of {}%. Are you sure?", periodic_rate*100.);
     }
-    if n == 1. { return periodic_rate }
-    (1_f64 + periodic_rate).powf(n) - 1_f64
+    let ear: f64;
+    if n == 1. { 
+        ear = periodic_rate;
+    } else {
+        ear = (1_f64 + periodic_rate).powf(n) - 1_f64;
+    }
+    let input_string = (periodic_rate*100.).to_string();
+    let output_string = (ear*100.).to_string();
+    PeriodicToEarSolution::new(periodic_rate, n, ear, input_string, output_string)
+}
+
+/// Convert a periodic interest rate (APR / num of compounding periods) to EAR (effective annual rate).
+pub fn convert_periodic_to_ear_f64<T: Into<f64> + Copy>(periodic_rate: f64, compounding_periods_in_year: T) -> f64 {
+    convert_periodic_to_ear_solution(periodic_rate, compounding_periods_in_year).effective_annual_rate
+}
+
+#[derive(Debug)]
+pub struct EarToPeriodicSolution {
+    pub effective_annual_rate: f64,
+    pub compounding_periods_in_year: f64,
+    pub periodic_rate: f64,
+    pub input_in_percent: String,
+    pub output_in_percent: String,
+    pub formula: String,
+}
+impl EarToPeriodicSolution {
+    pub fn new(effective_annual_rate: f64, compounding_periods_in_year: f64, periodic_rate: f64, input_in_percent: String, output_in_percent: String) -> Self {
+        let formula = format!("(1 + {})^(1/{}) - 1", effective_annual_rate, compounding_periods_in_year);
+        Self {
+            effective_annual_rate,
+            compounding_periods_in_year,
+            periodic_rate,
+            input_in_percent,
+            output_in_percent,
+            formula,
+        }
+    }
 }
 
 /// Convert an EAR (Effective Annual Rate) to periodic rate.
-pub fn convert_ear_to_periodic_f64<T: Into<f64> + Copy>(ear: f64, periods_per_year: T) -> f64 {
+pub fn convert_ear_to_periodic_solution<T: Into<f64> + Copy>(ear: f64, periods_per_year: T) -> EarToPeriodicSolution {
     let n = periods_per_year.into();
     assert!(n > 0.);
     if ear > 1. || ear < -1. {
         warn!("You provided an Effective Annual Rate of {}%. Are you sure?", ear*100.);
     }
-    if n == 1. { return ear }
-    // EPR = (1 + annual rate)^(1/#ofPeriodsPerYear) 
-    (1_f64 + ear).powf(1_f64/n) - 1_f64
+    let periodic_rate: f64;
+    if n == 1. { 
+         periodic_rate = ear;
+    } else {
+        // EPR = (1 + annual rate)^(1/#ofPeriodsPerYear) 
+        periodic_rate = (1_f64 + ear).powf(1_f64/n) - 1_f64;
+    }
+    let input_string = (ear*100.).to_string();
+    let output_string = (periodic_rate*100.).to_string();
+    EarToPeriodicSolution::new(ear, n, periodic_rate, input_string, output_string)
+}
+
+/// Convert an EAR (Effective Annual Rate) to periodic rate.
+pub fn convert_ear_to_periodic_f64<T: Into<f64> + Copy>(ear: f64, periods_per_year: T) -> f64 {
+    convert_ear_to_periodic_solution(ear, periods_per_year).periodic_rate
 }
 
 pub fn round_to_ulps_8(val: f64) -> f64 {
@@ -1587,6 +1677,166 @@ mod tests {
         assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
     }
 
+
+
+    /* 
+    ************************************************
+    ************* apr to ear, continous compound ***
+    ************************************************
+    */
+
+    #[test]
+    fn test_apr_to_ear_continuous_compound_f64_1() {
+        // normal case
+        let input_rate = 0.034;
+        let expected_output = 0.4049475906;
+        let actual_output = convert_apr_to_ear_continuous_compound_f64(input_rate);
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+    
+    #[test]
+    fn test_apr_to_ear_continuous_compound_f64_2() {
+        // -1 < rate < 0
+        let input_rate = -0.034;
+        let expected_output = -0.4049475906;
+        let actual_output = convert_apr_to_ear_continuous_compound_f64(input_rate);
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_continuous_compound_f64_3() {
+        // rate over 1.0 
+        let input_rate = 2.562008918;
+        let expected_output = 11.96183043;
+        let actual_output = convert_apr_to_ear_continuous_compound_f64(input_rate);
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_continuous_compound_f64_4() {
+        // rate = 1.0 
+        let input_rate = 1.0;
+        let expected_output = 1.718281828;
+        let actual_output = convert_apr_to_ear_continuous_compound_f64(input_rate);
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_continuous_compound_f64_5() {
+        // rate = 0.0 
+        let input_rate = 0.0;
+        let expected_output = 0.0;
+        let actual_output = convert_apr_to_ear_continuous_compound_f64(input_rate);
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_continuous_compound_f64_6() {
+        // rate < -1.0
+        let input_rate = -1.1;
+        let expected_output = -2.004166024;
+        let actual_output = convert_apr_to_ear_continuous_compound_f64(input_rate);
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_continuous_compound_f64_7() {
+        // rate = -1.0
+        let input_rate = -1.0;
+        let expected_output = -1.718281828;
+        let actual_output = convert_apr_to_ear_continuous_compound_f64(input_rate);
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_apr_to_ear_continuous_compound_f64_8() {
+        // rate = infinity
+        let input_rate = 1_f64/0_f64;
+        let _should_panic = convert_apr_to_ear_continuous_compound_f64(input_rate);
+    }
+
+
+    /* 
+    ************************************************
+    ************* apr to ear, continous compound ***
+    ****************** solution type ***************
+    ************************************************
+    */
+
+    #[test]
+    fn test_apr_to_ear_continuous_compound_1() {
+        // normal case
+        let input_rate = 0.034;
+        let expected_output = 0.4049475906;
+        let actual_output = convert_apr_to_ear_continuous_compound(input_rate).ear;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+    
+    #[test]
+    fn test_apr_to_ear_continuous_compound_2() {
+        // -1 < rate < 0
+        let input_rate = -0.034;
+        let expected_output = -0.4049475906;
+        let actual_output = convert_apr_to_ear_continuous_compound(input_rate).ear;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_continuous_compound_3() {
+        // rate over 1.0 
+        let input_rate = 2.562008918;
+        let expected_output = 11.96183043;
+        let actual_output = convert_apr_to_ear_continuous_compound(input_rate).ear;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_continuous_compound_4() {
+        // rate = 1.0 
+        let input_rate = 1.0;
+        let expected_output = 1.718281828;
+        let actual_output = convert_apr_to_ear_continuous_compound(input_rate).ear;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_continuous_compound_5() {
+        // rate = 0.0 
+        let input_rate = 0.0;
+        let expected_output = 0.0;
+        let actual_output = convert_apr_to_ear_continuous_compound(input_rate).ear;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+
+    #[test]
+    fn test_apr_to_ear_continuous_compound_6() {
+        // rate < -1.0
+        let input_rate = -1.1;
+        let expected_output = -2.004166024;
+        let actual_output = convert_apr_to_ear_continuous_compound(input_rate).ear;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[test]
+    fn test_apr_to_ear_continuous_compound_7() {
+        // rate = -1.0
+        let input_rate = -1.0;
+        let expected_output = -1.718281828;
+        let actual_output = convert_apr_to_ear_continuous_compound(input_rate).ear;
+        assert_eq!(round_to_ulps_8(expected_output), round_to_ulps_8(actual_output));
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_apr_to_ear_continuous_compound_8() {
+        // rate = infinity
+        let input_rate = 1_f64/0_f64;
+        let _should_panic = convert_apr_to_ear_continuous_compound(input_rate).ear;
+    }
+
+    
 // test cases 
 // - normal
 // - rate over 1.0 
