@@ -82,7 +82,7 @@ pub fn future_value<T>(periodic_rate: f64, present_value: T, periods: u32) -> f6
     assert!(r >= -1.);
     assert!(n >= 1);
     if r.abs() > 1. {
-        warn!("You provided a rate ({}) greater than 1. Are you sure you expect a {}% return?", r, r*100.0);
+        warn!("You provided a periodic rate ({}) greater than 1. Are you sure you expect a {}% return?", r, r*100.0);
     }
     // final computation for future value
     pv * (1. + r).powf(n as f64)
@@ -90,7 +90,7 @@ pub fn future_value<T>(periodic_rate: f64, present_value: T, periods: u32) -> f6
 
 /// A record of a future value calculation produced by calling [`future_value_solution`].
 pub struct FutureValueSolution {
-    pub rate: f64,
+    pub periodic_rate: f64,
     pub periods: u32,
     pub present_value: f64,
     pub future_value: f64,
@@ -98,10 +98,10 @@ pub struct FutureValueSolution {
 }
 
 impl FutureValueSolution {
-    fn new(rate: f64, periods: u32, present_value: f64, future_value: f64) -> Self {
-        let formula = format!("{} * (1 + {})^{}", present_value, rate, periods);
+    fn new(periodic_rate: f64, periods: u32, present_value: f64, future_value: f64) -> Self {
+        let formula = format!("{} * (1 + {})^{}", present_value, periodic_rate, periods);
         Self {
-            rate,
+            periodic_rate,
             periods,
             present_value,
             future_value,
@@ -113,7 +113,7 @@ impl FutureValueSolution {
 impl Debug for FutureValueSolution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{{ {}, {}, {}, {}, {} }}",
-               &format!("rate: {:.6}", self.rate),
+               &format!("periodic_rate: {:.6}", self.periodic_rate),
                &format!("periods: {}", self.periods),
                &format!("present_value: {:.4}", self.present_value),
                &format!("future_value: {:.4}", self.future_value),
@@ -187,17 +187,17 @@ pub fn future_value_solution<T>(periodic_rate: f64, present_value: T, periods: u
 /// [`future_value_series`].
 pub struct FutureValuePeriod {
     pub period: u32,
-    pub rate: f64,
+    pub periodic_rate: f64,
     pub present_value: f64,
     pub period_value: f64,
     pub future_value: f64,
 }
 
 impl FutureValuePeriod {
-    fn new(period: u32, rate: f64, present_value: f64, period_value: f64, future_value: f64) -> Self {
+    fn new(period: u32, periodic_rate: f64, present_value: f64, period_value: f64, future_value: f64) -> Self {
         Self {
             period,
-            rate,
+            periodic_rate,
             present_value,
             period_value,
             future_value,
@@ -209,7 +209,7 @@ impl Debug for FutureValuePeriod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{{ {}, {}, {}, {}, {} }}",
                &format!("period: {}", self.period),
-               &format!("rate: {:.6}", self.rate),
+               &format!("periodic_rate: {:.6}", self.periodic_rate),
                &format!("present_value: {:.4}", self.present_value),
                &format!("period_value: {:.4}", self.period_value),
                &format!("future_value: {:.4}", self.future_value),
@@ -231,7 +231,7 @@ impl Debug for FutureValuePeriod {
 /// future_value = present_value * (1 + periodic_rate)<sup>periods</sup>
 ///
 /// # Arguments
-/// * `interest_rate` - The rate at which the investment grows or shrinks per
+/// * `periodic_rate` - The rate at which the investment grows or shrinks per
 /// period, expressed as a floating point number. For instance 0.05 would mean 5% growth.
 /// * `present_value` - The starting value of the investment.
 /// * `periods` - The number of periods such as quarters or years.
@@ -248,12 +248,12 @@ impl Debug for FutureValuePeriod {
 /// let present_value = 10_000.12;
 ///
 /// // The interest rate is 1.5% per month.
-/// let interest_rate = 0.015;
+/// let periodic_rate = 0.015;
 ///
 /// // The investment will grow for 24 months.
 /// let periods = 24;
 ///
-/// let results = finance::future_value_series(interest_rate, present_value, periods);
+/// let results = finance::future_value_series(periodic_rate, present_value, periods);
 /// dbg!(&results);
 ///
 /// // Confirm that we have one entry for the initial value and one entry for
@@ -269,12 +269,12 @@ impl Debug for FutureValuePeriod {
 /// dbg!(&filtered_results);
 /// assert_eq!(7, filtered_results.len());
 /// ```
-pub fn future_value_series<T>(interest_rate: f64, present_value: T, periods: u32) -> Vec<FutureValuePeriod>
+pub fn future_value_series<T>(periodic_rate: f64, present_value: T, periods: u32) -> Vec<FutureValuePeriod>
     where T: Into<f64> + Copy
 {
     // pv, n, and r are the standard shorthands for the three values used in the calculation.
     let pv = present_value.into();
-    let r = interest_rate;
+    let r = periodic_rate;
     let n = periods;
     // assertions to ensure valid financial computation
     assert!(r.is_finite());
@@ -308,7 +308,7 @@ pub struct FutureValueSchedule {
 /// the [`FutureValueSchedule`] produced by calling [`future_value_schedule`].
 pub struct FutureValueSchedulePeriod {
     pub period: u32,
-    pub rate: f64,
+    pub periodic_rate: f64,
     pub value: f64,
 }
 
@@ -325,8 +325,8 @@ impl FutureValueSchedule {
 }
 
 impl FutureValueSchedulePeriod {
-    fn new(period: u32, rate: f64, value: f64) -> Self {
-        Self { period, rate, value }
+    fn new(period: u32, periodic_rate: f64, value: f64) -> Self {
+        Self { period, periodic_rate, value }
     }
 }
 
@@ -334,7 +334,7 @@ impl Debug for FutureValueSchedulePeriod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{{ {}, {}, {} }}",
                &format!("period: {}", self.period),
-               &format!("rate: {:.6}", self.rate),
+               &format!("periodic_rate: {:.6}", self.periodic_rate),
                &format!("value: {:.4}", self.value),
         )
     }
@@ -353,7 +353,7 @@ impl Debug for FutureValueSchedulePeriod {
 /// future_value = present_value * (1 + periodic_rate)<sup>periods</sup>
 ///
 /// # Arguments
-/// * `rates` - A collection of rates, one for each period.
+/// * `periodic_rates` - A collection of rates, one for each period.
 /// * `present_value` - The starting value of the investment.
 ///
 /// # Panics
@@ -365,12 +365,12 @@ impl Debug for FutureValueSchedulePeriod {
 /// point where the value passes a certain threshold.
 /// ```
 /// // The rates vary by year: 11.6% followed by 13.4%, a 9% drop, and an 8.6% gain.
-/// let rates = [0.116, 0.134, -0.09, 0.086];
+/// let periodic_rates = [0.116, 0.134, -0.09, 0.086];
 ///
 /// // The initial investment is $50,000.
 /// let present_value = 50_000.00;
 ///
-/// let schedule = finance::future_value_schedule(&rates, present_value);
+/// let schedule = finance::future_value_schedule(&periodic_rates, present_value);
 /// dbg!(&schedule);
 ///
 /// assert_eq!(62534.3257, finance::round_to_fraction_of_cent(schedule.future_value));
@@ -392,15 +392,15 @@ impl Debug for FutureValueSchedulePeriod {
 /// Error case: One of the rates shows a drop of over 100%. There's no way to work out what this
 /// means so the call to future_value_schedule() will panic.
 /// ```should_panic
-/// let rates = [0.116, -100.134, -0.09, 0.086];
+/// let periodic_rates = [0.116, -100.134, -0.09, 0.086];
 /// let present_value = 4_000.00;
-/// let schedule = finance::future_value_schedule(&rates, present_value);
+/// let schedule = finance::future_value_schedule(&periodic_rates, present_value);
 /// ```
-pub fn future_value_schedule<T>(rates: &[f64], present_value: T) -> FutureValueSchedule
+pub fn future_value_schedule<T>(periodic_rates: &[f64], present_value: T) -> FutureValueSchedule
     where T: Into<f64> + Copy
 {
     // assertions to ensure valid financial computation
-    for rate in rates {
+    for rate in periodic_rates {
         assert!(rate.is_finite());
         assert!(*rate > -1.0);
         // warning to ensure developer did not mistake rate with percentage
@@ -411,17 +411,17 @@ pub fn future_value_schedule<T>(rates: &[f64], present_value: T) -> FutureValueS
     let pv = present_value.into();
     assert!(pv.is_finite());
     assert!(pv >= 0.);
-    let num_periods = rates.len();
+    let num_periods = periodic_rates.len();
     let mut period_values = vec![pv];
     for period in 1..=num_periods {
-        let period_value = period_values[period-1] * (1. + rates[period-1]);
+        let period_value = period_values[period-1] * (1. + periodic_rates[period-1]);
         period_values.push(period_value);
     }
     let future_value = period_values[num_periods];
     // final computation for future value
     let mut schedule = FutureValueSchedule::new(num_periods as u32, pv, future_value);
     for period in 1..=num_periods {
-        schedule.periods.push(FutureValueSchedulePeriod::new(period as u32, rates[period - 1], period_values[period]));
+        schedule.periods.push(FutureValueSchedulePeriod::new(period as u32, periodic_rates[period - 1], period_values[period]));
     }
     schedule
 }
