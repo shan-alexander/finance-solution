@@ -5,6 +5,8 @@ pub fn main() {
     try_future_value();
     try_future_value_series();
     try_future_value_schedule();
+    // dbg!(finance::future_value(-0.002, 5000.33, 250));
+    
 }
 
 fn try_future_value() {
