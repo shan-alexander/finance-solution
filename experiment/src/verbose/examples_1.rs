@@ -39,7 +39,7 @@ FV = 10,000 * (1 + 0.04)^10
 fn try_problem_2() {
     let apr = 0.08;
     let num_compounding_periods_in_year = 2;
-    let periodic_rate = convert_rates::convert_apr_to_periodic(apr, num_compounding_periods_in_year).periodic_rate;
+    let periodic_rate = convert_rates::convert_apr_to_periodic(apr, num_compounding_periods_in_year);
     let num_periods = 5 * num_compounding_periods_in_year; // 5 years, 2 compounds per year
     let pv_amount = 10_000;
     let fv_answer = finance::future_value(periodic_rate, pv_amount, num_periods);
