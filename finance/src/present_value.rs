@@ -9,7 +9,6 @@ pub fn main() {
     try_present_value();
     // try_present_value_series()
     // try_pv();
-    try_doc_example();
 }
 
 fn try_present_value() {
@@ -19,7 +18,7 @@ fn try_present_value() {
     let periods = 1;
     let present_value_1 = present_value(rate_of_return, future_value_1, periods);
     dbg!(present_value_1);
-    
+
     // expect 211_513.1216
     let rate_of_return = 0.034f64;
     let future_value_1 = 250_000f64;
@@ -33,16 +32,16 @@ fn try_present_value() {
     let periods = 5;
     let present_value_3 = present_value(rate_of_return, future_value_1, periods);
     dbg!(&present_value_3);
-    // println!("{:?}", present_value_3); 
+    // println!("{:?}", present_value_3);
     // dbg!(present_value_3.present_value_series());
-    
+
     // expect 7181.0056
     let rate_of_return = 3.034f64;
     let future_value_1 = 250_000f64;
     let periods = 12;
     let present_value_3 = present_value(rate_of_return, future_value_1, periods);
     dbg!(&present_value_3);
-    
+
     // expect 7181.0056
     let rate_of_return = -3.034f64;
     let future_value_1 = 250_000f64;
@@ -68,7 +67,7 @@ fn try_present_value_series() {
     let periods = 1;
     let present_value_1 = present_value_series(rate_of_return, future_value_1, periods);
     dbg!(present_value_1);
-    
+
     // expect 211_513.1216
     let rate_of_return = 0.034f64;
     let future_value_1 = 250_000f64;
@@ -127,7 +126,7 @@ type PV = PresentValueSolution; // Creates a type alias
 pub fn present_value<T: Into<f64> + Copy, F: Into<f64> + Copy>(rate_of_return: f64, future_value: F, periods: T) -> PV {
     // Bench: 1.4776 us  when including PeriodValues
     // Bench: 26.650 ns  when removing the PeriodValues calculation
-    
+
     // assertions to ensure valid financial computation
     let fv = future_value.into();
     let n = periods.into();
@@ -137,7 +136,7 @@ pub fn present_value<T: Into<f64> + Copy, F: Into<f64> + Copy>(rate_of_return: f
     assert!(rate_of_return.is_finite(), "The rate must be finite (not 1/0)");
     assert!(n.is_finite(), "The number of periods must be finite (not 1/0)");
     assert!(fv.is_finite(), "The future value must be finite (not 1/0)");
-    if rate_of_return > 1. { 
+    if rate_of_return > 1. {
         warn!("You used a rate ({}) greater than 1, therefore implying a return of {}%. Are you sure?", rate_of_return, rate_of_return*100.);
     }
 
@@ -159,7 +158,7 @@ pub fn pv<T: Into<f64> + Copy, C: Into<f64> + Copy>(r: f64, n: T, fv: C) -> f64 
     assert!(r.is_finite(), "The rate must be finite (not 1/0)");
     assert!(t.is_finite(), "The number of periods must be finite (not 1/0)");
     assert!(c.is_finite(), "The future value must be finite (not 1/0)");
-    if r > 1. { 
+    if r > 1. {
         warn!("You used a rate ({}) greater than 1, therefore implying a return of {}%. Are you sure?", r, r*100.);
     }
     c / (1. + r).powf(t)
@@ -245,11 +244,11 @@ mod tests {
         let actual_value = present_value(rate_of_return, future_value, periods).present_value;
         assert_eq!(round_to_cent(expected_value), round_to_cent(actual_value));
     }
-    
+
     #[should_panic]
     #[test]
     fn test_present_value_4() {
-        // test negative future value 
+        // test negative future value
         let rate_of_return = 0.09;
         let future_value = -5_000_i32;
         let periods = 6;
@@ -275,7 +274,7 @@ mod tests {
         let periods = -6;
         let _should_panic = present_value(rate_of_return, future_value, periods).present_value;
     }
-    
+
     #[should_panic]
     #[test]
     fn test_present_value_7() {
@@ -295,7 +294,7 @@ mod tests {
         let periods = 1.0f64 / 0.0f64;
         let _should_panic = present_value(rate_of_return, future_value, periods).present_value;
     }
- 
+
 
     #[test]
     fn test_present_value_9() {
@@ -308,7 +307,7 @@ mod tests {
         let rate_of_return = -0.9;
         let try_2 = present_value(rate_of_return, future_value, periods).present_value;
         assert!(try_2 > future_value);
-        
+
         let rate_of_return = -3.2;
         let result = std::panic::catch_unwind(|| present_value(rate_of_return, future_value, periods));
         assert!(result.is_err());  //probe further for specific error type here, if desired
@@ -350,7 +349,7 @@ mod tests {
         let expected_value = 4_082.48290463863; // google sheet
         let actual_value = present_value(rate_of_return, future_value, periods).present_value;
         assert_eq!(round_to_cent(expected_value), round_to_cent(actual_value));
-        
+
     }
 
     #[test]
@@ -361,7 +360,7 @@ mod tests {
         let periods = 0.1;
         let expected_value = 4_801.3225039610; // google sheet
         let actual_value = present_value(rate_of_return, future_value, periods).present_value;
-        assert_eq!(round_to_cent(expected_value), round_to_cent(actual_value));  
+        assert_eq!(round_to_cent(expected_value), round_to_cent(actual_value));
     }
 
     #[test]
@@ -372,39 +371,7 @@ mod tests {
         let periods = 9;
         let expected_value = 0.249663625036891; // google sheet
         let actual_value = present_value(rate_of_return, future_value, periods).present_value;
-        assert_eq!(round_to_cent(expected_value), round_to_cent(actual_value));  
+        assert_eq!(round_to_cent(expected_value), round_to_cent(actual_value));
     }
-
-}
-
-fn try_doc_example() {
-    /// // The investment grows by 3.4% per quarter.
-/// let periodic_rate = 0.034;
-///
-/// // The initial investment is $250,000.
-/// let present_value = 250_000;
-///
-/// // The investment will grow for 5 quarters.
-/// let periods = 5;
-///
-/// let present_value = finance::present_value(periodic_rate, present_value, periods);
-/// // Confirm that the present value is correct to four decimal places (one
-/// // hundredth of a cent).
-/// assert_eq!(295_489.9418, finance::round_to_fraction_of_cent(present_value));
-/// ```
-/// Investment that loses money each year.
-/// ```
-/// // The investment loses 5% per year.
-/// let periodic_rate = -0.05;
-///
-/// // The initial investment is $10,000.75.
-/// let present_value = 10_000.75;
-///
-/// // The investment will shrink for 6 years.
-/// let periods = 6;
-///
-/// let present_value = finance::present_value(periodic_rate, present_value, periods);
-/// // Confirm that the present value is correct to the penny.
-/// assert_eq!(7351.47, finance::round_to_cent(present_value));
 
 }
