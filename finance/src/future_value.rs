@@ -4,6 +4,12 @@
 use log::warn;
 use std::fmt::{self, Debug};
 
+use crate::shared;
+
+// Needed for the Rustdoc comments on SchedulePeriod to refer to these items without qualification.
+#[allow(unused_imports)]
+use crate::{PresentValueSchedule, present_value_schedule};
+
 /// Returns the value of an investment after it has grown or shrunk over time, using a fixed rate.
 ///
 /// Related functions:
@@ -73,7 +79,7 @@ pub fn future_value<T>(periodic_rate: f64, periods: u32, present_value: T) -> f6
     where T: Into<f64> + Copy
 {
     let present_value = present_value.into();
-    check_present_value_parameters(periodic_rate, periods, present_value);
+    check_future_value_parameters(periodic_rate, periods, present_value);
 
     present_value * (1.0 + periodic_rate).powi(periods as i32)
 }
@@ -265,7 +271,7 @@ pub fn future_value_series<T>(periodic_rate: f64, periods: u32, present_value: T
     where T: Into<f64> + Copy
 {
     let present_value = present_value.into();
-    check_present_value_parameters(periodic_rate, periods, present_value);
+    check_future_value_parameters(periodic_rate, periods, present_value);
 
     let interest_multiplier = 1.0 + periodic_rate;
 
@@ -290,15 +296,7 @@ pub struct FutureValueSchedule {
     pub periods: u32,
     pub present_value: f64,
     pub future_value: f64,
-    pub schedule_periods: Vec<FutureValueSchedulePeriod>,
-}
-
-/// The value of an investment at the end of a given period. This is part of the
-/// [`FutureValueSchedule`] produced by calling [`future_value_schedule`].
-pub struct FutureValueSchedulePeriod {
-    pub period: u32,
-    pub periodic_rate: f64,
-    pub value: f64,
+    pub schedule_periods: Vec<shared::SchedulePeriod>,
 }
 
 impl FutureValueSchedule {
@@ -310,22 +308,6 @@ impl FutureValueSchedule {
             schedule_periods: vec![],
         };
         schedule
-    }
-}
-
-impl FutureValueSchedulePeriod {
-    fn new(period: u32, periodic_rate: f64, value: f64) -> Self {
-        Self { period, periodic_rate, value }
-    }
-}
-
-impl Debug for FutureValueSchedulePeriod {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{{ {}, {}, {} }}",
-               &format!("period: {}", self.period),
-               &format!("periodic_rate: {:.6}", self.periodic_rate),
-               &format!("value: {:.4}", self.value),
-        )
     }
 }
 
@@ -394,10 +376,10 @@ pub fn future_value_schedule<T>(periodic_rates: &[f64], present_value: T) -> Fut
 
     // Check the parameters including all of the provided rates.
     for rate in periodic_rates {
-        check_present_value_parameters(*rate, periods as u32, present_value);
+        check_future_value_parameters(*rate, periods as u32, present_value);
     }
 
-    // Calculated the value after each period. The first entry for period 0 is the present value.
+    // Calculate the value after each period. The first entry for period 0 is the present value.
     let mut period_values = vec![present_value];
     for period in 1..=periods {
         // The value for this period is the value of the previous period adjusted by the rate for
@@ -415,19 +397,19 @@ pub fn future_value_schedule<T>(periodic_rates: &[f64], present_value: T) -> Fut
     for period in 1..=periods {
         let rate = periodic_rates[period - 1];
         let value = period_values[period];
-        schedule.schedule_periods.push(FutureValueSchedulePeriod::new(period as u32, rate, value));
+        schedule.schedule_periods.push(shared::SchedulePeriod::new(period as u32, rate, value));
     }
     schedule
 }
 
-fn check_present_value_parameters(periodic_rate: f64, periods: u32, present_value: f64) {
-    assert!(periodic_rate.is_finite());
-    assert!(periodic_rate >= -1.);
+fn check_future_value_parameters(periodic_rate: f64, periods: u32, present_value: f64) {
+    assert!(periodic_rate.is_finite(), "The periodic_rate must be finite (not NaN or infinity)");
+    assert!(periodic_rate > -1.0, "The periodic_rate must be greater than -1.0 because a rate lower than -100% would mean the investment loses more than its full value in a period.");
     if periodic_rate.abs() > 1. {
         warn!("You provided a periodic rate ({}) greater than 1. Are you sure you expect a {}% return?", periodic_rate, periodic_rate * 100.0);
     }
     assert!(periods >= 1);
-    assert!(present_value.is_finite());
+    assert!(present_value.is_finite(), "The present value must be finite (not NaN or infinity)");
 }
 
 #[cfg(test)]

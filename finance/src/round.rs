@@ -14,6 +14,12 @@ pub fn round_to_cent(val: f64) -> f64 {
     (val * 100.0).round() / 100.0
 }
 
+pub fn assert_f64(val_1: f64, val_2: f64) {
+    assert!(val_1.is_finite());
+    assert!(val_2.is_finite());
+    assert_eq!(round_to_fraction_of_cent(val_1), round_to_fraction_of_cent(val_2));
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
