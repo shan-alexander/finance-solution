@@ -1,9 +1,6 @@
 use std::fmt::Debug;
 use std::fmt;
 
-
-
-
 /// The value of an investment at the end of a given period.
 ///
 /// This is either:
@@ -30,5 +27,4 @@ impl Debug for SchedulePeriod {
         )
     }
 }
-
 
