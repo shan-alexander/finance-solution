@@ -1,35 +1,33 @@
-//! Future value calculations. Given an initial investment amount, a number of
-//! periods such as years, and fixed or varying interest rates, what is the
-//! value of the investment at the end?
+//! Future value calculations. Given an initial investment amount, a number of periods such as
+//! years, and fixed or varying interest rates, what is the value of the investment at the end?
 
 use log::warn;
 use std::fmt::{self, Debug};
 
-/// Returns the value of an investment after it has grown or shrunk over time,
-/// using a fixed rate.
+/// Returns the value of an investment after it has grown or shrunk over time, using a fixed rate.
 ///
-/// To calculate a future value with a fixed rate while
-/// retaining the input values use [`future_value_solution`]. To calculate
-///  the value for each period instead of only the final value use
-/// [`future_value_series`]. If the rates vary by period use
-/// [`future_value_schedule`].
+/// Related functions:
+/// * To calculate a future value with a fixed rate while retaining the input values use
+/// [`future_value_solution`].
+/// * To calculate the value for each period instead of only the final value use
+/// [`future_value_series`].
+/// * If the rates vary by period use [`future_value_schedule`].
 ///
 /// The formula is:
 ///
 /// future_value = present_value * (1 + periodic_rate)<sup>periods</sup>
 ///
 /// # Arguments
-/// * `periodic_rate` - The rate at which the investment grows or shrinks per
-/// period, expressed as a floating point number. For instance 0.05 would mean
-/// 5% growth. Often appears as `r` or `i` in formulas.
-/// * `periods` - The number of periods such as quarters or years. Often appears
-/// as `n` or `t`.
-/// * `present_value` - The starting value of the investment. May appear as `pv`
-/// in formulas, or `C` for cash flow or `P` for principal.
+/// * `periodic_rate` - The rate at which the investment grows or shrinks per period, expressed as a
+/// floating point number. For instance 0.05 would mean 5% growth. Often appears as `r` or `i` in
+/// formulas.
+/// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
+/// * `present_value` - The starting value of the investment. May appear as `pv` in formulas, or `C`
+/// for cash flow or `P` for principal.
 ///
 /// # Panics
-/// The call will fail if `periodic_rate` is less than -1.0 as this would mean
-/// the investment is losing more than its full value every period.
+/// The call will fail if `periodic_rate` is less than -1.0 as this would mean the investment is
+/// losing more than its full value every period.
 ///
 /// # Examples
 /// Investment that grows quarter by quarter.
@@ -63,8 +61,8 @@ use std::fmt::{self, Debug};
 /// // Confirm that the future value is correct to the penny.
 /// assert_eq!(7351.47, finance::round_to_cent(future_value));
 /// ```
-/// Error case: The investment loses 105% per year. There's no way to work out what this
-/// means so the call to future_value() will panic.
+/// Error case: The investment loses 105% per year. There's no way to work out
+/// what this means so the call to future_value() will panic.
 /// ```should_panic
 /// let periodic_rate = -1.05;
 /// let periods = 6;
@@ -115,34 +113,31 @@ impl Debug for FutureValueSolution {
     }
 }
 
-// type FV = FutureValueSolution; // Creates a type alias
-
 /// Calculates the value of an investment after it has grown or shrunk over time and returns a
 /// struct with the inputs and the calculated value. This is used for keeping track of a collection
 /// of financial scenarios so that they can be examined later.
 ///
-/// For simply calculating a single future value use [`future_value`]. To
-/// calculate the value for each period instead of only the final value use
-/// [`future_value_series`]. To calculate a future value with a fixed rate
-/// while retaining the input values use [`future_value_solution`]. If the
-/// rates vary by period use [`future_value_schedule`].
+/// Related functions:
+/// * For simply calculating a single future value use [`future_value`].
+/// * To calculate the value for each period instead of only the final value use
+/// [`future_value_series`].
+/// * If the rates vary by period use [`future_value_schedule`].
 ///
 /// The future value formula is:
 ///
 /// future_value = present_value * (1 + periodic_rate)<sup>periods</sup>
 ///
 /// # Arguments
-/// * `periodic_rate` - The rate at which the investment grows or shrinks per
-/// period, expressed as a floating point number. For instance 0.05 would mean
-/// 5% growth. Often appears as `r` or `i` in formulas.
-/// * `periods` - The number of periods such as quarters or years. Often appears
-/// as `n` or `t`.
-/// * `present_value` - The starting value of the investment. May appear as `pv`
-/// in formulas, or `C` for cash flow or `P` for principal.
+/// * `periodic_rate` - The rate at which the investment grows or shrinks per period, expressed as a
+/// floating point number. For instance 0.05 would mean 5% growth. Often appears as `r` or `i` in
+/// formulas.
+/// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
+/// * `present_value` - The starting value of the investment. May appear as `pv` in formulas, or `C`
+/// for cash flow or `P` for principal.
 ///
 /// # Panics
-/// The call will fail if `periodic_rate` is less than -1.0 as this would mean
-/// the investment is losing more than its full value every period.
+/// The call will fail if `periodic_rate` is less than -1.0 as this would mean the investment is
+/// losing more than its full value every period.
 ///
 /// # Examples
 /// Create a collection of future value calculations ranging over several interest rates.
@@ -180,8 +175,7 @@ pub fn future_value_solution<T>(periodic_rate: f64, periods: u32, present_value:
     FutureValueSolution::new(periodic_rate, periods, present_value.into(), future_value)
 }
 
-/// The value of an investment after a given period produced by calling
-/// [`future_value_series`].
+/// The value of an investment after a given period produced by calling [`future_value_series`].
 pub struct FutureValuePeriod {
     pub period: u32,
     pub periodic_rate: f64,
@@ -217,32 +211,30 @@ impl Debug for FutureValuePeriod {
 /// Calculates a future value including the value at the end of each period. This is used to show
 /// the growth or decline of an investment step by step.
 ///
+/// Related functions:
 /// For simply calculating a single future value use [`future_value`].
-///
-///
-/// If the rates vary by period use
-///// [`future_value_schedule`].
+/// To calculate a future value with a fixed rate while retaining the input values use
+/// * [`future_value_solution`].
+/// * If the rates vary by period use [`future_value_schedule`].
 ///
 /// The future value formula is:
 ///
 /// future_value = present_value * (1 + periodic_rate)<sup>periods</sup>
 ///
 /// # Arguments
-/// * `periodic_rate` - The rate at which the investment grows or shrinks per
-/// period, expressed as a floating point number. For instance 0.05 would mean
-/// 5% growth. Often appears as `r` or `i` in formulas.
-/// * `periods` - The number of periods such as quarters or years. Often appears
-/// as `n` or `t`.
-/// * `present_value` - The starting value of the investment. May appear as `pv`
-/// in formulas, or `C` for cash flow or `P` for principal.
+/// * `periodic_rate` - The rate at which the investment grows or shrinks per period, expressed as a
+/// floating point number. For instance 0.05 would mean 5% growth. Often appears as `r` or `i` in
+/// formulas.
+/// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
+/// * `present_value` - The starting value of the investment. May appear as `pv` in formulas, or `C`
+/// for cash flow or `P` for principal.
 ///
 /// # Panics
-/// The call will fail if `periodic_rate` is less than -1.0 as this would mean
-/// the investment is losing more than its full value every period.
+/// The call will fail if `periodic_rate` is less than -1.0 as this would mean the investment is
+/// losing more than its full value every period.
 ///
 /// # Examples
-/// Calculate a future value including the value at the end of each period, then filter the
-/// results.
+/// Calculate a future value including the value at the end of each period, then filter the results.
 /// ```
 /// // The initial investment is $10,000.12.
 /// let present_value = 10_000.12;
@@ -253,7 +245,7 @@ impl Debug for FutureValuePeriod {
 /// // The investment will grow for 24 months.
 /// let periods = 24;
 ///
-/// let results = finance::future_value_series(periodic_rate, present_value, periods);
+/// let results = finance::future_value_series(periodic_rate, periods, present_value);
 /// dbg!(&results);
 ///
 /// // Confirm that we have one entry for the initial value and one entry for
@@ -291,8 +283,8 @@ pub fn future_value_series<T>(periodic_rate: f64, periods: u32, present_value: T
     future_value_series
 }
 
-/// The value of an investment over several periods with varying rates,
-/// produced by calling [`future_value_schedule`].
+/// The value of an investment over several periods with varying rates, produced by calling
+/// [`future_value_schedule`].
 #[derive(Debug)]
 pub struct FutureValueSchedule {
     pub periods: u32,
@@ -301,8 +293,8 @@ pub struct FutureValueSchedule {
     pub schedule_periods: Vec<FutureValueSchedulePeriod>,
 }
 
-/// The value of an investment at the end of a given period. This is part of
-/// the [`FutureValueSchedule`] produced by calling [`future_value_schedule`].
+/// The value of an investment at the end of a given period. This is part of the
+/// [`FutureValueSchedule`] produced by calling [`future_value_schedule`].
 pub struct FutureValueSchedulePeriod {
     pub period: u32,
     pub periodic_rate: f64,
@@ -339,10 +331,11 @@ impl Debug for FutureValueSchedulePeriod {
 
 /// Calculates a future value based on rates that change for each period.
 ///
-/// For simply calculating a single future value with a fixed rate use
-/// [`future_value`]. To calculate a future value with a fixed rate while
-/// retaining the input values use [`future_value_solution`]. To calculate
-/// the value for each period instead of only the final value use
+/// Related functions:
+/// * For simply calculating a single future value with a fixed rate use [`future_value`].
+/// * To calculate a future value with a fixed rate while retaining the input values use
+/// [`future_value_solution`].
+/// * To calculate the value for each period instead of only the final value use
 /// [`future_value_series`].
 ///
 /// The future value formula is:
@@ -354,12 +347,12 @@ impl Debug for FutureValueSchedulePeriod {
 /// * `present_value` - The starting value of the investment.
 ///
 /// # Panics
-/// The call will fail if any of the rates is less than -1.0 as this would mean
-/// the investment is losing more than its full value.
+/// The call will fail if any of the rates is less than -1.0 as this would mean the investment is
+/// losing more than its full value.
 ///
 /// # Examples
-/// Calculate the value of an investment whose rates vary by year, then find the
-/// point where the value passes a certain threshold.
+/// Calculate the value of an investment whose rates vary by year, then find the point where the
+/// value passes a certain threshold.
 /// ```
 /// // The rates vary by year: 11.6% followed by 13.4%, a 9% drop, and an 8.6% gain.
 /// let periodic_rates = [0.116, 0.134, -0.09, 0.086];
@@ -374,17 +367,17 @@ impl Debug for FutureValueSchedulePeriod {
 ///
 /// // Confirm that there are four periods, corresponding to the four interest
 /// // rates.
-/// assert_eq!(4, schedule.periods.len());
+/// assert_eq!(4, schedule.schedule_periods.len());
 ///
 /// // Confirm that the value of the fourth period is the same as the overall
 /// // future value.
-/// assert_eq!(schedule.future_value, schedule.periods.last().unwrap().value);
+/// assert_eq!(schedule.future_value, schedule.schedule_periods.last().unwrap().value);
 ///
 /// // Find the first period where the value of the investment was at least
 /// // $60,000.
-/// let period = schedule.periods.iter().find(|x| x.value >= 60_000.00);
-/// dbg!(&period);
-/// assert_eq!(2, period.unwrap().period);
+/// let schedule_period = schedule.schedule_periods.iter().find(|x| x.value >= 60_000.00);
+/// dbg!(&schedule_period);
+/// assert_eq!(2, schedule_period.unwrap().period);
 /// ```
 /// Error case: One of the rates shows a drop of over 100%. There's no way to work out what this
 /// means so the call to future_value_schedule() will panic.
@@ -430,11 +423,11 @@ pub fn future_value_schedule<T>(periodic_rates: &[f64], present_value: T) -> Fut
 fn check_present_value_parameters(periodic_rate: f64, periods: u32, present_value: f64) {
     assert!(periodic_rate.is_finite());
     assert!(periodic_rate >= -1.);
-    assert!(periods >= 1);
-    assert!(present_value.is_finite());
     if periodic_rate.abs() > 1. {
         warn!("You provided a periodic rate ({}) greater than 1. Are you sure you expect a {}% return?", periodic_rate, periodic_rate * 100.0);
     }
+    assert!(periods >= 1);
+    assert!(present_value.is_finite());
 }
 
 #[cfg(test)]
