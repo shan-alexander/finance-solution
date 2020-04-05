@@ -11,3 +11,7 @@ pub mod round;
 #[doc(inline)]
 pub use round::*;
 
+pub mod shared;
+#[doc(inline)]
+pub use shared::*;
+
