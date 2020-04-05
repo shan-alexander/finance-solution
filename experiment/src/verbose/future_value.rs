@@ -81,7 +81,7 @@ fn try_doc_example_solution() {
         // The rate is between 2% and 15% per year.
         let periodic_rate = i as f64 / 100.0;
         // Calculate the future value for this periodic rate and add the details to the collection.
-        scenarios.push(finance::future_value_solution(periodic_rate, present_value, periods));
+        scenarios.push(finance::future_value_solution(periodic_rate, periods, present_value));
     }
     dbg!(&scenarios);
     assert_eq!(14, scenarios.len());
@@ -104,7 +104,7 @@ fn try_doc_example_series() {
 
     // The investment will grow for 24 months.
     let periods = 24;
-    let periods = finance::future_value_series(interest_rate, present_value, periods);
+    let periods = finance::future_value_series(interest_rate, periods, present_value);
     dbg!(&periods);
 
     // Confirm that we have one entry for the initial value and one entry for each period.
@@ -134,15 +134,15 @@ fn try_doc_example_schedule() {
 
     // Confirm that there are four periods, corresponding to the four interest
     // rates.
-    assert_eq!(4, schedule.periods.len());
+    assert_eq!(4, schedule.schedule_periods.len());
 
     // Confirm that the value of the fourth period is the same as the overall
     // future value.
-    assert_eq!(schedule.future_value, schedule.periods.last().unwrap().value);
+    assert_eq!(schedule.future_value, schedule.schedule_periods.last().unwrap().value);
 
     // Find the first period where the value of the investment was at least
     // $60,000.
-    let period = schedule.periods.iter().find(|x| x.value >= 60_000.00);
+    let period = schedule.schedule_periods.iter().find(|x| x.value >= 60_000.00);
     dbg!(&period);
     assert_eq!(2, period.unwrap().period);
 }
