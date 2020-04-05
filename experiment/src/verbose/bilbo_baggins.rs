@@ -105,7 +105,7 @@ fn calculate_bilbo_solution(b: BilboBagginsInputs) -> BilboBagginsSolution {
     
     // step five: Calculate the Present Value of the inheritance Bilbo plans to leave his nephew Frodo
     // we can use ear here because the periods are yearly, not monthly
-    let inheritance_at_time_of_retirement: finance::PresentValueSolution = finance::present_value_solution(b.effective_annual_rate_after_retire, b.inheritance_left_behind, b.retirement_income_for_how_many_years);
+    let inheritance_at_time_of_retirement: finance::PresentValueSolution = finance::present_value_solution(b.effective_annual_rate_after_retire, b.retirement_income_for_how_many_years, b.inheritance_left_behind);
     // dbg!(&inheritance_at_time_of_retirement.present_value);
 
     // step six: Determine how much Bilbo needs at year &retire_in_years_from_now to acheive his retirement goals

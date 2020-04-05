@@ -2,7 +2,6 @@
 // #![allow(dead_code)]
 
 use super::convert_rates;
-use super::present_value::{present_value, PresentValueSolution};
 use super::nper::{nper, NperSolution};
 
 pub fn main() {
@@ -58,7 +57,7 @@ fn try_problem_3() {
     let apr = 0.05;
     let num_periods = 10;
     let fv_amount = 500_000;
-    let pv_answer = present_value(apr, fv_amount, num_periods);
+    let pv_answer = finance::present_value(apr, fv_amount, num_periods);
     // expect $306,959.63
     dbg!(pv_answer);
 }
