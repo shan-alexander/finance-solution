@@ -14,6 +14,20 @@ pub fn round_to_cent(val: f64) -> f64 {
     (val * 100.0).round() / 100.0
 }
 
+/// Round to 6 decimal points (ULPS = units of least precision) 
+///
+/// This function uses f64::round() which rounds halfway cases away from 0.0.
+pub fn round_to_ulps6(val: f64) -> f64 {
+    (val * 1_000_000.0).round() / 1_000_000.0
+}
+
+/// Round to 8 decimal points (ULPS = units of least precision) 
+///
+/// This function uses f64::round() which rounds halfway cases away from 0.0.
+pub fn round_to_ulps8(val: f64) -> f64 {
+    (val * 100_000_000.0).round() / 100_000_000.0
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -30,6 +44,22 @@ mod tests {
         assert_eq!(295_489.94, round_to_cent(295_489.941849));
         assert_eq!(295_489.94, round_to_cent(295_489.9449));
         assert_ne!(295_489.94, round_to_cent(295_489.9451234));
+    }
+
+    #[test]
+    fn test_round_to_ulps6() {
+        assert_eq!(295_489.941849, round_to_ulps6(295_489.9418494449));
+        assert_eq!(295_489.533367, round_to_ulps6(295_489.5333669999999));
+        assert_eq!(295_489.945123, round_to_ulps6(295_489.9451229999));
+        assert_ne!(295_489.945123, round_to_ulps6(295_489.9451249999));
+    }
+
+    #[test]
+    fn test_round_to_ulps8() {
+        assert_eq!(295_489.94184944, round_to_ulps8(295_489.9418494449));
+        assert_eq!(295_489.53336700, round_to_ulps8(295_489.5333669999999));
+        assert_eq!(295_489.94512333, round_to_ulps8(295_489.945123329999));
+        assert_ne!(295_489.94512333, round_to_ulps8(295_489.9451249999));
     }
 }
 
