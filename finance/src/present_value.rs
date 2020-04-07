@@ -59,7 +59,7 @@ use crate::{future_value::future_value, rate::rate, periods::periods};
 /// dbg!(&present_value);
 ///
 /// // Confirm that the present value is correct to four decimal places (one hundredth of a cent).
-/// assert_eq!(43_848.6409, finance::round_to_fraction_of_cent(present_value));
+/// finance::assert_rounded_4(43_848.6409, present_value);
 /// ```
 /// Error case: The investment loses 105% per year. There's no way to work out what this means so
 /// the call to present_value() will panic.
@@ -291,13 +291,12 @@ pub fn present_value_schedule_solution<T>(periodic_rates: &[f64], future_value: 
     TvmSchedule::new(TvmVariable::PresentValue, periodic_rates, present_value, future_value.into())
 }
 
-fn check_present_value_parameters(periodic_rate: f64, periods: u32, future_value: f64) {
+fn check_present_value_parameters(periodic_rate: f64, _periods: u32, future_value: f64) {
     assert!(periodic_rate.is_finite(), "The periodic_rate must be finite (not NaN or infinity)");
     assert!(periodic_rate > -1.0, "The periodic_rate must be greater than -1.0 because a rate lower than -100% would mean the investment loses more than its full value in a period.");
     if periodic_rate.abs() > 1. {
         warn!("You provided a periodic rate ({}) greater than 1. Are you sure you expect a {}% return?", periodic_rate, periodic_rate * 100.0);
     }
-    assert!(periods >= 1);
     assert!(future_value.is_finite(), "The future value must be finite (not NaN or infinity)");
 }
 
@@ -313,7 +312,7 @@ mod tests {
         let periods = 6;
         let expected_value_solution = 13_000.0; // google sheet
         let actual_value_solution = present_value_solution(periodic_rate, periods, future_value).present_value;
-        assert_eq!(round_to_cent(expected_value_solution), round_to_cent(actual_value_solution));
+        assert_rounded_2(expected_value_solution, actual_value_solution);
     }
 
     #[test]
@@ -324,7 +323,7 @@ mod tests {
         let periods = 6;
         let expected_value_solution = 13_000.0; // google sheet
         let actual_value_solution = present_value_solution(periodic_rate, periods, future_value).present_value;
-        assert_eq!(round_to_cent(expected_value_solution), round_to_cent(actual_value_solution));
+        assert_rounded_2(expected_value_solution, actual_value_solution);
     }
     #[test]
     fn test_present_value_solution_3() {
@@ -334,7 +333,7 @@ mod tests {
         let periods = 6;
         let expected_value_solution = 8_804.84368898; // google sheet
         let actual_value_solution = present_value_solution(periodic_rate, periods, future_value).present_value;
-        assert_eq!(round_to_cent(expected_value_solution), round_to_cent(actual_value_solution));
+        assert_rounded_2(expected_value_solution, actual_value_solution);
     }
 
     #[test]
@@ -395,7 +394,7 @@ mod tests {
         let periods = 12;
         let expected_value_solution = 1.22070313; // google sheet
         let actual_value_solution = present_value_solution(periodic_rate, periods, future_value).present_value;
-        assert_eq!(round_to_cent(expected_value_solution), round_to_cent(actual_value_solution));
+        assert_rounded_2(expected_value_solution, actual_value_solution);
     }
 
     #[test]
@@ -406,7 +405,7 @@ mod tests {
         let periods = 12;
         let expected_value_solution = 0.298023223876953; // google sheet
         let actual_value_solution = present_value_solution(periodic_rate, periods, future_value).present_value;
-        assert_eq!(round_to_cent(expected_value_solution), round_to_cent(actual_value_solution));
+        assert_rounded_2(expected_value_solution, actual_value_solution);
     }
 
     #[test]
@@ -417,7 +416,7 @@ mod tests {
         let periods = 9;
         let expected_value_solution = 0.249663625036891; // google sheet
         let actual_value_solution = present_value_solution(periodic_rate, periods, future_value).present_value;
-        assert_eq!(round_to_cent(expected_value_solution), round_to_cent(actual_value_solution));
+        assert_rounded_2(expected_value_solution, actual_value_solution);
     }
 
     #[test]
@@ -426,43 +425,43 @@ mod tests {
         let future_value = 100_000.25;
 
         let present_value = present_value_schedule(&rates, future_value);
-        assert_eq!(94843.2841, round_to_fraction_of_cent(present_value));
+        assert_rounded_4(94843.2841, present_value);
 
         let solution = present_value_schedule_solution(&rates, future_value);
-        assert_eq!(100000.25, round_to_fraction_of_cent(solution.future_value));
-        assert_eq!(94843.2841, round_to_fraction_of_cent(solution.present_value));
+        assert_rounded_4(100000.2500, solution.future_value);
+        assert_rounded_4(94843.2841, solution.present_value);
 
         let series = solution.series();
         assert_eq!(6, series.len());
 
         let period = &series[0];
         assert_eq!(0, period.period);
-        assert_eq!(0.0, period.rate);
+        assert_rounded_6(0.0, period.rate);
         assert_rounded_4(present_value,period.value);
 
         let period = &series[1];
         assert_eq!(1, period.period);
-        assert_eq!(0.04, period.rate);
+        assert_rounded_6(0.04, period.rate);
         assert_rounded_4(98_637.0154,period.value);
 
         let period = &series[2];
         assert_eq!(2, period.period);
-        assert_eq!(0.07, period.rate);
+        assert_rounded_6(0.07, period.rate);
         assert_rounded_4(105_541.6065,period.value);
 
         let period = &series[3];
         assert_eq!(3, period.period);
-        assert_eq!(-0.12, period.rate);
+        assert_rounded_6(-0.12, period.rate);
         assert_rounded_4(92_876.6137,period.value);
 
         let period = &series[4];
         assert_eq!(4, period.period);
-        assert_eq!(-0.03, period.rate);
+        assert_rounded_6(-0.03, period.rate);
         assert_rounded_4(90_090.3153, period.value);
 
         let period = &series[5];
         assert_eq!(5, period.period);
-        assert_eq!(0.11, period.rate);
+        assert_rounded_6(0.11, period.rate);
         assert_rounded_4(100_000.2500, period.value);
     }
 

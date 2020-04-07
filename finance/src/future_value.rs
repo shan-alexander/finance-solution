@@ -81,7 +81,7 @@ use crate::{present_value::present_value, rate::rate, periods::periods};
 ///
 /// let future_value = finance::future_value(periodic_rate, periods, present_value);
 /// // Confirm that the future value is correct to the penny.
-/// assert_eq!(7351.47, finance::round_to_cent(future_value));
+/// finance::assert_rounded_2(7351.47, future_value);
 /// ```
 /// Error case: The investment loses 105% per year. There's no way to work out
 /// what this means so the call will panic.
@@ -297,13 +297,12 @@ pub fn future_value_schedule_solution<T>(periodic_rates: &[f64], present_value: 
     TvmSchedule::new(TvmVariable::FutureValue, periodic_rates, present_value.into(), future_value)
 }
 
-fn check_future_value_parameters(periodic_rate: f64, periods: u32, present_value: f64) {
+fn check_future_value_parameters(periodic_rate: f64, _periods: u32, present_value: f64) {
     assert!(periodic_rate.is_finite(), "The periodic_rate must be finite (not NaN or infinity)");
     assert!(periodic_rate > -1.0, "The periodic_rate must be greater than -1.0 because a rate lower than -100% would mean the investment loses more than its full value in a period.");
     if periodic_rate.abs() > 1. {
         warn!("You provided a periodic rate ({}) greater than 1. Are you sure you expect a {}% return?", periodic_rate, periodic_rate * 100.0);
     }
-    assert!(periods >= 1);
     assert!(present_value.is_finite(), "The present value must be finite (not NaN or infinity)");
 }
 
@@ -314,9 +313,9 @@ mod tests {
 
     #[test]
     fn test_future_value_nominal() {
-        assert_eq!(295_489.9418, round_to_fraction_of_cent(future_value(0.034, 5, 250_000.00)));
-        assert_eq!(20_629.3662, round_to_fraction_of_cent(future_value(0.08, 6, 13_000.0)));
-        assert_eq!(5_000.0000, round_to_fraction_of_cent(future_value(-0.09, 6, 8_804.84368898)));
+        assert_rounded_4(295_489.9418, future_value(0.034, 5, 250_000.00));
+        assert_rounded_4(20_629.3662, future_value(0.08, 6, 13_000.0));
+        assert_rounded_4(5_000.0000, future_value(-0.09, 6, 8_804.84368898));
     }
 
     #[should_panic]
@@ -332,8 +331,7 @@ mod tests {
         let present_value_1 = 250_000.00;
         let expected_value = 295489.941778856;
         let actual_value = future_value_solution(rate_of_return, periods, present_value_1).future_value;
-        assert_eq!(round_to_cent(expected_value), round_to_cent(actual_value));
-        assert!( float_cmp::approx_eq!(f64, expected_value, actual_value, ulps = 4) );
+        assert_rounded_4(expected_value, actual_value);
     }
 
     #[test]
@@ -343,7 +341,7 @@ mod tests {
         let present_value_1 = 13_000.0;
         let expected_value = 20_629.37;
         let actual_value = future_value_solution(rate_of_return, periods, present_value_1).future_value;
-        assert_eq!(round_to_cent(expected_value), round_to_cent(actual_value));
+        assert_rounded_2(expected_value, actual_value);
     }
 
     #[test]
@@ -354,19 +352,8 @@ mod tests {
         let present_value = 8_804.84368898;
         let expected_value = 5_000.00;
         let actual_value = future_value_solution(rate_of_return, periods, present_value).future_value;
-        assert_eq!(round_to_cent(expected_value), round_to_cent(actual_value));
+        assert_rounded_4(expected_value, actual_value);
     }
-
-    #[should_panic]
-    #[test]
-    fn test_future_value_solution_5() {
-        // test zero for periods
-        let rate_of_return = 0.09;
-        let periods = 0;
-        let present_value = 5_000.00;
-        let _should_panic = future_value_solution(rate_of_return, periods, present_value);
-    }
-
 
     #[should_panic]
     #[test]

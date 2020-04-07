@@ -105,7 +105,7 @@ fn try_doc_example() {
     dbg!(&present_value);
 
     // Confirm that the present value is correct to four decimal places (one hundredth of a cent).
-    assert_eq!(43_848.6409, finance::round_to_fraction_of_cent(present_value));
+    finance::assert_rounded_4(43_848.6409, present_value);
 }
 
 fn try_doc_example_solution_1() {
