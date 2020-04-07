@@ -1,23 +1,42 @@
 //! Future value calculations. Given an initial investment amount, a number of periods such as
 //! years, and fixed or varying interest rates, what is the value of the investment at the end?
+//!
+//! If you need to calculate the present value given a future value, a number of periods, and one
+//! or more rates use [`present_value`] or related functions.
+//!
+//! If you need to calculate a fixed rate given a present value, future value, and number of periods
+//! use [`rate`] or related functions.
+//!
+//! If you need to calculate the number of periods given a fixed rate and a present and future value
+//! use [`periods`] or related functions.
 
 use log::warn;
-use std::fmt::{self, Debug};
 
-use crate::shared;
+use crate::tvm_simple::*;
+
+#[allow(unused_imports)]
+use crate::{present_value::present_value, rate::rate, periods::periods};
 
 // Needed for the Rustdoc comments on SchedulePeriod to refer to these items without qualification.
-#[allow(unused_imports)]
-use crate::{PresentValueSchedule, present_value_schedule};
+// #[allow(unused_imports)]
+// use crate::{PresentValueSchedule, present_value_schedule};
 
 /// Returns the value of an investment after it has grown or shrunk over time, using a fixed rate.
 ///
 /// Related functions:
-/// * To calculate a future value with a fixed rate while retaining the input values use
-/// [`future_value_solution`].
-/// * To calculate the value for each period instead of only the final value use
-/// [`future_value_series`].
-/// * If the rates vary by period use [`future_value_schedule`].
+/// * To calculate a future value with a fixed rate and return a struct that explains the
+/// and optionally produces the the period-by-period values use [`future_value_solution`].
+/// * To calculate the future value if the rates vary by period use [`future_value_schedule`].
+/// * To calculate the future value with varying rates and return a struct that can produce the
+/// the period-by-period values use [`future_value_schedule_solution`].
+///
+/// Functions to solve for other values:
+/// * To calculate the present value given a future value, a number of periods, and one or more
+/// rates use [`present_value`] or related functions.
+/// * To calculate a fixed rate given a present value, future value, and number of periods use
+/// [`rate`] or related functions.
+/// * To calculate the number of periods given a fixed rate and a present and future value use
+/// [`periods`] or related functions.
 ///
 /// The formula is:
 ///
@@ -84,41 +103,6 @@ pub fn future_value<T>(periodic_rate: f64, periods: u32, present_value: T) -> f6
     present_value * (1.0 + periodic_rate).powi(periods as i32)
 }
 
-/// A record of a future value calculation produced by calling [`future_value_solution`].
-pub struct FutureValueSolution {
-    pub periodic_rate: f64,
-    pub periods: u32,
-    pub present_value: f64,
-    pub future_value: f64,
-    pub formula: String,
-}
-
-impl FutureValueSolution {
-    fn new(periodic_rate: f64, periods: u32, present_value: f64, future_value: f64) -> Self {
-        // The formula field is here to explain the calculation. It's not used by any code.
-        let formula = format!("{} * (1 + {})^{}", present_value, periodic_rate, periods);
-        Self {
-            periodic_rate,
-            periods,
-            present_value,
-            future_value,
-            formula,
-        }
-    }
-}
-
-impl Debug for FutureValueSolution {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{{ {}, {}, {}, {}, {} }}",
-               &format!("periodic_rate: {:.6}", self.periodic_rate),
-               &format!("periods: {}", self.periods),
-               &format!("present_value: {:.4}", self.present_value),
-               &format!("future_value: {:.4}", self.future_value),
-               &format!("formula: {:?}", self.formula),
-        )
-    }
-}
-
 /// Calculates the value of an investment after it has grown or shrunk over time and returns a
 /// struct with the inputs and the calculated value. This is used for keeping track of a collection
 /// of financial scenarios so that they can be examined later.
@@ -174,44 +158,12 @@ impl Debug for FutureValueSolution {
 /// dbg!(&scenarios[0].formula);
 /// assert_eq!("100000 * (1 + 0.06)^12", scenarios[0].formula);
 /// ```
-pub fn future_value_solution<T>(periodic_rate: f64, periods: u32, present_value: T) -> FutureValueSolution
+pub fn future_value_solution<T>(periodic_rate: f64, periods: u32, present_value: T) -> TvmSolution
     where T: Into<f64> + Copy
 {
     let future_value = future_value(periodic_rate, periods, present_value);
-    FutureValueSolution::new(periodic_rate, periods, present_value.into(), future_value)
-}
-
-/// The value of an investment after a given period produced by calling [`future_value_series`].
-pub struct FutureValuePeriod {
-    pub period: u32,
-    pub periodic_rate: f64,
-    pub present_value: f64,
-    pub period_value: f64,
-    pub future_value: f64,
-}
-
-impl FutureValuePeriod {
-    fn new(period: u32, periodic_rate: f64, present_value: f64, period_value: f64, future_value: f64) -> Self {
-        Self {
-            period,
-            periodic_rate,
-            present_value,
-            period_value,
-            future_value,
-        }
-    }
-}
-
-impl Debug for FutureValuePeriod {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{{ {}, {}, {}, {}, {} }}",
-               &format!("period: {}", self.period),
-               &format!("periodic_rate: {:.6}", self.periodic_rate),
-               &format!("present_value: {:.4}", self.present_value),
-               &format!("period_value: {:.4}", self.period_value),
-               &format!("future_value: {:.4}", self.future_value),
-        )
-    }
+    let formula = format!("{:.4} * (1 + {:.6})^{}", present_value.into(), periodic_rate, periods);
+    TvmSolution::new(TvmVariable::FutureValue, periodic_rate, periods, present_value.into(), future_value, &formula)
 }
 
 /// Calculates a future value including the value at the end of each period. This is used to show
@@ -267,49 +219,6 @@ impl Debug for FutureValuePeriod {
 /// dbg!(&filtered_results);
 /// assert_eq!(7, filtered_results.len());
 /// ```
-pub fn future_value_series<T>(periodic_rate: f64, periods: u32, present_value: T) -> Vec<FutureValuePeriod>
-    where T: Into<f64> + Copy
-{
-    let present_value = present_value.into();
-    check_future_value_parameters(periodic_rate, periods, present_value);
-
-    let interest_multiplier = 1.0 + periodic_rate;
-
-    // This is the future value at the end of all periods.
-    let future_value = present_value * interest_multiplier.powi(periods as i32);
-
-    // Start with period 0 which represents the starting values. Since no time has passed,
-    // period_value is the same as present_value.
-    let mut future_value_series = vec![FutureValuePeriod::new(0, periodic_rate, present_value, present_value, future_value)];
-    // Add the values at each period.
-    for period in 1..=periods {
-        let period_value = present_value * interest_multiplier.powi(period as i32);
-        future_value_series.push(FutureValuePeriod::new(period, periodic_rate, present_value, period_value, future_value));
-    }
-    future_value_series
-}
-
-/// The value of an investment over several periods with varying rates, produced by calling
-/// [`future_value_schedule`].
-#[derive(Debug)]
-pub struct FutureValueSchedule {
-    pub periods: u32,
-    pub present_value: f64,
-    pub future_value: f64,
-    pub schedule_periods: Vec<shared::SchedulePeriod>,
-}
-
-impl FutureValueSchedule {
-    fn new(periods: u32, present_value: f64, future_value: f64) -> Self {
-        let schedule = Self {
-            periods,
-            present_value,
-            future_value,
-            schedule_periods: vec![],
-        };
-        schedule
-    }
-}
 
 /// Calculates a future value based on rates that change for each period.
 ///
@@ -368,7 +277,7 @@ impl FutureValueSchedule {
 /// let present_value = 4_000.00;
 /// let schedule = finance::future_value_schedule(&periodic_rates, present_value);
 /// ```
-pub fn future_value_schedule<T>(periodic_rates: &[f64], present_value: T) -> FutureValueSchedule
+pub fn future_value_schedule<T>(periodic_rates: &[f64], present_value: T) -> TvmSchedule
     where T: Into<f64> + Copy
 {
     let present_value= present_value.into();
@@ -379,27 +288,12 @@ pub fn future_value_schedule<T>(periodic_rates: &[f64], present_value: T) -> Fut
         check_future_value_parameters(*rate, periods as u32, present_value);
     }
 
-    // Calculate the value after each period. The first entry for period 0 is the present value.
-    let mut period_values = vec![present_value];
-    for period in 1..=periods {
-        // The value for this period is the value of the previous period adjusted by the rate for
-        // this period.
-        let previous_value = period_values[period-1];
-        let rate = periodic_rates[period-1];
-        let period_value = previous_value * (1.0 + rate);
-        period_values.push(period_value);
+    let mut future_value = present_value;
+    for i in 0..periods {
+        future_value *= 1.0 + periodic_rates[i];
     }
 
-    // The overall future value is the same as the value at the end of the last period.
-    let future_value = period_values[periods];
-
-    let mut schedule = FutureValueSchedule::new(periods as u32, present_value, future_value);
-    for period in 1..=periods {
-        let rate = periodic_rates[period - 1];
-        let value = period_values[period];
-        schedule.schedule_periods.push(shared::SchedulePeriod::new(period as u32, rate, value));
-    }
-    schedule
+    TvmSchedule::new(TvmVariable::FutureValue, periodic_rates, present_value, future_value)
 }
 
 fn check_future_value_parameters(periodic_rate: f64, periods: u32, present_value: f64) {

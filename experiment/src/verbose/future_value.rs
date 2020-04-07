@@ -7,8 +7,9 @@ pub fn main() {
     // try_future_value_schedule();
     // dbg!(finance::future_value(-0.002, 5000.33, 250));
     // try_doc_example_solution();
-    try_doc_example_series();
+    // try_doc_example_series();
     // try_doc_example_schedule();
+    try_find_rate();
 }
 
 fn try_future_value() {
@@ -145,4 +146,25 @@ fn try_doc_example_schedule() {
     let period = schedule.schedule_periods.iter().find(|x| x.value >= 60_000.00);
     dbg!(&period);
     assert_eq!(2, period.unwrap().period);
+}
+
+fn try_find_rate() {
+    let present_value = 10_000.00f64;
+    let interest_rate = 0.05;
+    let periods = 100;
+    let future_value = finance::future_value(interest_rate, periods, present_value);
+    dbg!(&future_value);
+
+    // let calc_rate = (future_value / present_value).log(periods as f64);
+    // let calc_rate = (future_value / present_value).cbrt() - 1.0;
+    let power = 1.0 / periods as f64;
+    let calc_rate = (future_value / present_value).powf(power) - 1.0;
+    dbg!(&calc_rate);
+
+    let calc_periods = (future_value / present_value).log(1.0 + interest_rate);
+    // let calc_periods = (interest_rate as f64).log(future_value / present_value);
+    dbg!(&calc_periods);
+
+    dbg!(25.0f64.log(2.0));
+
 }
