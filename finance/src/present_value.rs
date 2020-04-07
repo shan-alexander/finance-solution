@@ -1,18 +1,31 @@
 //! Present value calculations. Given a final amount, a number of periods such as years, and fixed
 //! or varying interest periodic_rates, what is the current value?
+//!
+//! If you need to calculate the future value given a present value, a number of periods, and one
+//! or more rates use [`future_value`] or related functions.
+//!
+//! If you need to calculate a fixed rate given a present value, future value, and number of periods
+//! use [`rate`] or related functions.
+//!
+//! If you need to calculate the number of periods given a fixed rate and a present and future value
+//! use [`periods`] or related functions.
 
 use log::warn;
 
 use crate::tvm_simple::*;
 
+// Needed for the Rustdoc comments.
+#[allow(unused_imports)]
+use crate::{future_value::future_value, rate::rate, periods::periods};
+
 /// Returns the current value of a future amount using a fixed periodic_rate.
 ///
 /// Related functions:
-/// * To calculate a present value with a fixed periodic_rate while retaining the input values use
-/// [`present_value_solution`].
-/// * To calculate the value for each period instead of only the final value use
-/// [`present_value_series`].
-/// * If the periodic_rates vary by period use [`present_value_schedule`].
+/// * To calculate a present value with a fixed rate and return a struct that shows the formula and
+/// optionally produces the the period-by-period values use [`present_value_solution`].
+/// * To calculate the present value if the rates vary by period use [`present_value_schedule`].
+/// * To calculate the present value with varying rates and return a struct that can produce the
+/// period-by-period values use [`present_value_schedule_solution`].
 ///
 /// The present value formula is:
 ///
@@ -46,7 +59,7 @@ use crate::tvm_simple::*;
 /// dbg!(&present_value);
 ///
 /// // Confirm that the present value is correct to four decimal places (one hundredth of a cent).
-/// assert_eq!(43848.6409, finance::round_to_fraction_of_cent(present_value));
+/// assert_eq!(43_848.6409, finance::round_to_fraction_of_cent(present_value));
 /// ```
 /// Error case: The investment loses 105% per year. There's no way to work out what this means so
 /// the call to present_value() will panic.
@@ -70,10 +83,10 @@ pub fn present_value<T>(periodic_rate: f64, periods: u32, future_value: T) -> f6
 /// financial scenarios so that they can be examined later.
 ///
 /// Related functions:
-/// * For simply calculating a single present value use [`present_value`].
-/// * To calculate the value for each period instead of only the final value use
-/// [`present_value_series`].
-/// * If the rates vary by period use [`present_value_schedule`].
+/// * For simply calculating a single present value using a fixed rate use [`present_value`].
+/// * To calculate the present value if the rates vary by period use [`present_value_schedule`].
+/// * To calculate the present value with varying rates and return a struct that can produce the
+/// period-by-period values use [`present_value_schedule_solution`].
 ///
 /// The present value formula is:
 ///
@@ -91,7 +104,35 @@ pub fn present_value<T>(periodic_rate: f64, periods: u32, future_value: T) -> f6
 /// losing more than its full value every period.
 ///
 /// # Examples
-/// Create a collection of present value calculations where the future value and periodic rate are
+/// Calculate a present value and examine the period-by-period values.
+/// ```
+/// // The rate is 8.45% per year.
+/// let periodic_rate = 0.0845;
+///
+/// // The investment will grow for six years.
+/// let periods = 6;
+///
+/// // The final value is $50,000.
+/// let future_value = 50_000;
+///
+/// // Calculate the present value and create a struct with the input values and
+/// // the formula used.
+/// let solution= finance::present_value_solution(periodic_rate, periods, future_value);
+/// dbg!(&solution);
+///
+/// let present_value = solution.present_value;
+/// finance::assert_rounded_4(present_value, 30_732.1303);
+///
+/// // Examine the formula.
+/// let formula = solution.formula.clone();
+/// dbg!(&formula);
+/// assert_eq!(formula, "50000.0000 / (1.084500 ^ 6)");
+///
+/// // Calculate the amount at the end of each period.
+/// let series = solution.series();
+/// dbg!(&series);
+/// ```
+/// Build a collection of present value calculations where the future value and periodic rate are
 /// fixed but the number of periods varies, then filter the results.
 /// ```
 /// // The rate is 0.9% per month.
@@ -104,9 +145,9 @@ pub fn present_value<T>(periodic_rate: f64, periods: u32, future_value: T) -> f6
 /// let mut scenarios = vec![];
 /// // Calculate the present value for terms ranging from 1 to 36 months.
 /// for periods in 1..=36 {
-///     // Calculate the future value for this number of months and add the details to the
-///     // collection.
-///     scenarios.push(finance::present_value_solution(periodic_rate, periods, future_value));
+/// // Calculate the future value for this number of months and add the details to the
+/// // collection.
+/// scenarios.push(finance::present_value_solution(periodic_rate, periods, future_value));
 /// }
 /// dbg!(&scenarios);
 /// assert_eq!(36, scenarios.len());
@@ -125,7 +166,7 @@ pub fn present_value<T>(periodic_rate: f64, periods: u32, future_value: T) -> f6
 ///
 /// // Check the formula for the first scenario.
 /// dbg!(&scenarios[0].formula);
-/// assert_eq!("100000 / (1 + 0.009)^25", scenarios[0].formula);
+/// assert_eq!("100000.0000 / (1.009000 ^ 25)", scenarios[0].formula);
 /// ```
 /// Error case: The investment loses 111% per year. There's no way to work out what this means so
 /// the call to present_value() will panic.
@@ -139,18 +180,74 @@ pub fn present_value_solution<T>(periodic_rate: f64, periods: u32, future_value:
     where T: Into<f64> + Copy
 {
     let present_value = present_value(periodic_rate, periods, future_value);
-    let formula = format!("{:.4} / (1 + {:.6})^{}", future_value.into(), periodic_rate, periods);
+    let rate_multiplier = 1.0 + periodic_rate;
+    assert!(rate_multiplier >= 0.0);
+    let formula = format!("{:.4} / ({:.6} ^ {})", future_value.into(), rate_multiplier, periods);
     TvmSolution::new(TvmVariable::PresentValue, periodic_rate, periods, present_value, future_value.into(), &formula)
 }
 
 /// Calculates a present value based on rates that change for each period.
 ///
 /// Related functions:
-/// * For simply calculating a single present value with a fixed rate use [`present_value`].
-/// * To calculate a present value with a fixed rate while retaining the input values use
-/// [`present_value_solution`].
-/// * To calculate the value for each period instead of only the final value use
-/// [`present_value_series`].
+/// * For simply calculating a single present value using a fixed rate use [`present_value`].
+/// * To calculate a present value with a fixed rate and return a struct that shows the formula and
+/// optionally produces the the period-by-period values use [`present_value_solution`].
+/// * To calculate the present value with varying rates and return a struct that can produce the
+/// period-by-period values use [`present_value_schedule_solution`].
+///
+/// The present value formula is:
+///
+/// present_value = future_value / (1 + periodic_rate)<sup>periods</sup>
+///
+/// # Arguments
+/// * `periodic_rates` - A collection of rates, one for each period.
+/// * `future_value` - The ending value of the investment.
+///
+/// # Panics
+/// The call will fail if any of the rates is less than -1.0 as this would mean the investment is
+/// losing more than its full value.
+///
+/// # Examples
+/// Calculate the present value of an investment whose rates vary by year.
+/// ```
+/// // The annual rate varies from -3.4% to 12.9%.
+/// let rates = [0.04, -0.034, 0.0122, 0.129, 8.5];
+///
+/// // The value of the investment after applying all of these periodic rates
+/// // will be $30_000.
+/// let future_value = 30_000.00;
+///
+/// // Calculate the present value.
+/// let present_value = finance::present_value_schedule(&rates, future_value);
+/// dbg!(&present_value);
+/// ```
+pub fn present_value_schedule<T>(periodic_rates: &[f64], future_value: T) -> f64
+    where T: Into<f64> + Copy
+{
+    let periods = periodic_rates.len();
+    let future_value = future_value.into();
+
+    // Check the parameters including all of the provided rates.
+    for rate in periodic_rates {
+        check_present_value_parameters(*rate, periods as u32, future_value);
+    }
+
+    let mut present_value = future_value;
+    for i in (0..periods).rev() {
+        present_value /= 1.0 + periodic_rates[i];
+    }
+
+    present_value
+}
+
+/// Calculates a present value based on rates that change for each period and returns a struct
+/// with the inputs and the calculated value.
+///
+/// Related functions:
+/// * For simply calculating a single present value using a fixed rate use [`present_value`].
+/// * To calculate a present value with a fixed rate and return a struct that shows the formula and
+/// optionally produces the the period-by-period values use [`present_value_solution`].
+/// * To calculate the present value if the rates vary by period use [`present_value_schedule`].
 ///
 /// The present value formula is:
 ///
@@ -168,42 +265,30 @@ pub fn present_value_solution<T>(periodic_rate: f64, periods: u32, future_value:
 /// Calculate the value of an investment whose rates vary by year, then view only those periods
 /// where the rate is negative.
 /// ```
-/// // The annual rate varies from -12% to 11%.
-/// let rates = [0.04, 0.07, -0.12, -0.03, 0.11];
+/// // The quarterly rate varies from -0.5% to 4%.
+/// let rates = [0.04, 0.008, 0.0122, -0.005];
 ///
-/// // The value of the investment after applying all of these periodic rates will be $100_000.25.
-/// let future_value = 100_000.25;
+/// // The value of the investment after applying all of these periodic rates
+/// // will be $25_000.
+/// let future_value = 25_000.00;
 ///
-/// // Calculate the present value as well as the value at the end of each period.
-/// let schedule = finance::present_value_schedule(&rates, future_value);
-/// dbg!(&schedule);
-/// assert_eq!(5, schedule.schedule_periods.len());
+/// // Calculate the present value and keep track of the inputs and the formula
+/// // in a struct.
+/// let solution = finance::present_value_schedule_solution(&rates, future_value);
+/// dbg!(&solution);
 ///
-/// // Create a filtered list of periods, only those with a negative rate.
-/// let filtered_periods = schedule.schedule_periods
-///     .iter()
-///     .filter(|x| x.periodic_rate < 0.0)
-///     .collect::<Vec<_>>();
-/// dbg!(&filtered_periods);
-/// assert_eq!(2, filtered_periods.len());
+/// let present_value = solution.present_value;
+/// finance::assert_rounded_4(present_value, 23_678.6383);
+///
+/// // Calculate the value for each period.
+/// let series = solution.series();
+/// dbg!(&series);
 /// ```
-pub fn present_value_schedule<T>(periodic_rates: &[f64], future_value: T) -> TvmSchedule
+pub fn present_value_schedule_solution<T>(periodic_rates: &[f64], future_value: T) -> TvmSchedule
     where T: Into<f64> + Copy
 {
-    let periods = periodic_rates.len();
-    let future_value = future_value.into();
-
-    // Check the parameters including all of the provided rates.
-    for rate in periodic_rates {
-        check_present_value_parameters(*rate, periods as u32, future_value);
-    }
-
-    let mut present_value = future_value;
-    for i in (0..periods).rev() {
-        present_value /= 1.0 + periodic_rates[i];
-    }
-
-    TvmSchedule::new(TvmVariable::PresentValue, periodic_rates, present_value, future_value)
+    let present_value = present_value_schedule(periodic_rates, future_value);
+    TvmSchedule::new(TvmVariable::PresentValue, periodic_rates, present_value, future_value.into())
 }
 
 fn check_present_value_parameters(periodic_rate: f64, periods: u32, future_value: f64) {
@@ -339,37 +424,46 @@ mod tests {
     fn test_present_value_schedule() {
         let rates = [0.04, 0.07, -0.12, -0.03, 0.11];
         let future_value = 100_000.25;
-        let schedule = present_value_schedule(&rates, future_value);
-        assert_eq!(100000.25, round_to_fraction_of_cent(schedule.future_value));
-        assert_eq!(94843.2841, round_to_fraction_of_cent(schedule.present_value));
-        // assert_eq!(5, schedule.schedule_periods.len());
 
-        /*
-        let period_index = 0;
-        assert_eq!(1, schedule.schedule_periods[period_index].period);
-        assert_eq!(0.04, schedule.schedule_periods[period_index].periodic_rate);
-        assert_eq!(98_637.0154, round_to_fraction_of_cent(schedule.schedule_periods[period_index].value));
+        let present_value = present_value_schedule(&rates, future_value);
+        assert_eq!(94843.2841, round_to_fraction_of_cent(present_value));
 
-        let period_index = 1;
-        assert_eq!(2, schedule.schedule_periods[period_index].period);
-        assert_eq!(0.07, schedule.schedule_periods[period_index].periodic_rate);
-        assert_eq!(105_541.6065, round_to_fraction_of_cent(schedule.schedule_periods[period_index].value));
+        let solution = present_value_schedule_solution(&rates, future_value);
+        assert_eq!(100000.25, round_to_fraction_of_cent(solution.future_value));
+        assert_eq!(94843.2841, round_to_fraction_of_cent(solution.present_value));
 
-        let period_index = 2;
-        assert_eq!(3, schedule.schedule_periods[period_index].period);
-        assert_eq!(-0.12, schedule.schedule_periods[period_index].periodic_rate);
-        assert_eq!(92_876.6137, round_to_fraction_of_cent(schedule.schedule_periods[period_index].value));
+        let series = solution.series();
+        assert_eq!(6, series.len());
 
-        let period_index = 3;
-        assert_eq!(4, schedule.schedule_periods[period_index].period);
-        assert_eq!(-0.03, schedule.schedule_periods[period_index].periodic_rate);
-        assert_eq!(90_090.3153, round_to_fraction_of_cent(schedule.schedule_periods[period_index].value));
+        let period = &series[0];
+        assert_eq!(0, period.period);
+        assert_eq!(0.0, period.rate);
+        assert_rounded_4(present_value,period.value);
 
-        let period_index = 4;
-        assert_eq!(5, schedule.schedule_periods[period_index].period);
-        assert_eq!(0.11, schedule.schedule_periods[period_index].periodic_rate);
-        assert_eq!(100_000.2500, round_to_fraction_of_cent(schedule.schedule_periods[period_index].value));
-        */
+        let period = &series[1];
+        assert_eq!(1, period.period);
+        assert_eq!(0.04, period.rate);
+        assert_rounded_4(98_637.0154,period.value);
+
+        let period = &series[2];
+        assert_eq!(2, period.period);
+        assert_eq!(0.07, period.rate);
+        assert_rounded_4(105_541.6065,period.value);
+
+        let period = &series[3];
+        assert_eq!(3, period.period);
+        assert_eq!(-0.12, period.rate);
+        assert_rounded_4(92_876.6137,period.value);
+
+        let period = &series[4];
+        assert_eq!(4, period.period);
+        assert_eq!(-0.03, period.rate);
+        assert_rounded_4(90_090.3153, period.value);
+
+        let period = &series[5];
+        assert_eq!(5, period.period);
+        assert_eq!(0.11, period.rate);
+        assert_rounded_4(100_000.2500, period.value);
     }
 
 }

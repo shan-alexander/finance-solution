@@ -14,21 +14,18 @@ use log::warn;
 
 use crate::tvm_simple::*;
 
+// Needed for the Rustdoc comments.
 #[allow(unused_imports)]
 use crate::{present_value::present_value, rate::rate, periods::periods};
-
-// Needed for the Rustdoc comments on SchedulePeriod to refer to these items without qualification.
-// #[allow(unused_imports)]
-// use crate::{PresentValueSchedule, present_value_schedule};
 
 /// Returns the value of an investment after it has grown or shrunk over time, using a fixed rate.
 ///
 /// Related functions:
-/// * To calculate a future value with a fixed rate and return a struct that explains the
-/// and optionally produces the the period-by-period values use [`future_value_solution`].
+/// * To calculate a future value with a fixed rate and return a struct that shows the formula and
+/// optionally produces the the period-by-period values use [`future_value_solution`].
 /// * To calculate the future value if the rates vary by period use [`future_value_schedule`].
 /// * To calculate the future value with varying rates and return a struct that can produce the
-/// the period-by-period values use [`future_value_schedule_solution`].
+/// period-by-period values use [`future_value_schedule_solution`].
 ///
 /// Functions to solve for other values:
 /// * To calculate the present value given a future value, a number of periods, and one or more
@@ -69,7 +66,7 @@ use crate::{present_value::present_value, rate::rate, periods::periods};
 /// let future_value = finance::future_value(periodic_rate, periods, present_value);
 /// // Confirm that the future value is correct to four decimal places (one
 /// // hundredth of a cent).
-/// assert_eq!(295_489.9418, finance::round_to_fraction_of_cent(future_value));
+/// finance::assert_rounded_4(295_489.9418, future_value);
 /// ```
 /// Investment that loses money each year.
 /// ```
@@ -87,7 +84,7 @@ use crate::{present_value::present_value, rate::rate, periods::periods};
 /// assert_eq!(7351.47, finance::round_to_cent(future_value));
 /// ```
 /// Error case: The investment loses 105% per year. There's no way to work out
-/// what this means so the call to future_value() will panic.
+/// what this means so the call will panic.
 /// ```should_panic
 /// let periodic_rate = -1.05;
 /// let periods = 6;
@@ -108,10 +105,10 @@ pub fn future_value<T>(periodic_rate: f64, periods: u32, present_value: T) -> f6
 /// of financial scenarios so that they can be examined later.
 ///
 /// Related functions:
-/// * For simply calculating a single future value use [`future_value`].
-/// * To calculate the value for each period instead of only the final value use
-/// [`future_value_series`].
-/// * If the rates vary by period use [`future_value_schedule`].
+/// * For simply calculating a single future value using a fixed rate use [`future_value`].
+/// * To calculate the future value if the rates vary by period use [`future_value_schedule`].
+/// * To calculate the future value with varying rates and return a struct that can produce the
+/// period-by-period values use [`future_value_schedule_solution`].
 ///
 /// The future value formula is:
 ///
@@ -130,18 +127,43 @@ pub fn future_value<T>(periodic_rate: f64, periods: u32, present_value: T) -> f6
 /// losing more than its full value every period.
 ///
 /// # Examples
+/// Calculate a future value and examine the period-by-period values.
+/// ```
+/// // The rate is 1.2% per month.
+/// let periodic_rate = 0.012;
+///
+/// // The investment will grow for 8 months.
+/// let periods = 8;
+///
+/// // The initial investment is $200,000.
+/// let present_value = 200_000;
+///
+/// let solution = finance::future_value_solution(periodic_rate, periods, present_value);
+/// dbg!(&solution);
+///
+/// let future_value = solution.future_value;
+/// finance::assert_rounded_4(future_value, 220_026.0467);
+///
+/// let formula = solution.formula.clone();
+/// assert_eq!(formula, "200000.0000 * (1.012000 ^ 8)");
+///
+/// // Calculate the value at the end of each period.
+/// let series = solution.series();
+/// dbg!(&series);
+/// ```
 /// Create a collection of future value calculations ranging over several interest rates.
 /// ```
-/// // The investment will grow for 12 years.
-/// let periods = 12;
-///
 /// // The initial investment is $100,000.
 /// let present_value = 100_000;
 ///
+/// // The investment will grow for 12 years.
+/// let periods = 12;
+///
 /// // We'll keep a collection of the calculated future values along with their inputs.
 /// let mut scenarios = vec![];
+///
 /// for i in 2..=15 {
-///     // The rate is between 2% and 15% per year.
+/// // The rate is between 2% and 15% per year.
 ///     let periodic_rate = i as f64 / 100.0;
 ///     // Calculate the future value for this periodic rate and add the details to the collection.
 ///     scenarios.push(finance::future_value_solution(periodic_rate, periods, present_value));
@@ -156,82 +178,26 @@ pub fn future_value<T>(periodic_rate: f64, periods: u32, present_value: T) -> f6
 ///
 /// // Check the formula for the first scenario.
 /// dbg!(&scenarios[0].formula);
-/// assert_eq!("100000 * (1 + 0.06)^12", scenarios[0].formula);
+/// assert_eq!("100000.0000 * (1.060000 ^ 12)", scenarios[0].formula);
 /// ```
 pub fn future_value_solution<T>(periodic_rate: f64, periods: u32, present_value: T) -> TvmSolution
     where T: Into<f64> + Copy
 {
     let future_value = future_value(periodic_rate, periods, present_value);
-    let formula = format!("{:.4} * (1 + {:.6})^{}", present_value.into(), periodic_rate, periods);
+    let rate_multiplier = 1.0 + periodic_rate;
+    assert!(rate_multiplier >= 0.0);
+    let formula = format!("{:.4} * ({:.6} ^ {})", present_value.into(), rate_multiplier, periods);
     TvmSolution::new(TvmVariable::FutureValue, periodic_rate, periods, present_value.into(), future_value, &formula)
 }
-
-/// Calculates a future value including the value at the end of each period. This is used to show
-/// the growth or decline of an investment step by step.
-///
-/// Related functions:
-/// For simply calculating a single future value use [`future_value`].
-/// To calculate a future value with a fixed rate while retaining the input values use
-/// * [`future_value_solution`].
-/// * If the rates vary by period use [`future_value_schedule`].
-///
-/// The future value formula is:
-///
-/// future_value = present_value * (1 + periodic_rate)<sup>periods</sup>
-///
-/// # Arguments
-/// * `periodic_rate` - The rate at which the investment grows or shrinks per period, expressed as a
-/// floating point number. For instance 0.05 would mean 5% growth. Often appears as `r` or `i` in
-/// formulas.
-/// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
-/// * `present_value` - The starting value of the investment. May appear as `pv` in formulas, or `C`
-/// for cash flow or `P` for principal.
-///
-/// # Panics
-/// The call will fail if `periodic_rate` is less than -1.0 as this would mean the investment is
-/// losing more than its full value every period.
-///
-/// # Examples
-/// Calculate a future value including the value at the end of each period, then filter the results.
-/// ```
-/// // The initial investment is $10,000.12.
-/// let present_value = 10_000.12;
-///
-/// // The interest rate is 1.5% per month.
-/// let periodic_rate = 0.015;
-///
-/// // The investment will grow for 24 months.
-/// let periods = 24;
-///
-/// let results = finance::future_value_series(periodic_rate, periods, present_value);
-/// dbg!(&results);
-///
-/// // Confirm that we have one entry for the initial value and one entry for
-/// // each period.
-/// assert_eq!(25, results.len());
-///
-/// // Create a reduced vector with every fourth period. This will include
-/// // period 0 representing the initial value of the investment.
-/// let filtered_results = results
-///     .iter()
-///     .filter(|x| x.period % 4 == 0)
-///     .collect::<Vec<_>>();
-/// dbg!(&filtered_results);
-/// assert_eq!(7, filtered_results.len());
-/// ```
 
 /// Calculates a future value based on rates that change for each period.
 ///
 /// Related functions:
-/// * For simply calculating a single future value with a fixed rate use [`future_value`].
-/// * To calculate a future value with a fixed rate while retaining the input values use
-/// [`future_value_solution`].
-/// * To calculate the value for each period instead of only the final value use
-/// [`future_value_series`].
-///
-/// The future value formula is:
-///
-/// future_value = present_value * (1 + periodic_rate)<sup>periods</sup>
+/// * For simply calculating a single future value using a fixed rate use [`future_value`].
+/// * To calculate a future value with a fixed rate and return a struct that shows the formula and
+/// optionally produces the the period-by-period values use [`future_value_solution`].
+/// * To calculate the future value with varying rates and return a struct that can produce the
+/// period-by-period values use [`future_value_schedule_solution`].
 ///
 /// # Arguments
 /// * `periodic_rates` - A collection of rates, one for each period.
@@ -242,42 +208,26 @@ pub fn future_value_solution<T>(periodic_rate: f64, periods: u32, present_value:
 /// losing more than its full value.
 ///
 /// # Examples
-/// Calculate the value of an investment whose rates vary by year, then find the point where the
-/// value passes a certain threshold.
+/// Calculate the value of an investment whose rates vary by year.
 /// ```
-/// // The rates vary by year: 11.6% followed by 13.4%, a 9% drop, and an 8.6% gain.
-/// let periodic_rates = [0.116, 0.134, -0.09, 0.086];
+/// // The rates vary by year: 4% followed by -3.9%, 10.6%, and -5.7%.
+/// let rates = [0.04, -0.039, 0.106, -0.057];
 ///
-/// // The initial investment is $50,000.
-/// let present_value = 50_000.00;
+/// // The initial investment is $75,000.
+/// let present_value = 75_000.00;
 ///
-/// let schedule = finance::future_value_schedule(&periodic_rates, present_value);
-/// dbg!(&schedule);
-///
-/// assert_eq!(62534.3257, finance::round_to_fraction_of_cent(schedule.future_value));
-///
-/// // Confirm that there are four periods, corresponding to the four interest
-/// // rates.
-/// assert_eq!(4, schedule.schedule_periods.len());
-///
-/// // Confirm that the value of the fourth period is the same as the overall
-/// // future value.
-/// assert_eq!(schedule.future_value, schedule.schedule_periods.last().unwrap().value);
-///
-/// // Find the first period where the value of the investment was at least
-/// // $60,000.
-/// let schedule_period = schedule.schedule_periods.iter().find(|x| x.value >= 60_000.00);
-/// dbg!(&schedule_period);
-/// assert_eq!(2, schedule_period.unwrap().period);
+/// let future_value = finance::future_value_schedule(&rates, present_value);
+/// dbg!(&future_value);
+/// finance::assert_rounded_4(78_178.0458, future_value);
 /// ```
 /// Error case: One of the rates shows a drop of over 100%. There's no way to work out what this
-/// means so the call to future_value_schedule() will panic.
+/// means so the call will panic.
 /// ```should_panic
 /// let periodic_rates = [0.116, -100.134, -0.09, 0.086];
 /// let present_value = 4_000.00;
 /// let schedule = finance::future_value_schedule(&periodic_rates, present_value);
 /// ```
-pub fn future_value_schedule<T>(periodic_rates: &[f64], present_value: T) -> TvmSchedule
+pub fn future_value_schedule<T>(periodic_rates: &[f64], present_value: T) -> f64
     where T: Into<f64> + Copy
 {
     let present_value= present_value.into();
@@ -293,7 +243,58 @@ pub fn future_value_schedule<T>(periodic_rates: &[f64], present_value: T) -> Tvm
         future_value *= 1.0 + periodic_rates[i];
     }
 
-    TvmSchedule::new(TvmVariable::FutureValue, periodic_rates, present_value, future_value)
+    future_value
+}
+
+/// Calculates a future value based on rates that change for each period, returning a struct with
+/// all of the inputs and results.
+///
+/// Related functions:
+/// * For simply calculating a single future value using a fixed rate use [`future_value`].
+/// * To calculate a future value with a fixed rate and return a struct that shows the formula and
+/// optionally produces the the period-by-period values use [`future_value_solution`].
+/// * To calculate the future value if the rates vary by period use [`future_value_schedule`].
+///
+/// # Arguments
+/// * `periodic_rates` - A collection of rates, one for each period.
+/// * `present_value` - The starting value of the investment.
+///
+/// # Panics
+/// The call will fail if any of the rates is less than -1.0 as this would mean the investment is
+/// losing more than its full value.
+///
+/// # Examples
+/// Calculate the value of an investment whose rates vary by year.
+/// ```
+/// // The rates vary by year: 8.1% followed by 11%, 4%, and -2.3%.
+/// let rates = [0.081, 0.11, 0.04, -0.023];
+///
+/// // The initial investment is $10,000.
+/// let present_value = 10_000.00;
+///
+/// let solution = finance::future_value_schedule_solution(&rates, present_value);
+/// dbg!(&solution);
+///
+/// let future_value = solution.future_value;
+/// dbg!(&future_value);
+/// finance::assert_rounded_4(future_value, 12_192.0455);
+///
+/// // Calculate the value for each period.
+/// let series = solution.series();
+/// dbg!(&series);
+/// ```
+/// Error case: One of the rates shows a drop of over 100%. There's no way to work out what this
+/// means so the call will panic.
+/// ```should_panic
+/// let periodic_rates = [0.116, -100.134, -0.09, 0.086];
+/// let present_value = 4_000.00;
+/// let schedule = finance::future_value_schedule(&periodic_rates, present_value);
+/// ```
+pub fn future_value_schedule_solution<T>(periodic_rates: &[f64], present_value: T) -> TvmSchedule
+    where T: Into<f64> + Copy
+{
+    let future_value = future_value_schedule(periodic_rates, present_value);
+    TvmSchedule::new(TvmVariable::FutureValue, periodic_rates, present_value.into(), future_value)
 }
 
 fn check_future_value_parameters(periodic_rate: f64, periods: u32, present_value: f64) {
