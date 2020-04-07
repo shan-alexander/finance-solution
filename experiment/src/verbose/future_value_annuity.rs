@@ -6,7 +6,7 @@ use log::Level;
 use log::{info, warn, log_enabled};
 use std::fmt::Debug;
 use std::fmt;
-use crate::format;
+//use crate::format;
 
 pub fn main() { 
     try_future_value_annuity();

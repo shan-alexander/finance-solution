@@ -111,10 +111,10 @@ mod tests {
     #[test]
     fn test_rate_edge() {
         // Zero periods, values the same.
-        assert_eq!(0.0, rate(0, 10_000.0, 10_000.0));
+        assert_rounded_6(0.0, rate(0, 10_000.0, 10_000.0));
 
         // Nonzero periods, values the same.
-        assert_eq!(0.0, rate(12, 10_000.0, 10_000.0));
+        assert_rounded_6(0.0, rate(12, 10_000.0, 10_000.0));
     }
 
     #[should_panic]
