@@ -14,7 +14,6 @@ pub enum TvmVariable {
 }
 
 impl TvmVariable {
-    /*
     fn is_rate(&self) -> bool {
         match self {
             TvmVariable::Rate => true,
@@ -22,6 +21,7 @@ impl TvmVariable {
         }
     }
 
+    /*
     fn is_periods(&self) -> bool {
         match self {
             TvmVariable::Periods => true,
@@ -206,7 +206,7 @@ impl TvmSolution {
         assert!(rate_multiplier >= 0.0);
         let mut series = vec![];
         // Add the values at each period.
-        if self.calculated_field.is_present_value() {
+        if self.calculated_field.is_rate() || self.calculated_field.is_present_value() {
             let mut prev_value = None;
             for period in (0..=self.periods).rev() {
                 let (value, formula) = if period == self.periods {

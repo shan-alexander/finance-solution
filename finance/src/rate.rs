@@ -18,7 +18,8 @@ use crate::tvm_simple::*;
 #[allow(unused_imports)]
 use crate::{future_value::future_value, present_value::present_value, periods::periods};
 
-/// Returns the periodic rate of an investment.
+/// Returns the periodic rate of an investment given the number of periods along with the present
+/// and future values.
 ///
 /// Related functions:
 /// * To calculate a periodic rate and return a struct that shows the formula and optionally
@@ -51,6 +52,22 @@ use crate::{future_value::future_value, present_value::present_value, periods::p
 /// future value. In both cases this is because there's no periodic rate that could make that work.
 ///
 /// # Examples
+/// ```
+/// // The interest will compound for 365 days.
+/// let periods = 365;
+///
+/// // The starting value is $10,000.
+/// let present_value = 10_000.00;
+///
+/// // The ending value is $11,000.
+/// let future_value = 11_000.00;
+///
+/// // Calculate the periodic rate needed.
+/// let periodic_rate = finance::rate(periods, present_value, future_value);
+/// dbg!(&periodic_rate);
+/// // The rate is 0.0261% per day.
+/// finance::assert_rounded_6(0.000261, periodic_rate);
+/// ```
 pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
     where
         P: Into<f64> + Copy,
@@ -67,6 +84,70 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
     (future_value / present_value).powf(1.0 / periods as f64) - 1.0
 }
 
+/// Returns the periodic rate of an investment given the number of periods along with the present
+/// and future values.
+///
+/// Related functions:
+/// * To calculate a periodic rate as a simple number use [`rate`].
+///
+/// Functions to solve for other values:
+/// * To calculate the future value given a present value, a number of periods, and one or more
+/// rates use [`future_value`] or related functions.
+/// * To calculate the present value given a future value, a number of periods, and one or more
+/// rates use [`present_value`] or related functions.
+/// * To calculate the number of periods given a fixed rate and a present and future value use
+/// [`periods`] or related functions.
+///
+/// The formula is:
+///
+/// rate = ((future_value / present_value) ^ (1 / periods)) - 1
+///
+/// # Arguments
+/// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
+/// * `present_value` - The starting value of the investment. May appear as `pv` in formulas, or `C`
+/// for cash flow or `P` for principal.
+/// * `future_value` - The final value of the investment.
+///
+/// If present_value and future_value are both zero then any rate will work so the function returns
+/// zero.
+///
+/// # Panics
+/// The call will fail if the present value is zero and the future value is nonzero or vice versa.
+/// It will also fail if the number of periods is zero and the present value is not equal to the
+/// future value. In both cases this is because there's no periodic rate that could make that work.
+///
+/// # Examples
+/// Calculate a periodic rate and examine the period-by-period values.
+/// ```
+/// // The interest will compound for ten years.
+/// let periods = 10;
+///
+/// // The starting value is $10,000.
+/// let present_value = 10_000.00;
+///
+/// // The ending value is $15,000.
+/// let future_value = 15_000.00;
+///
+/// // Calculate the periodic rate and create a struct with a record of the
+/// // inputs, a description of the formula, and an option to calculate the
+/// // period-by-period values.
+/// let solution = finance::rate_solution(periods, present_value, future_value);
+/// dbg!(&solution);
+///
+/// let periodic_rate = solution.periodic_rate;
+/// dbg!(&periodic_rate);
+/// // The rate is 4.138% per year.
+/// finance::assert_rounded_6(0.041380, periodic_rate);
+///
+/// // Examine the formula.
+/// let formula = solution.formula.clone();
+/// dbg!(&formula);
+/// assert_eq!("((15000.0000 / 10000.0000) ^ (1 / 10)) - 1", &formula);
+///
+/// // Calculate the period-by-period values.
+/// let series = solution.series();
+/// dbg!(&series);
+/// ```
 pub fn rate_solution<P, F>(periods: u32, present_value: P, future_value: F) -> TvmSolution
     where
         P: Into<f64> + Copy,
