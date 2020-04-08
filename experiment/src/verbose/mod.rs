@@ -6,6 +6,7 @@ pub mod net_present_value;
 pub mod payment;
 pub mod nper;
 pub mod rate;
+pub mod periods;
 pub mod convert_rates;
 pub mod perpetuity;
 pub mod bilbo_baggins;

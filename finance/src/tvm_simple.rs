@@ -206,7 +206,7 @@ impl TvmSolution {
         assert!(rate_multiplier >= 0.0);
         let mut series = vec![];
         // Add the values at each period.
-        if self.calculated_field.is_rate() || self.calculated_field.is_present_value() {
+        if self.calculated_field.is_present_value() {
             let mut prev_value = None;
             for period in (0..=self.periods).rev() {
                 let (value, formula) = if period == self.periods {
@@ -218,7 +218,7 @@ impl TvmSolution {
                 prev_value = Some(value);
                 series.insert(0, TvmPeriod::new(period, self.periodic_rate, value, &formula))
             };
-        } else if self.calculated_field.is_future_value() {
+        } else if self.calculated_field.is_rate() || self.calculated_field.is_future_value() {
             let mut prev_value = None;
             for period in 0..=self.periods {
                 let (value, formula) = if period == 0 {
