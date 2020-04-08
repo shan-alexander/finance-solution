@@ -667,16 +667,6 @@ pub fn npv_var_rates_cfs(rates: &[f64], cashflows: &[f64]) -> NpvVarRatesCfs {
     NpvVarRatesCfs::new(all_rates, num_periods as u16, all_cashflows, present_value_cashflows, cashflows[0], future_cashflows.iter().sum(), npv_future_cashflows, npv_future_cashflows + initial_investment)
 }
 
-
-
-pub fn round_to_fraction_of_cent(val: f64) -> f64 {
-    (val * 10_000.0).round() / 10_000.0
-}
-
-pub fn round_to_cent(val: f64) -> f64 {
-    (val * 100.0).round() / 100.0
-}
-
 // #[cfg(test)]
 // mod tests {
 //     use super::*;
