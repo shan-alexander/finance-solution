@@ -81,7 +81,7 @@ fn try_future_value_schedule() {
 fn try_doc_example_solution_1() {
 
     // The rate is 1.2% per month.
-    let periodic_rate = 0.012;
+    let rate = 0.012;
 
     // The investment will grow for 8 months.
     let periods = 8;
@@ -89,7 +89,7 @@ fn try_doc_example_solution_1() {
     // The initial investment is $200,000.
     let present_value = 200_000;
 
-    let solution = finance::future_value_solution(periodic_rate, periods, present_value);
+    let solution = finance::future_value_solution(rate, periods, present_value);
     dbg!(&solution);
 
     let future_value = solution.future_value;
@@ -116,9 +116,9 @@ fn try_doc_example_solution_2() {
 
     for i in 2..=15 {
         // The rate is between 2% and 15% per year.
-        let periodic_rate = i as f64 / 100.0;
+        let rate = i as f64 / 100.0;
         // Calculate the future value for this periodic rate and add the details to the collection.
-        scenarios.push(finance::future_value_solution(periodic_rate, periods, present_value));
+        scenarios.push(finance::future_value_solution(rate, periods, present_value));
     }
     dbg!(&scenarios);
     assert_eq!(14, scenarios.len());

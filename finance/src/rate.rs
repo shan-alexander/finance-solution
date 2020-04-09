@@ -63,10 +63,10 @@ use crate::{future_value::future_value, present_value::present_value, periods::p
 /// let future_value = 11_000.00;
 ///
 /// // Calculate the periodic rate needed.
-/// let periodic_rate = finance::rate(periods, present_value, future_value);
-/// dbg!(&periodic_rate);
+/// let rate = finance::rate(periods, present_value, future_value);
+/// dbg!(&rate);
 /// // The rate is 0.0261% per day.
-/// finance::assert_rounded_6(0.000261, periodic_rate);
+/// finance::assert_rounded_6(0.000261, rate);
 /// ```
 pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
     where
@@ -81,9 +81,9 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
     }
     check_rate_parameters(periods, present_value, future_value);
 
-    let periodic_rate = (future_value / present_value).powf(1.0 / periods as f64) - 1.0;
-    assert!(periodic_rate.is_finite());
-    periodic_rate
+    let rate = (future_value / present_value).powf(1.0 / periods as f64) - 1.0;
+    assert!(rate.is_finite());
+    rate
 }
 
 /// Returns the periodic rate of an investment given the number of periods along with the present
@@ -136,10 +136,10 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
 /// let solution = finance::rate_solution(periods, present_value, future_value);
 /// dbg!(&solution);
 ///
-/// let periodic_rate = solution.periodic_rate;
-/// dbg!(&periodic_rate);
+/// let rate = solution.rate;
+/// dbg!(&rate);
 /// // The rate is 4.138% per year.
-/// finance::assert_rounded_6(0.041380, periodic_rate);
+/// finance::assert_rounded_6(0.041380, rate);
 ///
 /// // Examine the formula.
 /// let formula = solution.formula.clone();

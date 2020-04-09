@@ -2,37 +2,62 @@
 mod tests {
     // use super::*;
     use finance::*;
-    use std::fmt::Debug;
 
     #[test]
     fn test_symmetry_one() {
-        let periodic_rate = 0.10;
+        let rate = 0.10;
         let periods = 4;
         let present_value = 5_000.00;
-        check_symmetry(periodic_rate, periods, present_value);
+        check_symmetry(rate, periods, present_value);
     }
 
-    fn check_symmetry(periodic_rate_in: f64, periods_in: u32, present_value_in: f64) {
-        dbg!("test_symmetry_internal", periodic_rate_in, periods_in, present_value_in);
+    /*
+    #[test]
+    fn test_symmetry_multiple() {
+        // let rates = vec![-1.0, -0.5, -0.05, -0.005, 0.0, 0.005, 0.05, 0.5, 1.0, 10.0, 100.0];
+        let rates = vec![-0.5, -0.05, -0.005, 0.0, 0.005, 0.05, 0.5, 1.0, 10.0, 100.0];
+        // let periods: Vec<u32> = vec![0, 1, 2, 5, 10, 36, 100, 1_000];
+        let periods: Vec<u32> = vec![1, 2, 5, 10, 36, 100, 1_000];
+        let present_values: Vec<f64> = vec![-1_000_000.1234, -1_234.987654321, -1.0, 0.0, 5.555555555, 9_999_999_999_999.99];
+
+        for rate_one in rates.iter() {
+            for periods_one in periods.iter() {
+                for present_value_one in present_values.iter() {
+                    check_symmetry(*rate_one, *periods_one, *present_value_one);
+                }
+            }
+        }
+    }
+    */
+
+    fn check_symmetry(rate_in: f64, periods_in: u32, present_value_in: f64) {
+        dbg!("test_symmetry_internal", rate_in, periods_in, present_value_in);
 
         // Calculate the future value given the other three inputs so that we have all four values
         // which we can use in various combinations to confirm that all four basic TVM functions
         // return consistent values.
-        let future_value_calc = future_value(periodic_rate_in, periods_in, present_value_in);
+        let future_value_calc = future_value(rate_in, periods_in, present_value_in);
         dbg!(future_value_calc);
 
-        let periodic_rate_calc = rate(periods_in, present_value_in, future_value_calc);
-        dbg!(periodic_rate_calc);
-        assert_rounded_6(periodic_rate_calc, periodic_rate_in);
+        let rate_calc = rate(periods_in, present_value_in, future_value_calc);
+        dbg!(rate_calc);
+        if periods_in == 0 {
+            // With zero periods presumably the future value is the same as the present value and
+            // any periodic rate would be fine so we arbitrarily return zero.
+            assert_rounded_4(present_value_in, future_value_calc);
+            assert_rounded_6(0.0, rate_calc);
+        } else {
+            assert_rounded_6(rate_calc, rate_in);
+        }
 
-        let periods_calc = periods(periodic_rate_in, present_value_in, future_value_calc).ceil() as u32;
+        let periods_calc = periods(rate_in, present_value_in, future_value_calc).ceil() as u32;
         dbg!(periods_calc);
-        if periodic_rate_in == 0.0 {
+        if rate_in == 0.0 {
             // In this case the present value and future value will be the same and periods() will
             // return zero since no periods are required.
             assert_rounded_4(present_value_in, future_value_calc);
             assert_eq!(0, periods_calc);
-        } else if periodic_rate_in == -1.0 {
+        } else if rate_in == -1.0 {
             // The investment will drop to zero by the end of the first period so periods() will
             // return 1.
             assert_rounded_4(0.0, future_value_calc);
@@ -43,35 +68,35 @@ mod tests {
             assert_eq!(periods_calc, periods_in);
         }
 
-        let present_value_calc = present_value(periodic_rate_in, periods_in, future_value_calc);
+        let present_value_calc = present_value(rate_in, periods_in, future_value_calc);
         dbg!(present_value_calc);
         assert_rounded_4(present_value_calc, present_value_in);
 
         // Create a list of rates that are all the same so that we can try the _schedule functions
         // For present value and future value
-        let mut periodic_rates_in = vec![];
+        let mut rates_in = vec![];
         for _ in 0..periods_in {
-            periodic_rates_in.push(periodic_rate_in);
+            rates_in.push(rate_in);
         }
 
-        let present_value_schedule_calc = present_value_schedule(&periodic_rates_in, future_value_calc);
+        let present_value_schedule_calc = present_value_schedule(&rates_in, future_value_calc);
         dbg!(present_value_schedule_calc);
         assert_rounded_6(present_value_schedule_calc, present_value_in);
 
-        let future_value_schedule_calc = future_value_schedule(&periodic_rates_in, present_value_in);
+        let future_value_schedule_calc = future_value_schedule(&rates_in, present_value_in);
         dbg!(future_value_schedule_calc);
         assert_rounded_6(future_value_schedule_calc, future_value_calc);
 
         // Create TvmSolution structs by solving for each of the four possible variables.
         let solutions = [
             rate_solution(periods_in, present_value_in, future_value_calc),
-            periods_solution(periodic_rate_in, present_value_in, future_value_calc),
-            present_value_solution(periodic_rate_in, periods_in, future_value_calc),
-            future_value_solution(periodic_rate_in, periods_in, present_value_in),
+            periods_solution(rate_in, present_value_in, future_value_calc),
+            present_value_solution(rate_in, periods_in, future_value_calc),
+            future_value_solution(rate_in, periods_in, present_value_in),
         ];
         for solution in solutions.iter() {
             dbg!(solution);
-            assert_rounded_6(periodic_rate_in, solution.periodic_rate);
+            assert_rounded_6(rate_in, solution.rate);
             if solution.calculated_field.is_periods() {
                 // There are a few special cases in which the number of periods might be zero or one
                 // instead of matching periods_in. So check against the number returned from
@@ -86,12 +111,12 @@ mod tests {
         }
 
         let schedules = [
-            present_value_schedule_solution(&periodic_rates_in, future_value_calc),
-            future_value_schedule_solution(&periodic_rates_in, present_value_in),
+            present_value_schedule_solution(&rates_in, future_value_calc),
+            future_value_schedule_solution(&rates_in, present_value_in),
         ];
         for schedule in schedules.iter() {
             dbg!(schedule);
-            assert_eq!(periods_in, schedule.periodic_rates.len() as u32);
+            assert_eq!(periods_in, schedule.rates.len() as u32);
             assert_eq!(periods_in, schedule.periods);
             assert_rounded_4(present_value_in, schedule.present_value);
             assert_rounded_4(future_value_calc, schedule.future_value);
@@ -99,10 +124,12 @@ mod tests {
         
         // Check each series in isolation.
         for solution in solutions.iter() {
-            check_series_internal(solution, periodic_rate_in, periods_in, present_value_in, future_value_calc, periods_calc);
+            let label = format!("Solution for {:?}", solution.calculated_field);
+            check_series_internal(label, solution.calculated_field.clone(), &solution.series(), rate_in, periods_in, present_value_in, future_value_calc, periods_calc);
         }
         for schedule in schedules.iter() {
-            check_series_internal(schedule, periodic_rate_in, periods_in, present_value_in, future_value_calc, periods_calc);
+            let label = format!("Schedule for {:?}", schedule.calculated_field);
+            check_series_internal(label, schedule.calculated_field.clone(), &schedule.series(), rate_in, periods_in, present_value_in, future_value_calc, periods_calc);
         }
 
         // Confirm that all of the series have the same values for all periods regardless of how we
@@ -113,21 +140,20 @@ mod tests {
         // periods than the other functions.
         let reference_solution = solutions.iter().find(|x| x.calculated_field.is_future_value()).unwrap();
         for solution in solutions.iter().filter(|x| !x.calculated_field.is_future_value()) {
-            check_series_same_values(reference_solution, solution);
+            let label = format!("Solution for {:?}", solution.calculated_field);
+            check_series_same_values(reference_solution, label, solution.calculated_field.clone(), &solution.series());
         }
         for schedule in schedules.iter() {
-            check_series_same_values(reference_solution, schedule);
+            let label = format!("Schedule for {:?}", schedule.calculated_field);
+            check_series_same_values(reference_solution, label, schedule.calculated_field.clone(), &schedule.series());
         }
 
     }
 
-    fn check_series_internal<T>(solution: &T, periodic_rate_in: f64, periods_in: u32, present_value_in: f64, future_value_calc: f64, periods_calc: u32)
-        where T: TvmCalcSeries + Debug
-    {
-        dbg!(solution);
-        let series = solution.series();
+    fn check_series_internal(label: String, calculated_field: TvmVariable, series: &[TvmPeriod], rate_in: f64, periods_in: u32, present_value_in: f64, future_value_calc: f64, periods_calc: u32) {
+        dbg!(label);
         dbg!(&series);
-        if solution.calculated_field().is_periods() {
+        if calculated_field.is_periods() {
             // There are a few special cases in which the number of periods might be zero or one
             // instead of matching periods_in. So check against the number returned from
             // periods().
@@ -144,13 +170,13 @@ mod tests {
                 assert_rounded_4(present_value_in, entry.value);
             } else {
                 // We're past period 0.
-                assert_rounded_6(periodic_rate_in, entry.rate);
+                assert_rounded_6(rate_in, entry.rate);
                 // Compare this period's value to the one before.
-                if periodic_rate_in == 0.0 {
+                if rate_in == 0.0 {
                     // The rate is zero so each period's value should be the same as the one
                     // before.
                     assert_rounded_4(entry.value, prev_value.unwrap());
-                } else if present_value_in.signum() == periodic_rate_in.signum() {
+                } else if present_value_in.signum() == rate_in.signum() {
                     // Either the starting value and the rate are both positive or they're both
                     // negative. In either case each period's value should be greater than the one
                     // before.
@@ -169,20 +195,15 @@ mod tests {
         }
     }
 
-    fn check_series_same_values<T, U>(reference_solution: &T, solution: &U)
-        where
-            T: TvmCalcSeries + Debug,
-            U: TvmCalcSeries + Debug
-    {
+    fn check_series_same_values(reference_solution: &TvmSolution, label: String, calculated_field: TvmVariable, series: &[TvmPeriod]) {
         dbg!(reference_solution);
         let reference_series = reference_solution.series();
         dbg!(&reference_series);
 
-        dbg!(solution);
-        let series = solution.series();
+        dbg!(label);
         dbg!(&series);
 
-        if solution.calculated_field().is_periods() && reference_series.len() != series.len() {
+        if calculated_field.is_periods() && reference_series.len() != series.len() {
 
             // There are a few special cases in which the number of periods might be zero or one
             // instead of matching periods_in.
@@ -216,42 +237,6 @@ mod tests {
             }
         }
     }
-
-    /*
-    #[test]
-    fn test_symmetry_multiple() {
-        let rates = vec![-1.0, -0.5, -0.05, -0.005, 0.0, 0.005, 0.05, 0.5, 1.0, 10.0, 100.0];
-        let periods: Vec<u32> = vec![0, 1, 2, 5, 10, 36, 100, 1_000];
-        let present_values: Vec<f64> = vec![-1_000_000.1234, -1_234.987654321, -1.0, 0.0, 5.555555555, 9_999_999_999_999.99];
-
-        for rate in rates.iter() {
-            for period in periods.iter() {
-                for present_value in present_values.iter() {
-                    let rate = *rate;
-                    let period = *period;
-                    let present_value = *present_value;
-                    let result_future_value = future_value(rate, period, present_value);
-                    assert!(result_future_value.is_finite());
-                    if present_value == 0.0 {
-                        assert_eq!(0.0, result_future_value);
-                    } else if rate == 0.0 || period == 0 {
-                        assert_f64(present_value, result_future_value);
-                    } else if rate.signum() == present_value.signum() {
-                        // The rate and present value are either both positive or both negative.
-                        assert!(result_future_value > present_value);
-                    } else {
-                        assert!(result_future_value < present_value);
-                    }
-
-                    let result_future_value_solution = future_value_solution(rate, period, present_value);
-                    assert_f64(present_value, result_future_value_solution.present_value);
-                    assert_eq!(result_future_value, result_future_value_solution.future_value)
-                }
-            }
-        }
-
-    }
-    */
 
 }
 

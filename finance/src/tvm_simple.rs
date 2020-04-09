@@ -5,7 +5,7 @@ use std::fmt;
 #[allow(unused_imports)]
 use crate::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TvmVariable {
     Rate,
     Periods,
@@ -14,28 +14,28 @@ pub enum TvmVariable {
 }
 
 impl TvmVariable {
-    fn is_rate(&self) -> bool {
+    pub fn is_rate(&self) -> bool {
         match self {
             TvmVariable::Rate => true,
             _ => false,
         }
     }
 
-    fn is_periods(&self) -> bool {
+    pub fn is_periods(&self) -> bool {
         match self {
             TvmVariable::Periods => true,
             _ => false,
         }
     }
 
-    fn is_present_value(&self) -> bool {
+    pub fn is_present_value(&self) -> bool {
         match self {
             TvmVariable::PresentValue => true,
             _ => false,
         }
     }
 
-    fn is_future_value(&self) -> bool {
+    pub fn is_future_value(&self) -> bool {
         match self {
             TvmVariable::FutureValue => true,
             _ => false,
@@ -47,9 +47,10 @@ impl TvmVariable {
 /// 
 /// It's the result of calling [`rate_solution`], [`periods_solution`], [`present_value_solution`],
 /// or [`future_value_solution`].
+#[derive(Debug)]
 pub struct TvmSolution {
     pub calculated_field: TvmVariable,
-    pub periodic_rate: f64,
+    pub rate: f64,
     pub periods: u32,
     pub fractional_periods: f64,
     pub present_value: f64,
@@ -58,17 +59,24 @@ pub struct TvmSolution {
 }
 
 impl TvmSolution {
-    pub(crate) fn new(calculated_field: TvmVariable, periodic_rate: f64, periods: u32, present_value: f64, future_value: f64, formula: &str) -> Self {
-        Self::new_fractional_periods(calculated_field, periodic_rate, periods, periods as f64, present_value, future_value, formula)
+    pub(crate) fn new(calculated_field: TvmVariable, rate: f64, periods: u32, present_value: f64, future_value: f64, formula: &str) -> Self {
+        assert!(rate.is_finite());
+        assert!(present_value.is_finite());
+        assert!(future_value.is_finite());
+        assert!(formula.len() > 0);
+        Self::new_fractional_periods(calculated_field, rate, periods as f64, present_value, future_value, formula)
     }
 
-    pub(crate) fn new_fractional_periods(calculated_field: TvmVariable, periodic_rate: f64, periods: u32, fractional_periods: f64, present_value: f64, future_value: f64, formula: &str) -> Self {
-        assert!(periodic_rate >= -1.0);
+    pub(crate) fn new_fractional_periods(calculated_field: TvmVariable, rate: f64, fractional_periods: f64, present_value: f64, future_value: f64, formula: &str) -> Self {
+        assert!(rate >= -1.0);
         assert!(fractional_periods >= 0.0);
+        assert!(present_value.is_finite());
+        assert!(future_value.is_finite());
+        assert!(formula.len() > 0);
         Self {
             calculated_field,
-            periodic_rate,
-            periods,
+            rate: rate,
+            periods: fractional_periods.ceil() as u32,
             fractional_periods,
             present_value,
             future_value,
@@ -206,15 +214,19 @@ impl TvmSolution {
     /// dbg!(&filtered_series);
     /// assert_eq!(2, filtered_series.len());
     /// ```
-    pub fn series(&self) -> Vec<TvmPeriod>
-    {
-        let rate_multiplier = 1.0 + self.periodic_rate;
+    pub fn series(&self) -> Vec<TvmPeriod> {
+        let rate_multiplier = 1.0 + self.rate;
         assert!(rate_multiplier >= 0.0);
         let mut series = vec![];
         // Add the values at each period.
         if self.calculated_field.is_present_value() {
             let mut prev_value = None;
             for period in (0..=self.periods).rev() {
+                let rate = if period == 0 {
+                    0.0
+                } else {
+                    self.rate
+                };
                 let (value, formula) = if period == self.periods {
                     (self.future_value, format!("{:.4}", self.future_value))
                 } else {
@@ -222,11 +234,16 @@ impl TvmSolution {
                 };
                 assert!(value.is_finite());
                 prev_value = Some(value);
-                series.insert(0, TvmPeriod::new(period, self.periodic_rate, value, &formula))
+                series.insert(0, TvmPeriod::new(period, rate, value, &formula))
             };
         } else if self.calculated_field.is_rate() || self.calculated_field.is_periods() || self.calculated_field.is_future_value() {
             let mut prev_value = None;
             for period in 0..=self.periods {
+                let rate = if period == 0 {
+                    0.0
+                } else {
+                    self.rate
+                };
                 let (value, formula) = if period == 0 {
                     (self.present_value, format!("{:.4}", self.present_value))
                 } else {
@@ -234,18 +251,19 @@ impl TvmSolution {
                 };
                 assert!(value.is_finite());
                 prev_value = Some(value);
-                series.push(TvmPeriod::new(period, self.periodic_rate, value, &formula))
+                series.push(TvmPeriod::new(period, rate, value, &formula))
             };
         }
         series
     }
 }
 
+/*
 impl Debug for TvmSolution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{{ {}, {}, {}, {}, {}, {}, {} }}",
                &format!("calculated_field: {:?}", self.calculated_field),
-               &format!("periodic_rate: {:.6}", self.periodic_rate),
+               &format!("rate: {:.6}", self.rate),
                &format!("periods: {}", self.periods),
                &format!("fractional_periods: {:.2}", self.fractional_periods),
                &format!("present_value: {:.4}", self.present_value),
@@ -254,6 +272,7 @@ impl Debug for TvmSolution {
         )
     }
 }
+*/
 
 /// A record of a Time Value of Money calculation where the rate may vary by period.
 /// 
@@ -261,37 +280,41 @@ impl Debug for TvmSolution {
 #[derive(Debug)]
 pub struct TvmSchedule {
     pub calculated_field: TvmVariable,
-    pub periodic_rates: Vec<f64>,
+    pub rates: Vec<f64>,
     pub periods: u32,
     pub present_value: f64,
     pub future_value: f64,
 }
 
 impl TvmSchedule {
-    pub(crate) fn new(calculated_field: TvmVariable, periodic_rates: &[f64], present_value: f64, future_value: f64) -> Self {
+    pub(crate) fn new(calculated_field: TvmVariable, rates: &[f64], present_value: f64, future_value: f64) -> Self {
+        for rate in rates.iter() {
+            assert!(rate.is_finite());
+        }
+        assert!(present_value.is_finite());
+        assert!(future_value.is_finite());
         Self {
             calculated_field,
-            periodic_rates: periodic_rates.to_vec(),
-            periods: periodic_rates.len() as u32,
+            rates: rates.to_vec(),
+            periods: rates.len() as u32,
             present_value,
             future_value,
         }
     }
 
-    pub fn series(&self) -> Vec<TvmPeriod>
-    {
+    pub fn series(&self) -> Vec<TvmPeriod> {
         let mut series = vec![];
         // Add the values at each period.
         if self.calculated_field.is_present_value() {
             let mut next_value = None;
             for period in (0..=self.periods).rev() {
                 let (value, formula, rate) = if period == self.periods {
-                    (self.future_value, format!("{:.4}", self.future_value), self.periodic_rates[(period - 1) as usize])
+                    (self.future_value, format!("{:.4}", self.future_value), self.rates[(period - 1) as usize])
                 } else {
                     // We want the rate for the period after this one. Since periods are 1-based and
                     // the vector of rates is 0-based, this means using the current period number as
                     // the index into the vector.
-                    let next_rate = self.periodic_rates[period as usize];
+                    let next_rate = self.rates[period as usize];
                     assert!(next_rate >= -1.0);
                     let next_rate_multiplier = 1.0 + next_rate;
                     assert!(next_rate_multiplier >= 0.0);
@@ -300,7 +323,7 @@ impl TvmSchedule {
                     let rate = if period == 0 {
                         0.0
                     } else {
-                        self.periodic_rates[(period - 1) as usize]
+                        self.rates[(period - 1) as usize]
                     };
                     (next_value.unwrap() / next_rate_multiplier, format!("{:.4} / {:.6}", next_value.unwrap(), next_rate_multiplier), rate)
                 };
@@ -316,7 +339,7 @@ impl TvmSchedule {
                 } else {
                     // We want the rate for the current period. However, periods are 1-based and
                     // the vector of rates is 0-based, so the corresponding rate is at period - 1.
-                    let rate = self.periodic_rates[period as usize - 1];
+                    let rate = self.rates[period as usize - 1];
                     assert!(rate >= -1.0);
                     let rate_multiplier = 1.0 + rate;
                     assert!(rate_multiplier >= 0.0);
@@ -348,6 +371,9 @@ pub struct TvmPeriod {
 
 impl TvmPeriod {
     pub(crate) fn new(period: u32, rate: f64, value: f64, formula: &str) -> Self {
+        assert!(rate.is_finite());
+        assert!(value.is_finite());
+        assert!(formula.len() > 0);
         Self {
             period,
             rate,
@@ -360,7 +386,7 @@ impl Debug for TvmPeriod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{{ {}, {}, {}, {} }}",
                &format!("period: {}", self.period),
-               &format!("periodic_rate: {:.6}", self.rate),
+               &format!("rate: {:.6}", self.rate),
                &format!("value: {:.4}", self.value),
                &format!("formula: {:?}", self.formula),
         )

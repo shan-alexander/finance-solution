@@ -91,7 +91,7 @@ fn try_present_value_schedule() {
 
 fn try_doc_example() {
     // The investment will grow by 1.1% per month.
-    let periodic_rate = 0.011;
+    let rate = 0.011;
 
     // The investment will grow for 12 months.
     let periods = 12;
@@ -100,7 +100,7 @@ fn try_doc_example() {
     let future_value = 50_000;
 
     // Find the current value.
-    let present_value = finance::present_value(periodic_rate, periods, future_value);
+    let present_value = finance::present_value(rate, periods, future_value);
 
     dbg!(&present_value);
 
@@ -111,7 +111,7 @@ fn try_doc_example() {
 fn try_doc_example_solution_1() {
 
     // The rate is 8.45% per year.
-    let periodic_rate = 0.0845;
+    let rate = 0.0845;
 
     // The investment will grow for six years.
     let periods = 6;
@@ -121,7 +121,7 @@ fn try_doc_example_solution_1() {
 
     // Calculate the present value and create a struct with the input values and
     // the formula used.
-    let solution= finance::present_value_solution(periodic_rate, periods, future_value);
+    let solution= finance::present_value_solution(rate, periods, future_value);
     dbg!(&solution);
 
     let present_value = solution.present_value;
@@ -140,7 +140,7 @@ fn try_doc_example_solution_1() {
 fn try_doc_example_solution_2() {
 
     // The rate is 0.9% per month.
-    let periodic_rate = 0.009;
+    let rate = 0.009;
 
     // The final value is $100,000.
     let future_value = 100_000;
@@ -151,7 +151,7 @@ fn try_doc_example_solution_2() {
     for periods in 1..=36 {
         // Calculate the future value for this number of months and add the details to the
         // collection.
-        scenarios.push(finance::present_value_solution(periodic_rate, periods, future_value));
+        scenarios.push(finance::present_value_solution(rate, periods, future_value));
     }
     dbg!(&scenarios);
     assert_eq!(36, scenarios.len());
