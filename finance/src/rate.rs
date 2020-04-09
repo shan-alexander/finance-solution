@@ -81,7 +81,9 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
     }
     check_rate_parameters(periods, present_value, future_value);
 
-    (future_value / present_value).powf(1.0 / periods as f64) - 1.0
+    let periodic_rate = (future_value / present_value).powf(1.0 / periods as f64) - 1.0;
+    assert!(periodic_rate.is_finite());
+    periodic_rate
 }
 
 /// Returns the periodic rate of an investment given the number of periods along with the present

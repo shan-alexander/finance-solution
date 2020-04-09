@@ -220,12 +220,10 @@ pub fn periods_solution<P, F>(periodic_rate: f64, present_value: P, future_value
     let fractional_periods = periods(periodic_rate, present_value, future_value);
     assert!(fractional_periods > 0.0);
 
-    let periods = fractional_periods.ceil() as u32;
-
     let present_value = present_value.into();
     let future_value = future_value.into();
     let formula = format!("log({:.4} / {:.4}) base (1 + {:.6}))", future_value, present_value, periodic_rate);
-    TvmSolution::new_fractional_periods(TvmVariable::Periods,periodic_rate, periods, fractional_periods, present_value, future_value, &formula)
+    TvmSolution::new_fractional_periods(TvmVariable::Periods,periodic_rate, fractional_periods, present_value, future_value, &formula)
 }
 
 fn check_period_parameters(periodic_rate: f64, present_value: f64, future_value: f64) {

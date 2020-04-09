@@ -75,7 +75,9 @@ pub fn present_value<T>(periodic_rate: f64, periods: u32, future_value: T) -> f6
     let future_value = future_value.into();
     check_present_value_parameters(periodic_rate, periods, future_value);
 
-    future_value / (1. + periodic_rate).powi(periods as i32)
+    let present_value = future_value / (1. + periodic_rate).powi(periods as i32);
+    assert!(present_value.is_finite());
+    present_value
 }
 
 /// Calculates the current value of a future amount using a fixed periodic_rate and returns a struct

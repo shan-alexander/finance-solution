@@ -97,7 +97,9 @@ pub fn future_value<T>(periodic_rate: f64, periods: u32, present_value: T) -> f6
     let present_value = present_value.into();
     check_future_value_parameters(periodic_rate, periods, present_value);
 
-    present_value * (1.0 + periodic_rate).powi(periods as i32)
+    let future_value = present_value * (1.0 + periodic_rate).powi(periods as i32);
+    assert!(future_value.is_finite());
+    future_value
 }
 
 /// Calculates the value of an investment after it has grown or shrunk over time and returns a

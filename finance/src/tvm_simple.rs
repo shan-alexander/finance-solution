@@ -21,14 +21,12 @@ impl TvmVariable {
         }
     }
 
-    /*
     fn is_periods(&self) -> bool {
         match self {
             TvmVariable::Periods => true,
             _ => false,
         }
     }
-    */
 
     fn is_present_value(&self) -> bool {
         match self {
@@ -53,6 +51,7 @@ pub struct TvmSolution {
     pub calculated_field: TvmVariable,
     pub periodic_rate: f64,
     pub periods: u32,
+    pub fractional_periods: f64,
     pub present_value: f64,
     pub future_value: f64,
     pub formula: String,
@@ -60,10 +59,17 @@ pub struct TvmSolution {
 
 impl TvmSolution {
     pub(crate) fn new(calculated_field: TvmVariable, periodic_rate: f64, periods: u32, present_value: f64, future_value: f64, formula: &str) -> Self {
+        Self::new_fractional_periods(calculated_field, periodic_rate, periods, periods as f64, present_value, future_value, formula)
+    }
+
+    pub(crate) fn new_fractional_periods(calculated_field: TvmVariable, periodic_rate: f64, periods: u32, fractional_periods: f64, present_value: f64, future_value: f64, formula: &str) -> Self {
+        assert!(periodic_rate >= -1.0);
+        assert!(fractional_periods >= 0.0);
         Self {
             calculated_field,
             periodic_rate,
             periods,
+            fractional_periods,
             present_value,
             future_value,
             formula: formula.to_string(),
@@ -218,7 +224,7 @@ impl TvmSolution {
                 prev_value = Some(value);
                 series.insert(0, TvmPeriod::new(period, self.periodic_rate, value, &formula))
             };
-        } else if self.calculated_field.is_rate() || self.calculated_field.is_future_value() {
+        } else if self.calculated_field.is_rate() || self.calculated_field.is_periods() || self.calculated_field.is_future_value() {
             let mut prev_value = None;
             for period in 0..=self.periods {
                 let (value, formula) = if period == 0 {
@@ -237,10 +243,11 @@ impl TvmSolution {
 
 impl Debug for TvmSolution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{{ {}, {}, {}, {}, {}, {} }}",
+        write!(f, "{{ {}, {}, {}, {}, {}, {}, {} }}",
                &format!("calculated_field: {:?}", self.calculated_field),
                &format!("periodic_rate: {:.6}", self.periodic_rate),
                &format!("periods: {}", self.periods),
+               &format!("fractional_periods: {:.2}", self.fractional_periods),
                &format!("present_value: {:.4}", self.present_value),
                &format!("future_value: {:.4}", self.future_value),
                &format!("formula: {:?}", self.formula),
@@ -359,5 +366,3 @@ impl Debug for TvmPeriod {
         )
     }
 }
-
-
