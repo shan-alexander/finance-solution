@@ -4,6 +4,7 @@ pub mod future_value;
 pub mod future_value_annuity;
 pub mod net_present_value;
 pub mod payment;
+pub mod payment_solution;
 pub mod nper;
 pub mod rate;
 pub mod periods;

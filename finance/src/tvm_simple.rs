@@ -402,4 +402,3 @@ fn round_fractional_periods(fractional_periods: f64) -> u32 {
     round_4(fractional_periods).ceil() as u32
 }
 
-
