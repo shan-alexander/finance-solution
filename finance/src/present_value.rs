@@ -40,7 +40,8 @@ use crate::{future_value::future_value, rate::rate, periods::periods};
 ///
 /// # Panics
 /// The call will fail if `rate` is less than -1.0 as this would mean the investment is
-/// losing more than its full value every period.
+/// losing more than its full value every period. It will fail also if the future value is zero as
+/// in this case there's no way to determine the present value.
 ///
 /// # Examples
 /// Investment that grows month by month.
@@ -103,7 +104,8 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T) -> f64
 ///
 /// # Panics
 /// The call will fail if `rate` is less than -1.0 as this would mean the investment is
-/// losing more than its full value every period.
+/// losing more than its full value every period. It will fail also if the future value is zero as
+/// in this case there's no way to determine the present value.
 ///
 /// # Examples
 /// Calculate a present value and examine the period-by-period values.
@@ -207,7 +209,8 @@ pub fn present_value_solution<T>(rate: f64, periods: u32, future_value: T) -> Tv
 ///
 /// # Panics
 /// The call will fail if any of the rates is less than -1.0 as this would mean the investment is
-/// losing more than its full value.
+/// losing more than its full value every period. It will fail also if the future value is zero as
+/// in this case there's no way to determine the present value.
 ///
 /// # Examples
 /// Calculate the present value of an investment whose rates vary by year.
@@ -261,7 +264,8 @@ pub fn present_value_schedule<T>(rates: &[f64], future_value: T) -> f64
 ///
 /// # Panics
 /// The call will fail if any of the rates is less than -1.0 as this would mean the investment is
-/// losing more than its full value.
+/// losing more than its full value every period. It will fail also if the future value is zero as
+/// in this case there's no way to determine the present value.
 ///
 /// # Examples
 /// Calculate the value of an investment whose rates vary by year, then view only those periods
@@ -300,6 +304,7 @@ fn check_present_value_parameters(rate: f64, _periods: u32, future_value: f64) {
         warn!("You provided a periodic rate ({}) greater than 1. Are you sure you expect a {}% return?", rate, rate * 100.0);
     }
     assert!(future_value.is_finite(), "The future value must be finite (not NaN or infinity)");
+    assert!(future_value.is_normal(), "The future value is zero (or subnormal) so there is no way to calculate the present value.");
 }
 
 #[cfg(test)]

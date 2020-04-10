@@ -2,14 +2,20 @@
 
 pub fn main() {
     // try_edge_cases();
+    try_symmetric_mult_cases();
     // try_doc_example_1();
     // try_doc_example_solution_1();
-    try_doc_example_solution_2();
+    // try_doc_example_solution_2();
 }
 
 fn try_edge_cases() {
     let fractional_periods = finance::periods(-1.0, 10_000.0, 0.0);
     dbg!(&fractional_periods);
+}
+
+fn try_symmetric_mult_cases() {
+    let solution = finance::periods_solution(-0.05, -1234.987654321, -1173.23827160495);
+    dbg!(&solution);
 }
 
 fn try_doc_example() {

@@ -18,8 +18,7 @@ use crate::tvm_simple::*;
 #[allow(unused_imports)]
 use crate::{future_value::future_value, present_value::present_value, rate::rate};
 
-/// Returns the periodic rate of an investment given the number of periods along with the present
-/// and future values.
+/// Returns the number of periods given a periodic rate along with the present and future values.
 ///
 /// Note that the returned number of periods will be a floating point number representing fractional
 /// periods.
@@ -55,11 +54,17 @@ use crate::{future_value::future_value, present_value::present_value, rate::rate
 /// The call will also fail in any of the follwing cases because there is no number of periods that
 /// would make the calculation work:
 /// * The periodic rate is less than -1.0.
-/// * The future value is greater than the present value and the periodic rate is zero or negative.
-/// * The future value is less than the present value and the periodic rate is zero or positive.
 /// * The present value is zero and the future value is nonzero.
 /// * The present value is nonzero and the future value is zero, unless the rate is exactly -1.0%.
 /// * The present value is negative and the future value is positive or vice versa.
+/// * The present value and future value are both negative, the future value is less than the
+/// present value, and the periodic rate is zero or negative.
+/// * The present value and future value are both negative, the future value is greater than the
+/// present value, and the periodic rate is zero or positive.
+/// * The present value and future value are both positive, the future value is greater than the
+/// present value, and the periodic rate is zero or negative.
+/// * The present value and future value are both positive, the future value is less than the
+/// present value, and the periodic rate is zero or positive.
 ///
 /// # Examples
 /// ```
@@ -111,9 +116,9 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
     fractional_periods
 }
 
-/// Calculates the periodic rate of an investment given the number of periods along with the present
-/// and future values and builds a struct with the input values, an explanation of the formula, and
-/// the option to calculate the period-by-period values.
+/// Calculates the number of periods given a periodic rate along with the present and future values
+/// and builds a struct with the input values, an explanation of the formula, and the option to
+/// calculate the period-by-period values.
 ///
 /// Note that the calculated number of periods in the [`TvmSolution.fractional_periods`] field will
 /// be a floating point number. To get the periods as a whole number (rounded up) use
@@ -149,11 +154,17 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
 /// The call will also fail in any of the follwing cases because there is no number of periods that
 /// would make the calculation work:
 /// * The periodic rate is less than -1.0.
-/// * The future value is greater than the present value and the periodic rate is zero or negative.
-/// * The future value is less than the present value and the periodic rate is zero or positive.
 /// * The present value is zero and the future value is nonzero.
 /// * The present value is nonzero and the future value is zero, unless the rate is exactly -1.0%.
 /// * The present value is negative and the future value is positive or vice versa.
+/// * The present value and future value are both negative, the future value is less than the
+/// present value, and the periodic rate is zero or negative.
+/// * The present value and future value are both negative, the future value is greater than the
+/// present value, and the periodic rate is zero or positive.
+/// * The present value and future value are both positive, the future value is greater than the
+/// present value, and the periodic rate is zero or negative.
+/// * The present value and future value are both positive, the future value is less than the
+/// present value, and the periodic rate is zero or positive.
 ///
 /// # Examples
 /// ```
@@ -220,7 +231,7 @@ pub fn periods_solution<P, F>(rate: f64, present_value: P, future_value: F) -> T
         F: Into<f64> + Copy
 {
     let fractional_periods = periods(rate, present_value, future_value);
-    assert!(fractional_periods > 0.0);
+    assert!(fractional_periods >= 0.0);
 
     let present_value = present_value.into();
     let future_value = future_value.into();
@@ -233,12 +244,14 @@ fn check_period_parameters(rate: f64, present_value: f64, future_value: f64) {
     assert!(present_value.is_finite(), "The present value must be finite (not NaN or infinity)");
     assert!(future_value.is_finite(), "The future value must be finite (not NaN or infinity)");
     assert!(rate >= -1.0, "The rate must be greater than or equal to -1.0 because a rate lower than -100% would mean the investment loses more than its full value in a period.");
-    assert!(!(present_value < future_value && rate <= 0.0), "The future value is greater than the present value and the periodic rate is zero or negative so there's no way to solve for the number of periods.");
-    assert!(!(present_value > future_value && rate >= 0.0), "The future value is less than the present value and the periodic rate is zero or positive so there's no way to solve for the number of periods.");
     assert!(!(present_value == 0.0 && future_value != 0.0), "The present value is zero and the future value is nonzero so there's no way to solve for the number of periods.");
     assert!(!(present_value != 0.0 && future_value == 0.0 && rate != -1.0), "The present value is nonzero, the future value is zero, and the rate is not -100% so there's no way to solve for the number of periods.");
     assert!(!(present_value < 0.0 && future_value > 0.0), "The present value is negative and the future value is positive so there's no way to solve for the number of periods.");
     assert!(!(present_value > 0.0 && future_value < 0.0), "The present value is positive and the future value is negative so there's no way to solve for the number of periods.");
+    assert!(!(present_value < 0.0 && future_value < present_value && rate <= 0.0), "The present value and future value are both negative, the future value is less than the present value, and the periodic rate is zero or negative. There's no way to solve for the number of periods.");
+    assert!(!(present_value < 0.0 && future_value > present_value && rate >= 0.0), "The present value and future value are both negative, the future value is greater than the present value, and the periodic rate is zero or positive. There's no way to solve for the number of periods.");
+    assert!(!(present_value > 0.0 && future_value > present_value && rate <= 0.0), "The present value and future value are both positive, the future value is greater than the present value, and the periodic rate is zero or negative. There's no way to solve for the number of periods.");
+    assert!(!(present_value > 0.0 && future_value < present_value && rate >= 0.0), "The present value and future value are both positive, the future value is less than the present value, and the periodic rate is zero or positive. There's no way to solve for the number of periods.");
 }
 
 #[cfg(test)]
