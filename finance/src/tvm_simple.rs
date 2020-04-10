@@ -75,8 +75,8 @@ impl TvmSolution {
         assert!(formula.len() > 0);
         Self {
             calculated_field,
-            rate: rate,
-            periods: fractional_periods.ceil() as u32,
+            rate,
+            periods: round_fractional_periods(fractional_periods),
             fractional_periods,
             present_value,
             future_value,
@@ -306,31 +306,36 @@ impl TvmSchedule {
         let mut series = vec![];
         // Add the values at each period.
         if self.calculated_field.is_present_value() {
-            let mut next_value = None;
-            for period in (0..=self.periods).rev() {
-                let (value, formula, rate) = if period == self.periods {
-                    (self.future_value, format!("{:.4}", self.future_value), self.rates[(period - 1) as usize])
-                } else {
-                    // We want the rate for the period after this one. Since periods are 1-based and
-                    // the vector of rates is 0-based, this means using the current period number as
-                    // the index into the vector.
-                    let next_rate = self.rates[period as usize];
-                    assert!(next_rate >= -1.0);
-                    let next_rate_multiplier = 1.0 + next_rate;
-                    assert!(next_rate_multiplier >= 0.0);
-                    // While we are going to divide by the rate of the next period, the rate that
-                    // will appear in the TvmPeriod struct is the rate for the current period.
-                    let rate = if period == 0 {
-                        0.0
+            if self.periods == 0 {
+                // Special case.
+                series.push(TvmPeriod::new(0, 0.0, self.present_value, &format!("{:.4}", self.present_value)));
+            } else {
+                let mut next_value = None;
+                for period in (0..=self.periods).rev() {
+                    let (value, formula, rate) = if period > 0 && period == self.periods {
+                        (self.future_value, format!("{:.4}", self.future_value), self.rates[(period - 1) as usize])
                     } else {
-                        self.rates[(period - 1) as usize]
+                        // We want the rate for the period after this one. Since periods are 1-based and
+                        // the vector of rates is 0-based, this means using the current period number as
+                        // the index into the vector.
+                        let next_rate = self.rates[period as usize];
+                        assert!(next_rate >= -1.0);
+                        let next_rate_multiplier = 1.0 + next_rate;
+                        assert!(next_rate_multiplier >= 0.0);
+                        // While we are going to divide by the rate of the next period, the rate that
+                        // will appear in the TvmPeriod struct is the rate for the current period.
+                        let rate = if period == 0 {
+                            0.0
+                        } else {
+                            self.rates[(period - 1) as usize]
+                        };
+                        (next_value.unwrap() / next_rate_multiplier, format!("{:.4} / {:.6}", next_value.unwrap(), next_rate_multiplier), rate)
                     };
-                    (next_value.unwrap() / next_rate_multiplier, format!("{:.4} / {:.6}", next_value.unwrap(), next_rate_multiplier), rate)
+                    assert!(value.is_finite());
+                    next_value = Some(value);
+                    series.insert(0, TvmPeriod::new(period, rate, value, &formula))
                 };
-                assert!(value.is_finite());
-                next_value = Some(value);
-                series.insert(0, TvmPeriod::new(period, rate, value, &formula))
-            };
+            }
         } else if self.calculated_field.is_future_value() {
             let mut prev_value = None;
             for period in 0..=self.periods {
@@ -392,3 +397,9 @@ impl Debug for TvmPeriod {
         )
     }
 }
+
+fn round_fractional_periods(fractional_periods: f64) -> u32 {
+    round_4(fractional_periods).ceil() as u32
+}
+
+

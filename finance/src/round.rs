@@ -98,6 +98,17 @@ mod tests {
         assert_rounded_2!(53_243.7458, 53_243.7401);
     }
 
+    #[test]
+    fn test_assert_approx_equal() {
+        assert_approx_equal!(53_243.7448, 53_243.7401);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_assert_approx_equal_panic() {
+        assert_rounded_2!(53_243.8123, 53_243.7401);
+    }
+
 }
 
 
