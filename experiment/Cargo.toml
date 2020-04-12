@@ -14,6 +14,7 @@ float-cmp = "0.6.0"
 log = "0.4.8"
 env_logger = "0.7.1"
 libm = "0.2.1"
+colored = "1.9"
 
 [dev-dependencies]
 criterion = "0.3"

@@ -19,6 +19,7 @@ fn main() {
     // verbose::payment::main();
     // verbose::nper::main();
     // verbose::convert_rates::main();
+    verbose::convert_rate::main();
     // verbose::perpetuity::main();
     // verbose::bilbo_baggins::main();
     // verbose::weird_enum_solver::main();
