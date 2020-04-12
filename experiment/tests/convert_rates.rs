@@ -11,11 +11,11 @@ fn test_convert_apr_to_periodic_fn() {
     //<-- Any panics here inside the test, will cause test failure (good)
     
     // this should panic due to infinite rate provided
-    let result = std::panic::catch_unwind(|| convert_rates::convert_apr_to_periodic(1_f64/0_f64, 3));
+    let result = std::panic::catch_unwind(|| convert_rate::convert_apr_to_epr(1_f64/0_f64, 3));
     assert!(result.is_err());  //probe further for specific error type here, if desired
 
     // this should pass
-    let r = convert_rates::convert_apr_to_periodic(common::get_rate(), 4);
+    let r = convert_rate::convert_apr_to_epr(common::get_rate(), 4);
     assert!(r.is_finite());
 }
 
