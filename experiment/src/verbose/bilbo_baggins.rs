@@ -2,7 +2,7 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 
-use super::convert_rates;
+use super::convert_rate;
 use super::present_value_annuity::{present_value_annuity, PresentValueAnnuitySolution};
 use super::future_value_annuity::{future_value_annuity, FutureValueAnnuitySolution};
 use super::payment::{payment, PaymentSolution};
@@ -81,8 +81,8 @@ fn calculate_bilbo_solution(b: BilboBagginsInputs) -> BilboBagginsSolution {
     // to solve:
     // step one: convert EARs to EPRs (EPR = periodic rate)
     // EPR = (1 + EAR)^(1/#ofPeriodsPerYear) 
-    let epr_before_retire = convert_rates::convert_ear_to_periodic(b.effective_annual_rate_before_retire, 12);
-    let epr_after_retire = convert_rates::convert_ear_to_periodic(b.effective_annual_rate_after_retire, 12);
+    let epr_before_retire = convert_rate::convert_ear_to_epr(b.effective_annual_rate_before_retire, 12);
+    let epr_after_retire = convert_rate::convert_ear_to_epr(b.effective_annual_rate_after_retire, 12);
     // dbg!(epr_before_retire);
     // dbg!(epr_after_retire);
 
