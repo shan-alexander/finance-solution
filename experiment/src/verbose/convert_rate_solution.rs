@@ -114,9 +114,9 @@ impl Debug for ConvertRateSolution {
                &format!("input_in_percent: {:.6}%", self.input_in_percent),
                &format!("output_in_percent: {:.6}{}", self.output_in_percent.to_string().green(),"%".green()),
                &format!("formula: {:?}", self.formula),
-               &format!("{}: {:?}", if self.calculated_field.is_ear_to_apr() || self.calculated_field.is_epr_to_apr() { "apr".green()} else { "apr".normal() }, self.apr),
-               &format!("{}: {:?}", if self.calculated_field.is_ear_to_epr() || self.calculated_field.is_apr_to_epr() { "epr".green()} else { "epr".normal() }, self.epr),
-               &format!("{}: {:?}", if self.calculated_field.is_apr_to_ear() || self.calculated_field.is_epr_to_ear() { "ear".green()} else { "ear".normal() }, self.ear),
+               &format!("{}: {:?}", if self.calculated_field.is_ear_to_apr() || self.calculated_field.is_epr_to_apr() { "apr".green()} else if self.calculated_field.is_apr_to_epr() || self.calculated_field.is_apr_to_ear() { "apr".yellow() } else { "apr".normal() }, self.apr),
+               &format!("{}: {:?}", if self.calculated_field.is_ear_to_epr() || self.calculated_field.is_apr_to_epr() { "epr".green()} else if self.calculated_field.is_epr_to_apr() || self.calculated_field.is_epr_to_ear() { "epr".yellow() } else { "epr".normal() }, self.epr),
+               &format!("{}: {:?}", if self.calculated_field.is_apr_to_ear() || self.calculated_field.is_epr_to_ear() { "ear".green()} else if self.calculated_field.is_ear_to_apr() || self.calculated_field.is_ear_to_epr() { "ear".yellow() } else { "ear".normal() }, self.ear),
         )
     }
 }
