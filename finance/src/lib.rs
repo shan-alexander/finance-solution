@@ -24,6 +24,7 @@ pub mod tvm_simple;
 #[doc(inline)]
 pub use tvm_simple::*;
 
+/*
 #[macro_export]
 macro_rules! assert_approx_equal {
     ( $x1:expr, $x2:expr ) => {
@@ -40,6 +41,23 @@ macro_rules! assert_approx_equal {
             let mut length = std::cmp::min(str_1.len(), str_2.len());
             length = std::cmp::min(length, max_length);
             assert_eq!(str_1[..length], str_2[..length]);
+        }
+    };
+}
+*/
+
+#[macro_export]
+macro_rules! assert_approx_equal {
+    ( $x1:expr, $x2:expr ) => {
+        assert!(float_cmp::approx_eq!(f64, $x1, $x2, epsilon = 0.000001, ulps = 20));
+    };
+}
+
+#[macro_export]
+macro_rules! assert_approx_equal_symmetry_test {
+    ( $x1:expr, $x2:expr ) => {
+        if ($x1 > 0.000001 && $x1 < 1_000_000_000.0 && $x2 > 0.000001 && $x2 < 1_000_000_000.0) {
+            assert!(float_cmp::approx_eq!(f64, $x1, $x2, epsilon = 0.00000001, ulps = 2));
         }
     };
 }
