@@ -19,7 +19,6 @@ colored = "1.9"
 [dev-dependencies]
 criterion = "0.3"
 
-
 [[bench]]
 name = "my_benchmark"
 harness = false

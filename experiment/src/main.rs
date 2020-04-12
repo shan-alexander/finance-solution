@@ -3,8 +3,6 @@
 use experiment::*;
 use env_logger::Env;
 
-
-
 fn main() {
     env_logger::from_env(Env::default().default_filter_or("info")).init();
     // try_fv_vec();
@@ -14,6 +12,9 @@ fn main() {
     // verbose::present_value_annuity::main();
     // verbose::future_value::main();
     // verbose::future_value_annuity::main();
+    // verbose::rate::main();
+    // verbose::periods::main();
+    verbose::payment_solution::main();
     // verbose::net_present_value::main();
     // verbose::payment::main();
     // verbose::nper::main();
