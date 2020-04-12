@@ -1,3 +1,5 @@
+extern crate float_cmp;
+
 pub mod future_value;
 #[doc(inline)]
 pub use future_value::*;
