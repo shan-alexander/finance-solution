@@ -50,7 +50,7 @@ impl ConvertRateVariable {
             _ => false,
         }
     }
-    pub fn is_epr_to_epr(&self) -> bool {
+    pub fn is_epr_to_ear(&self) -> bool {
         match self {
             ConvertRateVariable::EprToEar => true,
             _ => false,
@@ -107,16 +107,16 @@ impl ConvertRateSolution {
 impl Debug for ConvertRateSolution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{{\n {},\n {},\n {},\n {}\n {}\n {}\n {}\n {}\n {}\n {}\n }}",
-               &format!("calculated_field: {}", self.calculated_field.to_string().blue()),
-               &format!("input_rate: {:.6}", self.input_rate.to_string().yellow()),
+               &format!("calculated_field: {}", self.calculated_field.to_string().magenta()),
+               &format!("input_rate: {}", self.input_rate.to_string().yellow()),
                &format!("num_periods_in_year: {:.4}", self.num_periods_in_year.to_string().yellow()),
                &format!("output_rate: {}", self.output_rate.to_string().green()),
-               &format!("input_in_percent: {:.4}%", self.input_in_percent),
-               &format!("output_in_percent: {:.4}%", self.output_in_percent),
+               &format!("input_in_percent: {:.6}%", self.input_in_percent),
+               &format!("output_in_percent: {:.6}{}", self.output_in_percent.to_string().green(),"%".green()),
                &format!("formula: {:?}", self.formula),
-               &format!("apr: {:?}", self.apr),
-               &format!("epr: {:?}", self.epr),
-               &format!("ear: {:?}", self.ear),
+               &format!("{}: {:?}", if self.calculated_field.is_ear_to_apr() || self.calculated_field.is_epr_to_apr() { "apr".green()} else { "apr".normal() }, self.apr),
+               &format!("{}: {:?}", if self.calculated_field.is_ear_to_epr() || self.calculated_field.is_apr_to_epr() { "epr".green()} else { "epr".normal() }, self.epr),
+               &format!("{}: {:?}", if self.calculated_field.is_apr_to_ear() || self.calculated_field.is_epr_to_ear() { "ear".green()} else { "ear".normal() }, self.ear),
         )
     }
 }

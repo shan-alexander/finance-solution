@@ -70,7 +70,7 @@ pub fn convert_ear_to_apr_solution(ear: f64, compounding_periods_in_year: u32) -
     let input_in_percent = format!("{}%", (ear * 100_000.0).round() / 100_000.0 * 100.);
     let output_in_percent = format!("{:.4}%", (apr * 100.));
     let formula = format!("((1 + {})^(1/{}) - 1) * {}", ear, compounding_periods_in_year, compounding_periods_in_year);
-    ConvertRateSolution::new(ConvertRateVariable::EarToApr, apr, compounding_periods_in_year, ear, input_in_percent, output_in_percent, &formula, apr, epr, ear)
+    ConvertRateSolution::new(ConvertRateVariable::EarToApr, ear, compounding_periods_in_year, apr, input_in_percent, output_in_percent, &formula, apr, epr, ear)
 }
 /// Convert an EAR (effective annual rate) to a nominal interest rate (Annual rate, APR). This involves converting the EAR to periodic rate first, and then APR = periodic rate * number of periods. Returns f64.
 pub fn convert_ear_to_apr(ear: f64, compounding_periods_in_year: u32) -> f64 {
@@ -101,7 +101,7 @@ pub fn convert_epr_to_ear_solution(epr: f64, compounding_periods_in_year: u32) -
     let ear = (1_f64 + epr).powf(compounding_periods_in_year as f64) - 1_f64;
     let input_string = format!("{:.4}%", epr*100.);
     let output_string = format!("{:.4}%", ear*100.);
-    let formula = format!("(1 + {})^{} - 1", ear, compounding_periods_in_year);
+    let formula = format!("(1 + {})^{} - 1", epr, compounding_periods_in_year);
     let apr = epr * compounding_periods_in_year as f64;
     ConvertRateSolution::new(ConvertRateVariable::EprToEar, epr, compounding_periods_in_year, ear, input_string, output_string, &formula, apr, epr, ear)
 }
