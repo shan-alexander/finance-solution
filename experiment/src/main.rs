@@ -14,17 +14,18 @@ fn main() {
     // verbose::future_value_annuity::main();
     // verbose::rate::main();
     // verbose::periods::main();
-    verbose::payment_solution::main();
+    // verbose::payment_solution::main();
     // verbose::net_present_value::main();
     // verbose::payment::main();
     // verbose::nper::main();
     // verbose::convert_rates::main();
-    verbose::convert_rate::main();
+    // verbose::convert_rate::main();
     // verbose::perpetuity::main();
     // verbose::bilbo_baggins::main();
     // verbose::weird_enum_solver::main();
     // verbose::tvm_solver::main();
     // verbose::find_rate::main();
     // verbose::examples_1::main();
+    verbose::payment_tvm::main();
    
 }
