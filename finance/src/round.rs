@@ -58,6 +58,13 @@ mod tests {
     use crate::*;
 
     #[test]
+    fn test_equals_zero() {
+        assert_eq!(0.0f64, 0.0f64);
+        assert_eq!(-0.0f64, -0.0f64);
+        assert_eq!(0.0f64, -0.0f64);
+    }
+
+    #[test]
     fn test_round_2() {
         assert_eq!(295_489.94, round_2(295_489.941849));
         assert_eq!(295_489.94, round_2(295_489.9449));
