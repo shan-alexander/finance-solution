@@ -5,7 +5,7 @@
 use super::convert_rate;
 use super::present_value_annuity::{present_value_annuity, PresentValueAnnuitySolution};
 use super::future_value_annuity::{future_value_annuity, FutureValueAnnuitySolution};
-use super::payment::{payment, PaymentSolution};
+// use super::payment::{payment, PaymentSolution};
 
 pub fn main() {
     let b: BilboBagginsInputs = make_bilbo_problem_1();
@@ -132,12 +132,14 @@ fn calculate_bilbo_solution(b: BilboBagginsInputs) -> BilboBagginsSolution {
     fn payment(r: f64, n: u32, fv: f64) -> f64 {
         // C = FV / [ ((1 + i)^n -1) / i ]
         fv / (((1. + r).powi(n as i32) -1.) / r)
-    } 
-    let monthly_savings_needed_after_cabin = payment(epr_before_retire, months_between_cabin_and_retirement, net_amount_needed_at_retirement);
+    }
+    // let monthly_savings_needed_after_cabin = payment(epr_before_retire, months_between_cabin_and_retirement, net_amount_needed_at_retirement);
+    let monthly_savings_needed_after_cabin = finance::payment(epr_before_retire, months_between_cabin_and_retirement, 0.0, net_amount_needed_at_retirement);
     // dbg!(&monthly_savings_needed_after_cabin);
-    
 
-    let monthly_savings_needed_after_cabin: PaymentSolution = super::payment::payment(epr_before_retire, months_between_cabin_and_retirement, 0., net_amount_needed_at_retirement);
+
+    // let monthly_savings_needed_after_cabin: PaymentSolution = super::payment::payment(epr_before_retire, months_between_cabin_and_retirement, 0., net_amount_needed_at_retirement);
+    let monthly_savings_needed_after_cabin: finance::TvmCashflowSolution = finance::payment_solution(epr_before_retire, months_between_cabin_and_retirement, 0., net_amount_needed_at_retirement);
     // dbg!(&monthly_savings_needed_after_cabin);
 
     BilboBagginsSolution::new(
@@ -171,7 +173,7 @@ struct BilboBagginsSolution {
     fv_of_money_after_cabin_purchase_at_retirement: finance::TvmSolution,
     net_amount_needed_at_retirement: f64,
     months_between_cabin_and_retirement: u32,
-    monthly_savings_needed_after_cabin: PaymentSolution,
+    monthly_savings_needed_after_cabin: finance::TvmCashflowSolution,
 }
 impl BilboBagginsSolution {
     pub fn new(epr_before_retire: f64,
@@ -186,7 +188,7 @@ impl BilboBagginsSolution {
         fv_of_money_after_cabin_purchase_at_retirement: finance::TvmSolution,
         net_amount_needed_at_retirement: f64,
         months_between_cabin_and_retirement: u32,
-        monthly_savings_needed_after_cabin: PaymentSolution,
+        monthly_savings_needed_after_cabin: finance::TvmCashflowSolution,
     ) -> Self {
         Self {
             epr_before_retire,

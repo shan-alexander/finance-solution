@@ -26,7 +26,7 @@ pub use round::*;
 
 pub mod tvm_cashflow;
 #[doc(inline)]
-pub use tvm_simple::*;
+pub use tvm_cashflow::*;
 
 pub mod tvm_simple;
 #[doc(inline)]
@@ -53,6 +53,13 @@ macro_rules! assert_approx_equal {
     };
 }
 */
+
+#[macro_export]
+macro_rules! is_approx_equal {
+    ( $x1:expr, $x2:expr ) => {
+        float_cmp::approx_eq!(f64, $x1, $x2, epsilon = 0.000001, ulps = 20)
+    };
+}
 
 #[macro_export]
 macro_rules! assert_approx_equal {
@@ -96,6 +103,99 @@ macro_rules! assert_rounded_8 {
     ( $x1:expr, $x2:expr ) => {
         assert_eq!(($x1 * 100_000_000.0f64).round() / 100_000_000.0, ($x2 * 100_000_000.0f64).round() / 100_000_000.0);
     };
+}
+
+#[derive(Debug)]
+pub enum ValueType {
+    Payment,
+    Rate,
+}
+
+impl ValueType {
+    pub fn is_payment(&self) -> bool {
+        match self {
+            ValueType::Payment => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_rate(&self) -> bool {
+        match self {
+            ValueType::Rate => true,
+            _ => false,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Schedule {
+    Repeating {
+        value_type: ValueType,
+        value: f64,
+        periods: u32,
+    },
+    Custom {
+        value_type: ValueType,
+        values: Vec<f64>
+    },
+}
+
+impl Schedule {
+
+    pub fn new_repeating(value_type: ValueType, value: f64, periods: u32) -> Self {
+        assert!(value.is_finite());
+        Schedule::Repeating {
+            value_type,
+            value,
+            periods,
+        }
+    }
+
+    pub fn new_custom(value_type: ValueType, values: &[f64]) -> Self {
+        for value in values {
+            assert!(value.is_finite());
+        }
+        Schedule::Custom {
+            value_type,
+            values: values.to_vec(),
+        }
+    }
+
+    pub fn is_payment(&self) -> bool {
+        self.value_type().is_payment()
+    }
+
+    pub fn is_rate(&self) -> bool {
+        self.value_type().is_rate()
+    }
+
+    pub fn value_type(&self) -> &ValueType {
+        match self {
+            Schedule::Repeating { value_type, value: _, periods: _ } => value_type,
+            Schedule::Custom { value_type, values: _ } => value_type,
+        }
+    }
+
+    pub fn value(&self) -> Option<f64> {
+        match self {
+            Schedule::Repeating{ value_type: _, value, periods: _ } => Some(*value),
+            Schedule::Custom { value_type: _, values: _} => None,
+        }
+    }
+
+    pub fn max(&self) -> Option<f64> {
+        match self {
+            Schedule::Repeating{ value_type: _, value, periods: _ } => Some(*value),
+            Schedule::Custom { value_type: _, values} => {
+                match values.len() {
+                    0 => None,
+                    1 => Some(values[0]),
+                    // https://www.reddit.com/r/rust/comments/3fg0xr/how_do_i_find_the_max_value_in_a_vecf64/ctoa7mp/
+                    _ => Some(values.iter().cloned().fold(0./0., f64::max))
+                }
+            }
+        }
+    }
 }
 
 
