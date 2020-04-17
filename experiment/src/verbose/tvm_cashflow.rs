@@ -2,6 +2,9 @@ use std::fmt::Debug;
 use std::fmt;
 use colored::*;
 
+// The basic TVM equation, which can be arranged for anything except rate:
+//   pv*(1+rate)^nper + pmt(1+rate*type)*((1+rate)^nper-1)/rate +fv = 0
+
 
 // Import needed for the function references in the Rustdoc comments.
 #[allow(unused_imports)]
@@ -118,7 +121,7 @@ impl Debug for TvmCashflowSolution {
                &format!("present_value: {}", self.present_value),
                &format!("future_value: {}", self.future_value),
                &format!("formula: {:?}", self.formula),
-               &format!("input_in_percent: {:.6}%", self.input_in_percent),
+               &format!("rate_in_percent: {:.4}%", self.input_in_percent),
                &format!("output: {}", self.output.to_string().green()),
                &format!("{}{}", if self.calculated_field.is_net_present_value() { "cashflow_0: "} else { "" }, if self.calculated_field.is_net_present_value() { self.cashflow_0.to_string().red() } else { "".normal() }),
         )
