@@ -113,3 +113,4 @@ fn try_formulas() {
     finance::assert_rounded_6!(formula_result, pv_positive_fv_zero.payment);
     println!();
 }
+

@@ -87,7 +87,9 @@ pub struct TvmCashflowSolution {
     pub future_value: f64,
     pub payment: f64,
     pub sum_of_payments: f64,
+    pub due_at_beginning: bool,
     pub formula: String,
+    pub formula_symbolic: String,
     // pub input_in_percent: String,
 }
 
@@ -101,7 +103,9 @@ impl TvmCashflowSolution {
             present_value: f64,
             future_value: f64,
             payment: f64,
-            formula: &str
+            due_at_beginning: bool,
+            formula: &str,
+            formula_symbolic: &str,
     ) -> Self {
         assert!(rates.is_rate());
         assert!(formula.len() > 0);
@@ -116,7 +120,9 @@ impl TvmCashflowSolution {
             future_value,
             payment,
             sum_of_payments,
+            due_at_beginning,
             formula: formula.to_string(),
+            formula_symbolic: formula_symbolic.to_string(),
         }
     }
 
@@ -124,17 +130,19 @@ impl TvmCashflowSolution {
 
 impl Debug for TvmCashflowSolution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{{{}{}{}{}{}{}{}{}{}{}\n}}",
+        write!(f, "{{{}{}{}{}{}{}{}{}{}{}{}{}\n}}",
                &format!("\n\tcalculated_field: {}", self.calculated_field.to_string().magenta()),
-               &format!("\n\trates: {}", format!("{:?}", self.rates).yellow()),
-               &format!("\n\tperiods: {}", self.periods.to_string().yellow()),
-               &format!("\n\tcashflow: {}", self.cashflow),
+               &format!("\n\trates (r): {}", format!("{:?}", self.rates).yellow()),
+               &format!("\n\tperiods (n): {}", self.periods.to_string().yellow()),
+               if self.calculated_field.is_net_present_value() { format!("\n\tcashflow: {}", self.cashflow.to_string().red()) } else { "".to_string() },
                if self.calculated_field.is_net_present_value() { format!("\n\tcashflow_0: {}", self.cashflow_0.to_string().red()) } else { "".to_string() },
                &format!("\n\tpayment: {}", if self.calculated_field.is_payment() || self.calculated_field.is_payment_due() { self.cashflow.to_string().green() } else { self.cashflow.to_string().normal() }),
                &format!("\n\tsum_of_payments: {}", self.sum_of_payments),
-               &format!("\n\tpresent_value: {}", self.present_value),
-               &format!("\n\tfuture_value: {}", self.future_value),
+               &format!("\n\tdue_at_beginning: {}", self.due_at_beginning),
+               &format!("\n\tpresent_value (pv): {}", self.present_value),
+               &format!("\n\tfuture_value (fv): {}", self.future_value),
                &format!("\n\tformula: {:?}", self.formula),
+               &format!("\n\tformula_symbolic: {:?}", self.formula_symbolic),
                // &format!("input_in_percent: {:.6}%", self.input_in_percent),
                // &format!("output: {}", self.output.to_string().green()),
         )

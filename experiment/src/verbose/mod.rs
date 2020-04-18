@@ -17,4 +17,4 @@ pub mod examples_1;
 pub mod convert_rate;
 pub mod convert_rate_solution;
 pub mod tvm_cashflow;
-pub mod payment_tvm;
+// pub mod payment_tvm;
