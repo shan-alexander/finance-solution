@@ -2,7 +2,7 @@ use log::{warn};
 
 // Import needed for the function references in the Rustdoc comments.
 #[allow(unused_imports)]
-use crate::*;
+// use crate::*;
 use crate::verbose::convert_rate_solution::*;
 
 pub fn main() { 
@@ -128,9 +128,6 @@ pub fn convert_epr_to_apr(epr: f64, compounding_periods_in_year: u32) -> f64 {
 }
 
 
-fn round_2(val:f64) -> f64 { (val * 100.).round() / 100.}
-fn round_4(val:f64) -> f64 { (val * 10_000.).round() / 10_000.}
-fn round_6(val:f64) -> f64 { (val * 1_000_000.).round() / 1_000_000.}
 
 
 
@@ -141,26 +138,33 @@ mod tests {
     
     #[test]
     fn test_convert_rate_solution_symmetry() {
-        let apr_epr_ear_rates = vec!(0.034, 0.00283333333,0.0345348693603,1.0, 2.1, 0.00001);
-        let periods = vec![12, 1, 2, 3, 4, 6, 24, 52, 365, 800];
+        let apr_epr_ear_rates = vec!(0.034, -0.034, 0.00283333333, -0.00283333333, 0.0345348693603, 0.0, -0.0, 1.0, 2.1, 0.00001);
+        let periods = vec![12, 1, 2, 3, 4, 6, 24, 52, 365, 780];
         
         for rates_i in apr_epr_ear_rates {
             for &periods_i in periods.iter() {
-                check_rate_conversion_symmetry(rates_i,periods_i);
+                check_rate_conversion_symmetry(rates_i, periods_i);
 
                 fn check_rate_conversion_symmetry(rate:f64, periods:u32) {
-                    let ap = convert_apr_to_epr_solution(rate, periods);
+                    // apr scenarios
+                    let apr_epr = convert_apr_to_epr(rate, periods);
+                    let _epr_apr = convert_epr_to_apr(apr_epr, periods);
+
+                    // ear scenarios
+
+
+                    let apr_epr = convert_apr_to_epr_solution(rate, periods);
                     let ae = convert_apr_to_ear_solution(rate, periods);
 
-                    assert_rounded_4!(ap.output_rate, convert_ear_to_epr(ae.output_rate, periods));
-                    assert_rounded_4!(ae.output_rate, convert_epr_to_ear(ap.output_rate, periods));
+                    assert_approx_equal!(apr_epr.output_rate, convert_ear_to_epr(ae.output_rate, periods));
+                    assert_approx_equal!(ae.output_rate, convert_epr_to_ear(apr_epr.output_rate, periods));
                     
 
-                    let pa = convert_epr_to_apr_solution(rate, periods);
-                    let pe = convert_epr_to_ear_solution(rate, periods);
+                    let _pa = convert_epr_to_apr_solution(rate, periods);
+                    let _pe = convert_epr_to_ear_solution(rate, periods);
                     
-                    let ea = convert_ear_to_apr_solution(rate, periods);
-                    let ep = convert_ear_to_epr_solution(rate, periods);
+                    let _ea = convert_ear_to_apr_solution(rate, periods);
+                    let _ep = convert_ear_to_epr_solution(rate, periods);
 
                     
                 }
@@ -172,7 +176,7 @@ mod tests {
     #[test]
     fn test_convert_rates_simple_1() {
         // test on excel values using 12 periods
-        const periods: u32 = 12;
+        const PERIODS: u32 = 12;
         let apr_epr_ear_rates = vec!((0.034, 0.00283333333, 0.0345348693603),
                                      (-0.034, -0.002833333333, -0.03347513889),
                                      (1.0, 0.08333333333, 1.6130352902247),
@@ -180,18 +184,18 @@ mod tests {
                                      (2.1, 0.175, 5.9255520766347),
                                      (-2.1, -0.175,-0.90058603794));
         for rate_tupe in apr_epr_ear_rates {
-                let ap = convert_apr_to_epr(rate_tupe.0, periods);
-                let ae = convert_apr_to_ear(rate_tupe.0, periods);
-                let pa = convert_epr_to_apr(rate_tupe.1, periods);
-                let pe = convert_epr_to_ear(rate_tupe.1, periods);
-                let ea = convert_ear_to_apr(rate_tupe.2, periods);
-                let ep = convert_ear_to_epr(rate_tupe.2, periods);
+                let ap = convert_apr_to_epr(rate_tupe.0, PERIODS);
+                let ae = convert_apr_to_ear(rate_tupe.0, PERIODS);
+                let pa = convert_epr_to_apr(rate_tupe.1, PERIODS);
+                let pe = convert_epr_to_ear(rate_tupe.1, PERIODS);
+                let ea = convert_ear_to_apr(rate_tupe.2, PERIODS);
+                let ep = convert_ear_to_epr(rate_tupe.2, PERIODS);
                 check_rate_conversion_symmetry(ap, ae, pa, pe, ea, ep);
 
                 fn check_rate_conversion_symmetry(ap:f64, ae:f64, pa:f64, pe:f64, ea:f64, ep:f64) {
-                    assert_eq!( round_6(ap), round_6(ep) );
-                    assert_eq!( round_6(ae), round_6(pe) );
-                    assert_eq!( round_6(pa), round_6(ea) );
+                    assert_approx_equal!( ap, ep );
+                    assert_approx_equal!( ae, pe );
+                    assert_approx_equal!( pa, ea );
                 }
         }
     }

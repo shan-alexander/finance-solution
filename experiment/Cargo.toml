@@ -22,3 +22,13 @@ criterion = "0.3"
 [[bench]]
 name = "my_benchmark"
 harness = false
+
+[[example]]
+name = "bilbo_v1"
+path = "examples/bilbo_v1.rs"    # The source file of the target.
+crate-type = ["bin"]
+
+[[example]]
+name = "bilbo_v2"
+path = "examples/bilbo_v2.rs"    # The source file of the target.
+crate-type = ["bin"]
