@@ -92,6 +92,7 @@ pub struct TvmCashflowSolution {
     pub output: f64,
 }
 impl TvmCashflowSolution {
+    #[allow(dead_code)]
     pub(crate) fn new(calculated_field: TvmCashflowVariable, rate: f64, periods: u32, cashflow: f64, present_value: f64, future_value: f64, formula: &str, cashflow_0: f64, input_in_percent: String, output:f64) -> Self {
         assert!(rate.is_finite());
         assert!(formula.len() > 0);
