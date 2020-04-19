@@ -20,10 +20,6 @@ pub mod periods;
 #[doc(inline)]
 pub use periods::*;
 
-pub mod convert_rate;
-#[doc(inline)]
-pub use convert_rate::*;
-
 pub mod round;
 #[doc(inline)]
 pub use round::*;
@@ -35,10 +31,6 @@ pub use tvm_cashflow::*;
 pub mod tvm_simple;
 #[doc(inline)]
 pub use tvm_simple::*;
-
-pub mod tvm_convert_rate;
-#[doc(inline)]
-pub use tvm_convert_rate::*;
 
 /*
 #[macro_export]
@@ -79,7 +71,7 @@ macro_rules! assert_approx_equal {
 #[macro_export]
 macro_rules! assert_approx_equal_symmetry_test {
     ( $x1:expr, $x2:expr ) => {
-        if ($x1 > 0.000001 && $x1 < 1_000_000_000.0 && $x2 > 0.000001 && $x2 < 1_000_000_000.0) {
+        if ($x1 > 0.000001 && $x1 < 1_000_000.0 && $x2 > 0.000001 && $x2 < 1_000_000.0) {
             assert!(float_cmp::approx_eq!(f64, $x1, $x2, epsilon = 0.00000001, ulps = 2));
         }
     };
@@ -113,64 +105,6 @@ macro_rules! assert_rounded_8 {
     };
 }
 
-/// Convert APR to all variations of the rate. Returns a custom type with additional functionality and extra information available in the dbg!().
-#[macro_export]
-macro_rules! apr {
-    ( $x1:expr, $x2:expr ) => {{
-        let apr: f64 = $x1;
-        let compounding_periods_in_year: u32 = $x2;
-        finance::convert_rate::assert_inputs(apr, compounding_periods_in_year, finance::tvm_convert_rate::ConvertRateVariable::Apr);
-        let ear = (1_f64 + (apr/compounding_periods_in_year as f64)).powf(compounding_periods_in_year as f64) - 1_f64;
-        let epr = finance::convert_rate::convert_apr_to_epr(apr, compounding_periods_in_year);  
-        let apr_in_percent = format!("{:.4}%", apr * 100.);
-        let epr_in_percent = format!("{:.4}%", epr * 100.);
-        let ear_in_percent = format!("{:.4}%", ear * 100.);
-        let apr_formula = format!("");
-        let epr_formula = format!("{} / {}", apr, compounding_periods_in_year);
-        let ear_formula = format!("(1 + ({}/{}))^{} - 1", apr, compounding_periods_in_year, compounding_periods_in_year);
-        finance::tvm_convert_rate::ConvertRateSolution::new(finance::tvm_convert_rate::ConvertRateVariable::Apr, apr, compounding_periods_in_year, apr_in_percent, epr_in_percent, ear_in_percent, apr, epr, ear, &apr_formula, &epr_formula, &ear_formula,)
-    }}
-}
-
-/// Convert EPR to all variations of the rate. Returns a custom type with additional functionality and extra information available in the dbg!().
-#[macro_export]
-    macro_rules! epr {
-        ( $x1:expr, $x2:expr ) => {{
-            let epr: f64 = $x1;
-            let compounding_periods_in_year: u32 = $x2;
-            finance::convert_rate::assert_inputs(epr, compounding_periods_in_year, finance::tvm_convert_rate::ConvertRateVariable::Epr);
-            let apr = epr * compounding_periods_in_year as f64;
-            let ear = finance::convert_rate::convert_apr_to_ear(apr, compounding_periods_in_year);
-            let apr_in_percent = format!("{:.4}%", apr * 100.);
-            let epr_in_percent = format!("{:.4}%", epr * 100.);
-            let ear_in_percent = format!("{:.4}%", ear * 100.);
-            let apr_formula = format!("{} * {}", epr, compounding_periods_in_year);
-            let epr_formula = format!("");
-            let ear_formula = format!("(1 + {})^{} - 1", epr, compounding_periods_in_year);
-            finance::tvm_convert_rate::ConvertRateSolution::new(finance::tvm_convert_rate::ConvertRateVariable::Epr, epr, compounding_periods_in_year, apr_in_percent, epr_in_percent, ear_in_percent, apr, epr, ear, &apr_formula, &epr_formula, &ear_formula,)
-        }}
-    }
-
-/// Convert EAR to all variations of the rate. Returns a custom type with additional functionality and extra information available in the dbg!().
-#[macro_export]
-    macro_rules! ear {
-        ( $x1:expr, $x2:expr ) => {{
-            let ear: f64 = $x1;
-            let compounding_periods_in_year: u32 = $x2;
-            finance::convert_rate::assert_inputs(ear, compounding_periods_in_year, finance::tvm_convert_rate::ConvertRateVariable::Ear);
-            let apr = finance::convert_rate::convert_ear_to_apr(ear, compounding_periods_in_year);
-            let epr = finance::convert_rate::convert_ear_to_epr(ear, compounding_periods_in_year);
-            let apr_in_percent = format!("{:.4}%", apr * 100.);
-            let epr_in_percent = format!("{:.4}%", epr * 100.);
-            let ear_in_percent = format!("{:.4}%", ear * 100.);
-            let apr_formula = format!("{} * {}", epr, compounding_periods_in_year);
-            let epr_formula = format!("(1 + {})^(1 / {}) - 1", ear, compounding_periods_in_year);
-            let ear_formula = format!("{}", ear);
-            finance::tvm_convert_rate::ConvertRateSolution::new(finance::tvm_convert_rate::ConvertRateVariable::Ear, ear, compounding_periods_in_year, apr_in_percent, epr_in_percent, ear_in_percent, apr, epr, ear, &apr_formula, &epr_formula, &ear_formula,)
-        }}
-    }
-
-    
 #[derive(Debug)]
 pub enum ValueType {
     Payment,
@@ -263,6 +197,3 @@ impl Schedule {
         }
     }
 }
-
-
-
