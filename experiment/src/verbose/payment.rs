@@ -4,8 +4,9 @@ pub fn main() {
     // try_payment_debug();
     // try_payment_due_debug();
     // try_formulas();
-    generate_scenarios_for_excel();
+    // generate_scenarios_for_excel();
     // find_numerator_failures();
+    find_calculation_failure_curve();
     // dbg!(finance::payment(0.23, 3000, -123_456.7, -12_345.67));
 }
 
@@ -158,5 +159,78 @@ fn find_numerator_failures() {
             }
         }
     }
+}
+
+fn find_calculation_failure_curve() {
+
+    let mut periods = 100;
+    while periods < 10_000 {
+        let mut rate: f64 = 0.00001;
+        // let mut rate: f64 = 0.5;
+        let mut last_good_rate: f64 = std::f64::NAN;
+        while (rate + 1.0).powi(periods).is_finite() {
+            last_good_rate = rate;
+            //dbg!(periods, last_good_rate, (rate + 1.0).powi(periods));
+            rate *= 2.0;
+        }
+        // println!();
+        // dbg!(periods, last_good_rate);
+        // println!();
+
+        let mut low = last_good_rate;
+        assert!(low.is_finite());
+        let mut high = rate;
+        if high.is_finite() && low < 100.0 {
+            assert!(low < high);
+            assert!((low + 1.0).powi(periods).is_finite());
+            assert!(!(high + 1.0).powi(periods).is_finite());
+            while high - low > 0.000001 {
+                let mid = (low + high) / 2.0;
+                assert!(low.is_finite());
+                assert!(mid.is_finite());
+                assert!(high.is_finite());
+                // dbg!(low, mid, high, (mid + 1.0).powi(periods));
+                // if (mid + 1.0).powi(periods).is_finite() {
+                // if (mid + 1.0).powf(periods as f64).is_finite() {
+                if limit_calculation(periods, mid, false).is_finite() {
+                    // Continue testing above the midpoint.
+                    low = mid;
+                } else {
+                    // Continue testing below the midpoint.
+                    high = mid;
+                }
+            }
+            // println!();
+            // println!("periods = {}, rate = {}", periods, low);
+            println!("{}\t{}", periods, low);
+            // println!();
+            assert!((low + 1.0).powi(periods).is_finite());
+            // break;
+        }
+        // periods *= 2;
+        periods += 100;
+    }
+}
+
+fn limit_calculation(periods: i32, rate: f64, due_at_beginning: bool) -> f64 {
+    let present_value = 100.0;
+    let future_value = 10.0;
+    let rate_mult = 1.0 + rate;
+    let num= ((present_value * rate_mult.powf(periods as f64)) + future_value) * -rate;
+    if !num.is_finite() {
+        return num;
+    }
+    let mut denom = (rate_mult).powf(periods as f64) - 1.0;
+    if !denom.is_finite() {
+        return denom;
+    }
+    if due_at_beginning {
+        denom *= rate_mult;
+    }
+    if !denom.is_finite() {
+        return denom;
+    }
+    let payment = num / denom;
+    payment
 }
 
