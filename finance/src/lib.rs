@@ -12,6 +12,10 @@ pub mod present_value;
 #[doc(inline)]
 pub use present_value::*;
 
+pub mod present_value_annuity;
+#[doc(inline)]
+pub use present_value_annuity::*;
+
 pub mod rate;
 #[doc(inline)]
 pub use rate::*;
@@ -172,6 +176,17 @@ macro_rules! apr {
             tvm_convert_rate::ConvertRateSolution::new(tvm_convert_rate::ConvertRateVariable::Ear, ear, compounding_periods_in_year, apr_in_percent, epr_in_percent, ear_in_percent, apr, epr, ear, &apr_formula, &epr_formula, &ear_formula,)
         }}
     }
+
+    #[macro_export]
+    macro_rules! repeat {
+    ( $x1:expr, $x2:expr ) => {
+        let mut repeats = vec![];
+        for i in 0..$x2 {
+            repeats.push($x1);
+        }
+        repeats
+    };
+}
 
 #[derive(Debug)]
 pub enum ValueType {
