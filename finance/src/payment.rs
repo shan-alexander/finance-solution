@@ -42,7 +42,7 @@ pub fn payment_due<P, F>(rate: f64, periods: u32, present_value: P, future_value
 }
 
 fn payment_internal(rate: f64, periods: u32, present_value: f64, future_value: f64, due_at_beginning: bool) -> f64 {
-    //dbg!(rate, periods, present_value, future_value);
+    dbg!(rate, periods, present_value, future_value, due_at_beginning);
     assert!(rate.is_finite(), "The rate must be finite (not NaN or infinity)");
     // assert!(rate >= -1.0, "The rate must be greater than or equal to -1.0 because a rate lower than -100% would mean the investment loses more than its full value in a period.");
     if rate.abs() > 1. {
@@ -53,8 +53,6 @@ fn payment_internal(rate: f64, periods: u32, present_value: f64, future_value: f
     assert!(!(periods == 0 && !is_approx_equal!(present_value, future_value)), "The number of periods is 0 yet the future value doesn't equal the present value. There's no way to calculate payments.");
 
     if periods == 0 {
-        // This is an edge case. It's OK for periods to be zero as long as there's no change between
-        // the present and future values.
         assert_approx_equal!(present_value, future_value);
         return 0.0;
     }
@@ -67,17 +65,17 @@ fn payment_internal(rate: f64, periods: u32, present_value: f64, future_value: f
 
     let rate_mult = 1.0 + rate;
     let num= ((present_value * rate_mult.powf(periods as f64)) + future_value) * -rate;
-    // dbg!(num);
+    dbg!(num);
     assert!(num.is_finite());
     let mut denom = (rate_mult).powf(periods as f64) - 1.0;
     if due_at_beginning {
         denom *= rate_mult;
     }
-    // dbg!(denom);
+    dbg!(denom);
     assert!(denom.is_finite());
     assert!(denom.is_normal());
     let payment = num / denom;
-    // dbg!(payment);
+    dbg!(payment);
     assert!(payment.is_finite());
 
     payment
@@ -104,20 +102,25 @@ pub fn payment_due_solution<P, F>(rate: f64, periods: u32, present_value: P, fut
 fn payment_solution_internal(rate: f64, periods: u32, present_value: f64, future_value: f64, due_at_beginning: bool) -> TvmCashflowSolution {
     let payment = payment_internal(rate, periods, present_value, future_value, due_at_beginning);
 
-    let (formula, formula_symbolic) = payment_formula(rate, periods, present_value, future_value, due_at_beginning);
+    let (formula, formula_symbolic) = payment_formula(rate, periods, present_value, future_value, due_at_beginning, payment);
     let cashflow = payment;
     let cashflow_0 = 0_f64;
     // let total_payment = pmt * periods;
     // let total_interest_amount = total_payment - (fv + pv);
     //sum_payment, total_interest_amount,   <---- consider adding something like this
+    let calculated_field = if due_at_beginning { TvmCashflowVariable::PaymentDue } else { TvmCashflowVariable::Payment };
     let rate_schedule = Schedule::new_repeating(ValueType::Rate, rate, periods);
-    TvmCashflowSolution::new(TvmCashflowVariable::Payment, rate_schedule, periods, cashflow, cashflow_0, present_value.into(), future_value, payment, due_at_beginning, &formula, &formula_symbolic)
+    let sum_of_interest = {
+        let pv_for_sum_of_interest = present_value + future_value;
+        let fv_for_sum_of_interest = crate::future_value(rate, periods, pv_for_sum_of_interest);
+        fv_for_sum_of_interest - pv_for_sum_of_interest
+    };
+    TvmCashflowSolution::new(calculated_field, rate_schedule, periods, present_value.into(), future_value, due_at_beginning, cashflow, cashflow_0, payment, sum_of_interest, &formula, &formula_symbolic)
 }
 
-fn payment_formula(rate: f64, periods: u32, present_value: f64, future_value: f64, due_at_beginning: bool) -> (String, String) {
+fn payment_formula(rate: f64, periods: u32, present_value: f64, future_value: f64, due_at_beginning: bool, payment: f64) -> (String, String) {
     let rate_multiplier = 1.0 + rate;
-    if present_value == future_value {
-        // This includes the edge case where periods = 0.
+    let (mut formula, mut formula_symbolic) = if periods == 0 {
         (format!("{:.4}", 0.0), "0".to_string())
     } else if rate == 0.0 {
         // There is no interest so the payment is simply the total amount to be paid (the difference
@@ -164,33 +167,11 @@ fn payment_formula(rate: f64, periods: u32, present_value: f64, future_value: f6
             formula_symbolic_denom = format!("({} * (1 + r))", formula_symbolic_denom);
         }
         (format!("{} / {}", formula_num, formula_denom), format!("{} / {}", formula_symbolic_num, formula_symbolic_denom))
-    }
+    };
+    formula = format!("{:.4} = {}", payment, formula);
+    formula_symbolic = format!("pmt = {}", formula_symbolic);
+    (formula, formula_symbolic)
 }
-
-/*
-pub fn payment_due_solution<P: Into<f64> + Copy, F: Into<f64> + Copy>(periodic_rate: f64, periods: u32, present_value: P, future_value: F) -> TvmCashflowSolution {
-
-    // https://www.techrepublic.com/forums/discussions/the-real-math-behind-excel-formulas/
-    // If rate =0 then (Pmt * Nper)+PV+FV=0
-
-
-    // ultimate formula:pv*(1+rate)^nper + pmt(1+rate*type)*((1+rate)^nper-1)/rate +fv = 0
-    // (pv*(1+rate)^nper + fv) / ((1+rate)^nper-1)/rate  / (1+rate*type) = - pmt
-
-    let pv = present_value.into();
-    let fv = future_value.into();
-    let pmt = pv * ( (1. + periodic_rate).powf(periods as f64) + fv) / (((1. + periodic_rate).powf(periods as f64) - 1.) / periodic_rate) / (1. + periodic_rate);
-    // let total_payment = pmt * periods;
-    // let total_interest_amount = total_payment - (fv + pv);
-    let cashflow = pmt;
-    let cashflow_0 = 0_f64;
-    let formula = format!("formula here");
-    let input_in_percent: String = format!("{}", periodic_rate * 100.);
-    let output = pmt;
-    let rate_schedule = Schedule::new_repeating(ValueType::Rate, periodic_rate, periods);
-    TvmCashflowSolution::new(TvmCashflowVariable::PaymentDue, rate_schedule, periods, cashflow, cashflow_0, present_value, future_value, payment, &formula)
-}
-*/
 
 /*
 fn check_payment_parameters(rate: f64, periods: u32, present_value: f64, future_value: f64) {
@@ -219,16 +200,28 @@ mod tests {
 
     #[test]
     fn test_payment_nominal() {
-        assert_rounded_6!(-11.9636085342686, payment(0.034, 10, 100.0, 0.0));
-        assert_rounded_6!(-8.22683411973293, payment(-0.034, 10, 100.0, 0.0));
-        assert_rounded_6!(11.9636085342686, payment(0.034, 10, -100.0, 0.0));
-        assert_rounded_6!(-100.097751710655, payment(1.0, 10, 100.0, 0.0));
-        assert_rounded_6!(-150.01573028944, payment(1.5, 10, 100.0, 0.0));
-        assert_rounded_6!(-10.0, payment(0.0, 10, 100.0, 0.0));
-        assert_rounded_6!(-10.00055000825, payment(0.00001, 10, 100.0, 0.0));
-        assert_rounded_6!(8.22683411973293, payment(-0.034, 10, -100.0, 0.0));
-        assert_rounded_6!(9.82270640070143, payment(0.034, 10, -100, 25));
-        assert_rounded_6!(14.1045106678357, payment(0.034, 10, -100, -25));
+        assert_approx_equal!(-11.9636085342686f64, payment(0.034, 10, 100.0, 0.0));
+        assert_approx_equal!(-8.22683411973293f64, payment(-0.034, 10, 100.0, 0.0));
+        assert_approx_equal!(11.9636085342686f64, payment(0.034, 10, -100.0, 0.0));
+        assert_approx_equal!(-100.097751710655f64, payment(1.0, 10, 100.0, 0.0));
+        assert_approx_equal!(-150.01573028944f64, payment(1.5, 10, 100.0, 0.0));
+        assert_approx_equal!(-10f64, payment(0.0, 10, 100.0, 0.0));
+        assert_approx_equal!(-10.00055000825f64, payment(0.00001, 10, 100.0, 0.0));
+        assert_approx_equal!(8.22683411973293f64, payment(-0.034, 10, -100.0, 0.0));
+        assert_approx_equal!(9.82270640070143f64, payment(0.034, 10, -100.0, 25.0));
+        assert_approx_equal!(14.1045106678357f64, payment(0.034, 10, -100.0, -25.0));
+        assert_approx_equal!(-10f64, payment(0.0, 10, 100.0, 0.0));
+        assert_approx_equal!(-11f64, payment(0.0, 10, 100.0, 10.0));
+        assert_approx_equal!(-9f64, payment(0.0, 10, 100.0, -10.0));
+        assert_approx_equal!(-1f64, payment(0.0, 10, 10.0, 0.0));
+        assert_approx_equal!(-11f64, payment(0.0, 10, 10.0, 100.0));
+        assert_approx_equal!(9f64, payment(0.0, 10, 10.0, -100.0));
+        assert_approx_equal!(10f64, payment(0.0, 10, -100.0, 0.0));
+        assert_approx_equal!(9f64, payment(0.0, 10, -100.0, 10.0));
+        assert_approx_equal!(11f64, payment(0.0, 10, -100.0, -10.0));
+        assert_approx_equal!(1f64, payment(0.0, 10, -10.0, 0.0));
+        assert_approx_equal!(-9f64, payment(0.0, 10, -10.0, 100.0));
+        assert_approx_equal!(11f64, payment(0.0, 10, -10.0, -100.0));
     }
 
     #[test]
@@ -239,30 +232,30 @@ mod tests {
         assert_rounded_6!(0.0, payment(0.05, 0, 100.0, 100.0));
     }
 
-
     #[test]
     fn test_payment_due_nominal() {
-        assert_rounded_6!(-11.5702210196021, payment_due(0.034, 10, 100.0, 0.0));
-        assert_rounded_6!(-8.51639142829496, payment_due(-0.034, 10, 100.0, 0.0));
-        assert_rounded_6!(-8.51639142829496, payment_due(-0.034, 10, 100.0, 0.0));
-        assert_rounded_6!(-50.0488758553275, payment_due(1.0, 10, 100.0, 0.0));
-        assert_rounded_6!(-60.0062921157762, payment_due(1.5, 10, 100.0, 0.0));
-        assert_rounded_6!(-10.0, payment_due(0.0, 10, 100.0, 0.0));
-        assert_rounded_6!(-10.0004500037499, payment_due(0.00001, 10, 100.0, 0.0));
-        assert_rounded_6!(9.49971605483697, payment_due(0.034, 10, -100, 25));
-        assert_rounded_6!(13.6407259843672, payment_due(0.034, 10, -100, -25));
-        assert_rounded_6!(-10.0, payment_due(0.0, 10, 100, 0));
-        assert_rounded_6!(-11.0, payment_due(0.0, 10, 100, 10));
-        assert_rounded_6!(-9.0, payment_due(0.0, 10, 100, -10));
-        assert_rounded_6!(-1.0, payment_due(0.0, 10, 10, 0));
-        assert_rounded_6!(-11.0, payment_due(0.0, 10, 10, 100));
-        assert_rounded_6!(9.0, payment_due(0.0, 10, 10, -100));
-        assert_rounded_6!(10.0, payment_due(0.0, 10, -100, 0));
-        assert_rounded_6!(9.0, payment_due(0.0, 10, -100, 10));
-        assert_rounded_6!(11.0, payment_due(0.0, 10, -100, -10));
-        assert_rounded_6!(1.0, payment_due(0.0, 10, -10, 0));
-        assert_rounded_6!(-9.0, payment_due(0.0, 10, -10, 100));
-        assert_rounded_6!(11.0, payment_due(0.0, 10, -10, -100));
+        assert_approx_equal!(-11.5702210196021f64, payment_due(0.034, 10, 100.0, 0.0));
+        assert_approx_equal!(-8.51639142829496f64, payment_due(-0.034, 10, 100.0, 0.0));
+        assert_approx_equal!(-8.51639142829496f64, payment_due(-0.034, 10, 100.0, 0.0));
+        assert_approx_equal!(-50.0488758553275f64, payment_due(1.0, 10, 100.0, 0.0));
+        assert_approx_equal!(-60.0062921157762f64, payment_due(1.5, 10, 100.0, 0.0));
+        assert_approx_equal!(-10f64, payment_due(0.0, 10, 100.0, 0.0));
+        assert_approx_equal!(-10.0004500037499f64, payment_due(0.00001, 10, 100.0, 0.0));
+        assert_approx_equal!(8.51639142829496f64, payment_due(-0.034, 10, -100.0, 0.0));
+        assert_approx_equal!(9.49971605483697f64, payment_due(0.034, 10, -100.0, 25.0));
+        assert_approx_equal!(13.6407259843672f64, payment_due(0.034, 10, -100.0, -25.0));
+        assert_approx_equal!(-10f64, payment_due(0.0, 10, 100.0, 0.0));
+        assert_approx_equal!(-11f64, payment_due(0.0, 10, 100.0, 10.0));
+        assert_approx_equal!(-9f64, payment_due(0.0, 10, 100.0, -10.0));
+        assert_approx_equal!(-1f64, payment_due(0.0, 10, 10.0, 0.0));
+        assert_approx_equal!(-11f64, payment_due(0.0, 10, 10.0, 100.0));
+        assert_approx_equal!(9f64, payment_due(0.0, 10, 10.0, -100.0));
+        assert_approx_equal!(10f64, payment_due(0.0, 10, -100.0, 0.0));
+        assert_approx_equal!(9f64, payment_due(0.0, 10, -100.0, 10.0));
+        assert_approx_equal!(11f64, payment_due(0.0, 10, -100.0, -10.0));
+        assert_approx_equal!(1f64, payment_due(0.0, 10, -10.0, 0.0));
+        assert_approx_equal!(-9f64, payment_due(0.0, 10, -10.0, 100.0));
+        assert_approx_equal!(11f64, payment_due(0.0, 10, -10.0, -100.0));
     }
 
     /*
@@ -272,6 +265,5 @@ mod tests {
         future_value(-101.0, 5, 250_000.00);
     }
     */
-//assert_rounded_6(-11.5702210196021, payment_due(0.034, 10, 100.0, 0.0));
-//assert_rounded_6(-8.51639142829496, payment_due(-0.034, 10, 100.0, 0.0));
+
 }

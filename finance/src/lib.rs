@@ -249,6 +249,18 @@ impl Schedule {
         }
     }
 
+    pub fn get(&self, index: usize) -> f64 {
+        match self {
+            Schedule::Repeating { value_type: _, value, periods } => {
+                assert!(index < *periods as usize);
+                *value
+            },
+            Schedule::Custom { value_type: _, values } => {
+                *values.get(index).unwrap()
+            },
+        }
+    }
+
     pub fn max(&self) -> Option<f64> {
         match self {
             Schedule::Repeating{ value_type: _, value, periods: _ } => Some(*value),
