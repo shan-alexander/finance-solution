@@ -76,16 +76,60 @@ impl fmt::Display for TvmCashflowVariable {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum ScheduleType {
+    Rate,
+    Cashflow,
+}
+
+impl fmt::Display for ScheduleType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            ScheduleType::Rate => write!(f, "Rate"),
+            ScheduleType::Cashflow => write!(f, "Cashflow"),
+           
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Schedule {
+    pub schedule_type: ScheduleType,
+    pub schedule: Vec<f64>,
+}
+impl Schedule {
+    pub fn new(schedule_type:ScheduleType, schedule: Vec<f64>) -> Self {
+        Self {
+            schedule_type,
+            schedule,
+        }
+    }
+
+    pub fn is_rate(&self) -> bool {
+        match self.schedule_type {
+            ScheduleType::Rate => true,
+            _ => false,
+        }
+    }
+    pub fn is_cashflow(&self) -> bool {
+        match self.schedule_type {
+            ScheduleType::Cashflow => true,
+            _ => false,
+        }
+    }
+    pub fn get(&self, index: usize) -> f64 {
+        self.schedule[index]
+    }
+}
+
 // #[derive(Debug)]
 pub struct TvmCashflowSolution {
     pub calculated_field: TvmCashflowVariable,
-    pub rates: Schedule,
+    pub rate: f64,
     pub periods: u32,
     pub present_value: f64,
     pub future_value: f64,
     pub due_at_beginning: bool,
-    pub cashflow: f64,
-    pub cashflow_0: f64,
     pub payment: f64,
     pub sum_of_payments: f64,
     pub sum_of_interest: f64,
@@ -97,30 +141,25 @@ pub struct TvmCashflowSolution {
 impl TvmCashflowSolution {
     pub(crate) fn new(
         calculated_field: TvmCashflowVariable,
-        rates: Schedule,
+        rate: f64,
         periods: u32,
         present_value: f64,
         future_value: f64,
         due_at_beginning: bool,
-        cashflow: f64,
-        cashflow_0: f64,
         payment: f64,
         formula: &str,
         formula_symbolic: &str,
     ) -> Self {
-        assert!(rates.is_rate());
         assert!(formula.len() > 0);
         let sum_of_payments = payment * periods as f64;
         let sum_of_interest = sum_of_payments + present_value + future_value;
         Self {
             calculated_field,
-            rates,
+            rate,
             periods,
             present_value,
             future_value,
             due_at_beginning,
-            cashflow,
-            cashflow_0,
             payment,
             sum_of_payments,
             sum_of_interest,
@@ -138,7 +177,7 @@ impl TvmCashflowSolution {
         for period in 1..=self.periods {
             let principal_remaining_at_start_of_period = self.present_value + self.future_value + principal_to_date;
             let rate_index = period as usize - 1;
-            let rate = self.rates.get(rate_index);
+            let rate = self.rate;
             // let rate_for_calculation = rate_for_period / self.periods as f64;
             let interest = -principal_remaining_at_start_of_period * rate;
             let principal = payment - interest;
@@ -175,16 +214,16 @@ impl TvmCashflowSolution {
 
 impl Debug for TvmCashflowSolution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{{{}{}{}{}{}{}{}{}{}{}{}{}{}\n}}",
+        write!(f, "{{{}{}{}{}{}{}{}{}{}{}{}\n}}",
                &format!("\n\tcalculated_field: {}", self.calculated_field.to_string().magenta()),
-               &format!("\n\trates (r): {}", format!("{:?}", self.rates).yellow()),
+               &format!("\n\trate (r): {}", format!("{:?}", self.rate).yellow()),
                &format!("\n\tperiods (n): {}", self.periods.to_string().yellow()),
                &format!("\n\tpresent_value (pv): {}", self.present_value),
                &format!("\n\tfuture_value (fv): {}", self.future_value),
                &format!("\n\tdue_at_beginning: {}", self.due_at_beginning),
-               if self.calculated_field.is_net_present_value() { format!("\n\tcashflow: {}", self.cashflow.to_string().red()) } else { "".to_string() },
-               if self.calculated_field.is_net_present_value() { format!("\n\tcashflow_0: {}", self.cashflow_0.to_string().red()) } else { "".to_string() },
-               &format!("\n\tpayment (pmt): {}", if self.calculated_field.is_payment() || self.calculated_field.is_payment_due() { self.cashflow.to_string().green() } else { self.cashflow.to_string().normal() }),
+            //    if self.calculated_field.is_net_present_value() { format!("\n\tcashflow: {}", self.cashflow.to_string().red()) } else { "".to_string() },
+            //    if self.calculated_field.is_net_present_value() { format!("\n\tcashflow_0: {}", self.cashflow_0.to_string().red()) } else { "".to_string() },
+               &format!("\n\tpayment (pmt): {}", if self.calculated_field.is_payment() || self.calculated_field.is_payment_due() { self.payment.to_string().green() } else { self.payment.to_string().normal() }),
                &format!("\n\tsum_of_payments: {}", self.sum_of_payments),
                &format!("\n\tsum_of_interest: {}", self.sum_of_interest),
                &format!("\n\tformula: {:?}", self.formula),
