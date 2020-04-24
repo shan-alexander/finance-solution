@@ -4,9 +4,11 @@ pub fn main() {
     // try_payment_debug();
     // try_payment_due_debug();
     // try_formulas();
+    try_series();
+    try_test_against_excel_ipmt_month();
     // generate_scenarios_for_excel();
     // find_numerator_failures();
-    find_calculation_failure_curve();
+    // find_calculation_failure_curve();
     // dbg!(finance::payment(0.23, 3000, -123_456.7, -12_345.67));
 }
 
@@ -118,6 +120,43 @@ fn try_formulas() {
     dbg!(formula_result);
     finance::assert_rounded_6!(formula_result, pv_positive_fv_zero.payment);
     println!();
+}
+
+fn try_series() {
+    let years = 1;
+    let rate = 0.11 / 12.0;
+    let periods = years * 12;
+    let present_value = 100_000.0;
+    let future_value = 0.0;
+    let solution = finance::payment_solution(rate, periods, present_value, future_value);
+    dbg!(&solution);
+    dbg!(&solution.series());
+}
+
+fn try_test_against_excel_ipmt_month() {
+    // First case in test_payment_nominal in payment.rs in the finance project:
+    let rate = 0.034;
+    let periods = 10;
+    let present_value = 100.0;
+    let future_value = 0.0;
+    let exp_payment = -11.9636085342686f64;
+    // First case in
+    let rate = 0.034;
+    let periods = 10;
+    let present_value = 100.0;
+    let future_value = 0.0;
+    let exp_payment = -11.9636085342686f64;
+
+
+    let solution = payment_solution(0.0056, 12, 0.0056, 20000.0);
+    assert_approx_equal!(-1727.95439349254, solution.payment);
+
+
+    let payment_1 = finance::payment(rate, periods, present_value, future_value);
+    finance::assert_approx_equal!(exp_payment, payment_1);
+    let solution = finance::payment_solution(rate, periods, present_value, future_value);
+    dbg!(&solution);
+    finance::assert_approx_equal!(exp_payment, solution.payment);
 }
 
 fn generate_scenarios_for_excel() {

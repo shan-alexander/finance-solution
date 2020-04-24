@@ -105,13 +105,13 @@ impl TvmCashflowSolution {
         cashflow: f64,
         cashflow_0: f64,
         payment: f64,
-        sum_of_interest: f64,
         formula: &str,
         formula_symbolic: &str,
     ) -> Self {
         assert!(rates.is_rate());
         assert!(formula.len() > 0);
         let sum_of_payments = payment * periods as f64;
+        let sum_of_interest = sum_of_payments + present_value + future_value;
         Self {
             calculated_field,
             rates,
@@ -138,18 +138,20 @@ impl TvmCashflowSolution {
         for period in 1..=self.periods {
             let principal_remaining_at_start_of_period = self.present_value + self.future_value + principal_to_date;
             let rate_index = period as usize - 1;
-            let rate_for_period = self.rates.get(rate_index) / self.periods as f64;
-            let interest = -principal_remaining_at_start_of_period * rate_for_period;
+            let rate = self.rates.get(rate_index);
+            // let rate_for_calculation = rate_for_period / self.periods as f64;
+            let interest = -principal_remaining_at_start_of_period * rate;
             let principal = payment - interest;
             payments_to_date += payment;
             principal_to_date += principal;
             interest_to_date += interest;
             let payments_remaining = self.sum_of_payments - payments_to_date;
-            let principal_remaining = self.present_value + self.future_value + principal_to_date;
-            let interest_remaining = self.sum_of_interest + interest_to_date;
+            let principal_remaining = -(self.present_value + self.future_value + principal_to_date);
+            let interest_remaining = self.sum_of_interest - interest_to_date;
+            let formula = format!("{:.4} = -({:.4} * {:.6})", interest, principal_remaining_at_start_of_period, rate);
+            let formula_symbolic = "interest = -(principal * rate)".to_string();
             let entry = TvmCashflowPeriod {
-                calculated_field: self.calculated_field.clone(),
-                rate: rate_for_period,
+                rate,
                 period,
                 payment,
                 payments_to_date,
@@ -161,8 +163,8 @@ impl TvmCashflowSolution {
                 interest_to_date,
                 interest_remaining,
                 due_at_beginning: self.due_at_beginning,
-                formula: "".to_string(),
-                formula_symbolic: "".to_string()
+                formula,
+                formula_symbolic,
             };
             series.push(entry);
         }
@@ -173,17 +175,18 @@ impl TvmCashflowSolution {
 
 impl Debug for TvmCashflowSolution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{{{}{}{}{}{}{}{}{}{}{}{}{}\n}}",
+        write!(f, "{{{}{}{}{}{}{}{}{}{}{}{}{}{}\n}}",
                &format!("\n\tcalculated_field: {}", self.calculated_field.to_string().magenta()),
                &format!("\n\trates (r): {}", format!("{:?}", self.rates).yellow()),
                &format!("\n\tperiods (n): {}", self.periods.to_string().yellow()),
+               &format!("\n\tpresent_value (pv): {}", self.present_value),
+               &format!("\n\tfuture_value (fv): {}", self.future_value),
+               &format!("\n\tdue_at_beginning: {}", self.due_at_beginning),
                if self.calculated_field.is_net_present_value() { format!("\n\tcashflow: {}", self.cashflow.to_string().red()) } else { "".to_string() },
                if self.calculated_field.is_net_present_value() { format!("\n\tcashflow_0: {}", self.cashflow_0.to_string().red()) } else { "".to_string() },
                &format!("\n\tpayment (pmt): {}", if self.calculated_field.is_payment() || self.calculated_field.is_payment_due() { self.cashflow.to_string().green() } else { self.cashflow.to_string().normal() }),
                &format!("\n\tsum_of_payments: {}", self.sum_of_payments),
-               &format!("\n\tdue_at_beginning: {}", self.due_at_beginning),
-               &format!("\n\tpresent_value (pv): {}", self.present_value),
-               &format!("\n\tfuture_value (fv): {}", self.future_value),
+               &format!("\n\tsum_of_interest: {}", self.sum_of_interest),
                &format!("\n\tformula: {:?}", self.formula),
                &format!("\n\tformula_symbolic: {:?}", self.formula_symbolic),
                // &format!("input_in_percent: {:.6}%", self.input_in_percent),
@@ -194,7 +197,6 @@ impl Debug for TvmCashflowSolution {
 
 #[derive(Debug)]
 pub struct TvmCashflowPeriod {
-    pub calculated_field: TvmCashflowVariable,
     pub rate: f64,
     pub period: u32,
     // pub cashflow: f64,
