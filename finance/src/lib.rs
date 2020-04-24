@@ -179,13 +179,13 @@ macro_rules! apr {
 
     #[macro_export]
     macro_rules! repeat {
-    ( $x1:expr, $x2:expr ) => {
+    ( $x1:expr, $x2:expr ) => {{
         let mut repeats = vec![];
         for i in 0..$x2 {
             repeats.push($x1);
         }
         repeats
-    };
+    }};
 }
 
 #[derive(Debug)]
