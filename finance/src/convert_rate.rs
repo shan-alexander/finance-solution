@@ -408,7 +408,7 @@ pub fn convert_epr_to_apr_solution(epr: f64, compounding_periods_in_year: u32) -
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::*;
+    //use crate::*;
     
     #[test]
     fn test_convert_rate_solution_symmetry() {

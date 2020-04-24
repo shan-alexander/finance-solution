@@ -76,52 +76,6 @@ impl fmt::Display for TvmCashflowVariable {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum ScheduleType {
-    Rate,
-    Cashflow,
-}
-
-impl fmt::Display for ScheduleType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            ScheduleType::Rate => write!(f, "Rate"),
-            ScheduleType::Cashflow => write!(f, "Cashflow"),
-           
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Schedule {
-    pub schedule_type: ScheduleType,
-    pub schedule: Vec<f64>,
-}
-impl Schedule {
-    pub fn new(schedule_type:ScheduleType, schedule: Vec<f64>) -> Self {
-        Self {
-            schedule_type,
-            schedule,
-        }
-    }
-
-    pub fn is_rate(&self) -> bool {
-        match self.schedule_type {
-            ScheduleType::Rate => true,
-            _ => false,
-        }
-    }
-    pub fn is_cashflow(&self) -> bool {
-        match self.schedule_type {
-            ScheduleType::Cashflow => true,
-            _ => false,
-        }
-    }
-    pub fn get(&self, index: usize) -> f64 {
-        self.schedule[index]
-    }
-}
-
 // #[derive(Debug)]
 pub struct TvmCashflowSolution {
     pub calculated_field: TvmCashflowVariable,
@@ -177,9 +131,13 @@ impl TvmCashflowSolution {
         for period in 1..=self.periods {
             let principal_remaining_at_start_of_period = self.present_value + self.future_value + principal_to_date;
             let rate_index = period as usize - 1;
-            let rate = self.rate;
+            let rate = self.rates.get(rate_index);
             // let rate_for_calculation = rate_for_period / self.periods as f64;
-            let interest = -principal_remaining_at_start_of_period * rate;
+            let interest = if self.due_at_beginning && period == 1 {
+                0.0
+            } else {
+                -principal_remaining_at_start_of_period * rate
+            };
             let principal = payment - interest;
             payments_to_date += payment;
             principal_to_date += principal;
@@ -187,8 +145,13 @@ impl TvmCashflowSolution {
             let payments_remaining = self.sum_of_payments - payments_to_date;
             let principal_remaining = -(self.present_value + self.future_value + principal_to_date);
             let interest_remaining = self.sum_of_interest - interest_to_date;
-            let formula = format!("{:.4} = -({:.4} * {:.6})", interest, principal_remaining_at_start_of_period, rate);
-            let formula_symbolic = "interest = -(principal * rate)".to_string();
+            let (formula, formula_symbolic) = if self.due_at_beginning && period == 1 {
+                ("0".to_string(), "interest = 0".to_string())
+            } else {
+                let formula = format!("{:.4} = -({:.4} * {:.6})", interest, principal_remaining_at_start_of_period, rate);
+                let formula_symbolic = "interest = -(principal * rate)".to_string();
+                (formula, formula_symbolic)
+            };
             let entry = TvmCashflowPeriod {
                 rate,
                 period,
@@ -209,7 +172,6 @@ impl TvmCashflowSolution {
         }
         series
     }
-
 }
 
 impl Debug for TvmCashflowSolution {

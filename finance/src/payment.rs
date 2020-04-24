@@ -268,4 +268,27 @@ mod tests {
     }
     */
 
+    #[test]
+    fn test_internal_consistency() {
+        let rates = vec![-1.0, -0.5, -0.05, -0.005, 0.0, 0.005, 0.05, 0.5, 1.0, 10.0, 100.0];
+        let periods: Vec<u32> = vec![0, 1, 2, 5, 10, 36, 100, 1_000];
+        let values: Vec<f64> = vec![-1_000_000.0, -1_234.98, -1.0, 0.0, 5.55555, 99_999.99];
+        for rate_one in rates.iter() {
+            for periods_one in periods.iter() {
+                for present_value_one in values.iter() {
+                    for future_value_one in values.iter() {
+                        // if !(*periods_one > 50 && *rate_one > 0.01) {
+
+                            assert_internal_consistency(&solution);
+                        //}
+                    }
+                }
+            }
+        }
+    }
+
+    fn assert_internal_consistency(solution: &TvmCashflowSolution) {
+
+    }
+
 }
