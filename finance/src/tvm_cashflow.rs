@@ -130,13 +130,10 @@ impl TvmCashflowSolution {
         let mut interest_to_date = 0.0;
         for period in 1..=self.periods {
             let principal_remaining_at_start_of_period = self.present_value + self.future_value + principal_to_date;
-            let rate_index = period as usize - 1;
-            let rate = self.rates.get(rate_index);
-            // let rate_for_calculation = rate_for_period / self.periods as f64;
             let interest = if self.due_at_beginning && period == 1 {
                 0.0
             } else {
-                -principal_remaining_at_start_of_period * rate
+                -principal_remaining_at_start_of_period * self.rate
             };
             let principal = payment - interest;
             payments_to_date += payment;
@@ -148,12 +145,12 @@ impl TvmCashflowSolution {
             let (formula, formula_symbolic) = if self.due_at_beginning && period == 1 {
                 ("0".to_string(), "interest = 0".to_string())
             } else {
-                let formula = format!("{:.4} = -({:.4} * {:.6})", interest, principal_remaining_at_start_of_period, rate);
+                let formula = format!("{:.4} = -({:.4} * {:.6})", interest, principal_remaining_at_start_of_period, self.rate);
                 let formula_symbolic = "interest = -(principal * rate)".to_string();
                 (formula, formula_symbolic)
             };
             let entry = TvmCashflowPeriod {
-                rate,
+                rate: self.rate,
                 period,
                 payment,
                 payments_to_date,

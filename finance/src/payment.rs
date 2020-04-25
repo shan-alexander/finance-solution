@@ -101,23 +101,9 @@ pub fn payment_due_solution<P, F>(rate: f64, periods: u32, present_value: P, fut
 
 fn payment_solution_internal(rate: f64, periods: u32, present_value: f64, future_value: f64, due_at_beginning: bool) -> TvmCashflowSolution {
     let payment = payment_internal(rate, periods, present_value, future_value, due_at_beginning);
-
     let (formula, formula_symbolic) = payment_formula(rate, periods, present_value, future_value, due_at_beginning, payment);
-    let cashflow = payment;
-    let cashflow_0 = 0_f64;
-    // let total_payment = pmt * periods;
-    // let total_interest_amount = total_payment - (fv + pv);
-    //sum_payment, total_interest_amount,   <---- consider adding something like this
     let calculated_field = if due_at_beginning { TvmCashflowVariable::PaymentDue } else { TvmCashflowVariable::Payment };
-    let rate_schedule = Schedule::new_repeating(ValueType::Rate, rate, periods);
-    /*
-    let sum_of_interest = {
-        let pv_for_sum_of_interest = present_value + future_value;
-        let fv_for_sum_of_interest = crate::future_value(rate, periods, pv_for_sum_of_interest);
-        fv_for_sum_of_interest - pv_for_sum_of_interest
-    };
-    */
-    TvmCashflowSolution::new(calculated_field, rate_schedule, periods, present_value.into(), future_value, due_at_beginning, cashflow, cashflow_0, payment, &formula, &formula_symbolic)
+    TvmCashflowSolution::new(calculated_field, rate, periods, present_value.into(), future_value, due_at_beginning, payment, &formula, &formula_symbolic)
 }
 
 fn payment_formula(rate: f64, periods: u32, present_value: f64, future_value: f64, due_at_beginning: bool, payment: f64) -> (String, String) {
