@@ -20,6 +20,10 @@ pub mod future_value_annuity;
 #[doc(inline)]
 pub use future_value_annuity::*;
 
+pub mod net_present_value;
+#[doc(inline)]
+pub use net_present_value::*;
+
 pub mod rate;
 #[doc(inline)]
 pub use rate::*;
