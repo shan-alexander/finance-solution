@@ -94,7 +94,12 @@ macro_rules! assert_approx_equal {
 #[macro_export]
 macro_rules! assert_same_sign_or_zero {
     ( $x1:expr, $x2:expr ) => {
-        assert!(($x1.abs() == 0.0 && $x2.abs() == 0.0) || $x1.signum() == $x2.signum());
+        assert!(
+            is_approx_equal!($x1, 0.0)
+            || is_approx_equal!($x2, 0.0)
+            || ($x1 > 0.0 && $x2 > 0.0)
+            || ($x1 < -0.0 && $x2 < -0.0)
+        );
     };
 }
 
@@ -305,5 +310,37 @@ impl Schedule {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_assert_same_sign_or_zero_nominal() {
+        assert_same_sign_or_zero!(0.0, 0.0);
+        assert_same_sign_or_zero!(0.0, -0.0);
+        assert_same_sign_or_zero!(-0.0, 0.0);
+        assert_same_sign_or_zero!(-0.0, -0.0);
+        assert_same_sign_or_zero!(0.023, 0.023);
+        assert_same_sign_or_zero!(10.0, 0.023);
+        assert_same_sign_or_zero!(-0.000045, -100.0);
+        assert_same_sign_or_zero!(0.023, 0.0);
+        assert_same_sign_or_zero!(0.0, 0.023);
+        assert_same_sign_or_zero!(0.023, -0.0);
+        assert_same_sign_or_zero!(-0.0, 0.023);
+        assert_same_sign_or_zero!(-0.000045, -100.0);
+        assert_same_sign_or_zero!(-0.000045, 0.0);
+        assert_same_sign_or_zero!(0.0, -100.0);
+        assert_same_sign_or_zero!(-0.000045, -0.0);
+        assert_same_sign_or_zero!(-0.0, -100.0);
+        assert_same_sign_or_zero!(100.0, -0.00000000001864464138634503);
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_assert_same_sign_or_zero_fail_diff_sign() {
+        assert_same_sign_or_zero!(-0.000045, 100.0);
     }
 }
