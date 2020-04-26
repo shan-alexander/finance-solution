@@ -16,6 +16,10 @@ pub mod present_value_annuity;
 #[doc(inline)]
 pub use present_value_annuity::*;
 
+pub mod future_value_annuity;
+#[doc(inline)]
+pub use future_value_annuity::*;
+
 pub mod rate;
 #[doc(inline)]
 pub use rate::*;
@@ -292,6 +296,3 @@ impl Schedule {
         }
     }
 }
-
-
-
