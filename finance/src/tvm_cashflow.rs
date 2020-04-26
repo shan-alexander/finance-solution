@@ -1,6 +1,6 @@
-use std::fmt::Debug;
+// use std::fmt::Debug;
 use std::fmt;
-use colored::*;
+// use colored::*;
 
 // Import needed for the function references in the Rustdoc comments.
 #[allow(unused_imports)]
@@ -76,7 +76,7 @@ impl fmt::Display for TvmCashflowVariable {
     }
 }
 
-// #[derive(Debug)]
+#[derive(Debug)]
 pub struct TvmCashflowSolution {
     pub calculated_field: TvmCashflowVariable,
     pub rate: f64,
@@ -131,6 +131,7 @@ impl TvmCashflowSolution {
     }
 }
 
+/*
 impl Debug for TvmCashflowSolution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{{{}{}{}{}{}{}{}{}{}{}{}\n}}",
@@ -152,6 +153,7 @@ impl Debug for TvmCashflowSolution {
         )
     }
 }
+*/
 
 #[derive(Debug)]
 pub struct TvmCashflowPeriod {

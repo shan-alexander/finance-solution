@@ -27,11 +27,14 @@ fn main() {
     // verbose::find_rate::main();
     // verbose::examples_1::main();
     // verbose::payment_tvm::main();
+    // lib::main();
 
+    /*
     let a = apr!(0.034, 12);
     dbg!(a);
     let b = epr!(0.034, 12);
     dbg!(b);
     let c = ear!(0.034, 12);
     dbg!(c);
+    */
 }

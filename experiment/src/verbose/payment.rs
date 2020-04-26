@@ -307,7 +307,7 @@ fn limit_calculation(periods: i32, rate: f64, due_at_beginning: bool) -> f64 {
 
 macro_rules! specify_type_1 {
     ($e:expr, f64) => {
-        println!("try_specify_type: f64 = {}", $e);
+        println!("try_specify_type: f64 = {}", $e as f64);
     };
     ($e:expr, i32) => {
         println!("try_specify_type: i32 = {}", $e);
@@ -315,6 +315,7 @@ macro_rules! specify_type_1 {
 }
 
 fn try_specify_type_1() {
-
+    specify_type_1!(123.45, f64);
+    specify_type_1!(555, f64);
 }
 
