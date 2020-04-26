@@ -60,12 +60,16 @@ pub fn future_value_annuity<T>(rate: f64, periods: u32, annuity: T) -> f64
 {
     let pmt = annuity.into();
     // check_future_value__annuity_parameters(rate, periods, cashflow);
-    let mut fv_accumulator = 0_f64;
-    for i in 0..periods { 
-        let future_value = present_value(rate, i as u32, pmt);
-        fv_accumulator = fv_accumulator + future_value;
-    }
-    fv_accumulator
+    // let mut fv_accumulator = 0_f64;
+    // for i in 0..periods { 
+    //     let future_value = future_value(rate, i as u32, pmt);
+    //     fv_accumulator = fv_accumulator + future_value;
+    // }
+    // fv_accumulator
+
+    // FV_ann = Constant_Cashflow * [ ( (1+periodic_rate)^n -1 )/ periodic_rate ]
+    let fv_ann = pmt * ((1. + rate).powf(periods as f64) - 1.) / rate;
+    fv_ann
 }
 
 /// Returns the future value of an annuity due (a future series of constant cashflows) with constant rate, where the payment is at the beginning of the period. Returns f64.
@@ -272,11 +276,12 @@ mod tests {
     use crate::*;
 
     #[test]
-    fn test_present_value_annuity() {
+    fn test_futue_value_annuity() {
         let rate = 0.034;
         let periods = 10;
         let annuity = 500;
-        let pv = present_value_annuity(rate, periods, annuity);
-        assert_approx_equal!(4179.3410288, pv);
+        let fv = future_value_annuity(rate, periods, annuity);
+        // assert_approx_equal!(5838.66016, fv);
+        assert_eq!(5838.66016, (fv * 100000.).round() / 100000.);
     }
 }
