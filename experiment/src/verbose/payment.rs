@@ -4,12 +4,16 @@ pub fn main() {
     // try_payment_debug();
     // try_payment_due_debug();
     // try_formulas();
-    try_series();
-    try_test_against_excel_ipmt_month();
+    // try_payment_series();
+    // try_payment_due_series();
+    // try_test_combination_examples();
+    // try_test_against_excel_ipmt_month_1();
+    // try_test_against_excel_ipmt_month_2();
     // generate_scenarios_for_excel();
     // find_numerator_failures();
     // find_calculation_failure_curve();
     // dbg!(finance::payment(0.23, 3000, -123_456.7, -12_345.67));
+    try_specify_type_1();
 }
 
 fn try_payment_debug() {
@@ -122,7 +126,7 @@ fn try_formulas() {
     println!();
 }
 
-fn try_series() {
+fn try_payment_series() {
     let years = 1;
     let rate = 0.11 / 12.0;
     let periods = years * 12;
@@ -133,28 +137,56 @@ fn try_series() {
     dbg!(&solution.series());
 }
 
-fn try_test_against_excel_ipmt_month() {
-    // First case in test_payment_nominal in payment.rs in the finance project:
+fn try_payment_due_series() {
+    let rate =  0.0056;
+    let periods = 12;
+    let present_value = 20_000.0;
+    let future_value = 0.0;
+    let solution = finance::payment_due_solution(rate, periods, present_value, future_value);
+    dbg!(&solution);
+    dbg!(&solution.series());
+}
+
+fn try_test_combination_examples() {
+    let rate =  -0.99;
+    let periods = 1;
+    let present_value = -10;
+    let future_value = -10;
+    let solution = finance::payment_solution(rate, periods, present_value, future_value);
+    dbg!(&solution);
+    dbg!(&solution.series());
+}
+
+fn try_test_against_excel_ipmt_month_1() {
+    // First case in test_payment_nominal() in src/payment.rs in the finance project:
+    /*
     let rate = 0.034;
     let periods = 10;
     let present_value = 100.0;
     let future_value = 0.0;
     let exp_payment = -11.9636085342686f64;
-    // First case in
-    let rate = 0.034;
-    let periods = 10;
-    let present_value = 100.0;
+    */
+    // Case in test_against_excel_ipmt_month_1() in tests/payment.rs in the finance project:
+    let rate = 0.0056;
+    let periods = 12;
+    let present_value = 20_000.0;
     let future_value = 0.0;
-    let exp_payment = -11.9636085342686f64;
-
-
-    let solution = payment_solution(0.0056, 12, 0.0056, 20000.0);
-    assert_approx_equal!(-1727.95439349254, solution.payment);
-
+    let exp_payment = -1_727.95439349254;
 
     let payment_1 = finance::payment(rate, periods, present_value, future_value);
     finance::assert_approx_equal!(exp_payment, payment_1);
     let solution = finance::payment_solution(rate, periods, present_value, future_value);
+    dbg!(&solution);
+    finance::assert_approx_equal!(exp_payment, solution.payment);
+}
+
+fn try_test_against_excel_ipmt_month_2() {
+    let rate = 0.0056;
+    let periods = 12;
+    let present_value = 20_000.0;
+    let future_value = 0.0;
+    let exp_payment = -1_718.11298960604;
+    let solution = finance::payment_due_solution(rate, periods, present_value, future_value);
     dbg!(&solution);
     finance::assert_approx_equal!(exp_payment, solution.payment);
 }
@@ -271,5 +303,18 @@ fn limit_calculation(periods: i32, rate: f64, due_at_beginning: bool) -> f64 {
     }
     let payment = num / denom;
     payment
+}
+
+macro_rules! specify_type_1 {
+    ($e:expr, f64) => {
+        println!("try_specify_type: f64 = {}", $e);
+    };
+    ($e:expr, i32) => {
+        println!("try_specify_type: i32 = {}", $e);
+    };
+}
+
+fn try_specify_type_1() {
+
 }
 

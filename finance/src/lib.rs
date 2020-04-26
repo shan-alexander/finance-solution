@@ -84,6 +84,13 @@ macro_rules! assert_approx_equal {
 }
 
 #[macro_export]
+macro_rules! assert_same_sign_or_zero {
+    ( $x1:expr, $x2:expr ) => {
+        assert!(($x1.abs() == 0.0 && $x2.abs() == 0.0) || $x1.signum() == $x2.signum());
+    };
+}
+
+#[macro_export]
 macro_rules! assert_approx_equal_symmetry_test {
     ( $x1:expr, $x2:expr ) => {
         if ($x1 > 0.000001 && $x1 < 1_000_000.0 && $x2 > 0.000001 && $x2 < 1_000_000.0) {

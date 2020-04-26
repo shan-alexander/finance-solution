@@ -123,51 +123,11 @@ impl TvmCashflowSolution {
     }
 
     pub fn series(&self) -> Vec<TvmCashflowPeriod> {
-        let mut series = vec![];
-        let payment = self.payment;
-        let mut payments_to_date = 0.0;
-        let mut principal_to_date = 0.0;
-        let mut interest_to_date = 0.0;
-        for period in 1..=self.periods {
-            let principal_remaining_at_start_of_period = self.present_value + self.future_value + principal_to_date;
-            let interest = if self.due_at_beginning && period == 1 {
-                0.0
-            } else {
-                -principal_remaining_at_start_of_period * self.rate
-            };
-            let principal = payment - interest;
-            payments_to_date += payment;
-            principal_to_date += principal;
-            interest_to_date += interest;
-            let payments_remaining = self.sum_of_payments - payments_to_date;
-            let principal_remaining = -(self.present_value + self.future_value + principal_to_date);
-            let interest_remaining = self.sum_of_interest - interest_to_date;
-            let (formula, formula_symbolic) = if self.due_at_beginning && period == 1 {
-                ("0".to_string(), "interest = 0".to_string())
-            } else {
-                let formula = format!("{:.4} = -({:.4} * {:.6})", interest, principal_remaining_at_start_of_period, self.rate);
-                let formula_symbolic = "interest = -(principal * rate)".to_string();
-                (formula, formula_symbolic)
-            };
-            let entry = TvmCashflowPeriod {
-                rate: self.rate,
-                period,
-                payment,
-                payments_to_date,
-                payments_remaining,
-                principal,
-                principal_to_date,
-                principal_remaining,
-                interest,
-                interest_to_date,
-                interest_remaining,
-                due_at_beginning: self.due_at_beginning,
-                formula,
-                formula_symbolic,
-            };
-            series.push(entry);
+        if self.calculated_field.is_payment() || self.calculated_field.is_payment_due() {
+            payment_series(self)
+        } else {
+            unimplemented!()
         }
-        series
     }
 }
 
@@ -180,8 +140,8 @@ impl Debug for TvmCashflowSolution {
                &format!("\n\tpresent_value (pv): {}", self.present_value),
                &format!("\n\tfuture_value (fv): {}", self.future_value),
                &format!("\n\tdue_at_beginning: {}", self.due_at_beginning),
-            //    if self.calculated_field.is_net_present_value() { format!("\n\tcashflow: {}", self.cashflow.to_string().red()) } else { "".to_string() },
-            //    if self.calculated_field.is_net_present_value() { format!("\n\tcashflow_0: {}", self.cashflow_0.to_string().red()) } else { "".to_string() },
+               //    if self.calculated_field.is_net_present_value() { format!("\n\tcashflow: {}", self.cashflow.to_string().red()) } else { "".to_string() },
+               //    if self.calculated_field.is_net_present_value() { format!("\n\tcashflow_0: {}", self.cashflow_0.to_string().red()) } else { "".to_string() },
                &format!("\n\tpayment (pmt): {}", if self.calculated_field.is_payment() || self.calculated_field.is_payment_due() { self.payment.to_string().green() } else { self.payment.to_string().normal() }),
                &format!("\n\tsum_of_payments: {}", self.sum_of_payments),
                &format!("\n\tsum_of_interest: {}", self.sum_of_interest),
