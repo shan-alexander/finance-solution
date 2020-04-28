@@ -124,11 +124,11 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T) -> f64
 /// let solution= finance::present_value_solution(rate, periods, future_value);
 /// dbg!(&solution);
 ///
-/// let present_value = solution.present_value;
+/// let present_value = solution.present_value();
 /// finance::assert_rounded_4(present_value, 30_732.1303);
 ///
 /// // Examine the formula.
-/// let formula = solution.formula.clone();
+/// let formula = solution.formula();
 /// dbg!(&formula);
 /// assert_eq!(formula, "50000.0000 / (1.084500 ^ 6)");
 ///
@@ -157,20 +157,20 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T) -> f64
 /// assert_eq!(36, scenarios.len());
 ///
 /// // Keep only the scenarios where the present value is less than or equal to $80,000.
-/// scenarios.retain(|x| x.present_value <= 80_000.00);
+/// scenarios.retain(|x| x.present_value() <= 80_000.00);
 /// dbg!(&scenarios);
 /// assert_eq!(12, scenarios.len());
 ///
 /// // Find the range of months for the remaining scenarios.
-/// let min_months = scenarios.iter().map(|x| x.periods).min().unwrap();
-/// let max_months = scenarios.iter().map(|x| x.periods).max().unwrap();
+/// let min_months = scenarios.iter().map(|x| x.periods()).min().unwrap();
+/// let max_months = scenarios.iter().map(|x| x.periods()).max().unwrap();
 /// dbg!(min_months, max_months);
 /// assert_eq!(25, min_months);
 /// assert_eq!(36, max_months);
 ///
 /// // Check the formula for the first scenario.
 /// dbg!(&scenarios[0].formula);
-/// assert_eq!("100000.0000 / (1.009000 ^ 25)", scenarios[0].formula);
+/// assert_eq!("100000.0000 / (1.009000 ^ 25)", scenarios[0].formula());
 /// ```
 /// Error case: The investment loses 111% per year. There's no way to work out what this means so
 /// the call to present_value() will panic.
@@ -187,7 +187,8 @@ pub fn present_value_solution<T>(rate: f64, periods: u32, future_value: T) -> Tv
     let rate_multiplier = 1.0 + rate;
     assert!(rate_multiplier >= 0.0);
     let formula = format!("{:.4} / ({:.6} ^ {})", future_value.into(), rate_multiplier, periods);
-    TvmSolution::new(TvmVariable::PresentValue, rate, periods, present_value, future_value.into(), &formula)
+    let formula_symbolic = "***";
+    TvmSolution::new(TvmVariable::PresentValue, rate, periods, present_value, future_value.into(), &formula, formula_symbolic)
 }
 
 /// Calculates a present value based on rates that change for each period.
@@ -283,7 +284,7 @@ pub fn present_value_schedule<T>(rates: &[f64], future_value: T) -> f64
 /// let solution = finance::present_value_schedule_solution(&rates, future_value);
 /// dbg!(&solution);
 ///
-/// let present_value = solution.present_value;
+/// let present_value = solution.present_value();
 /// finance::assert_rounded_4(present_value, 23_678.6383);
 ///
 /// // Calculate the value for each period.
@@ -318,7 +319,7 @@ mod tests {
         let future_value = 20_629.37;
         let periods = 6;
         let expected_value_solution = 13_000.0; // google sheet
-        let actual_value_solution = present_value_solution(rate, periods, future_value).present_value;
+        let actual_value_solution = present_value_solution(rate, periods, future_value).present_value();
         assert_rounded_2(expected_value_solution, actual_value_solution);
     }
 
@@ -329,7 +330,7 @@ mod tests {
         let future_value = 20_629.37;
         let periods = 6;
         let expected_value_solution = 13_000.0; // google sheet
-        let actual_value_solution = present_value_solution(rate, periods, future_value).present_value;
+        let actual_value_solution = present_value_solution(rate, periods, future_value).present_value();
         assert_rounded_2(expected_value_solution, actual_value_solution);
     }
     #[test]
@@ -339,7 +340,7 @@ mod tests {
         let future_value = 5_000;
         let periods = 6;
         let expected_value_solution = 8_804.84368898; // google sheet
-        let actual_value_solution = present_value_solution(rate, periods, future_value).present_value;
+        let actual_value_solution = present_value_solution(rate, periods, future_value).present_value();
         assert_rounded_2(expected_value_solution, actual_value_solution);
     }
 
@@ -349,7 +350,7 @@ mod tests {
         let rate = 0.09;
         let future_value = -5_000;
         let periods = 6;
-        let _should_panic = present_value_solution(rate, periods, future_value).present_value;
+        let _should_panic = present_value_solution(rate, periods, future_value);
     }
 
     #[should_panic]
@@ -359,7 +360,7 @@ mod tests {
         let rate = 1.0f64 / 0.0;
         let future_value = 5_000;
         let periods = 6;
-        let _should_panic = present_value_solution(rate, periods, future_value).present_value;
+        let _should_panic = present_value_solution(rate, periods, future_value);
     }
 
     #[should_panic]
@@ -369,7 +370,7 @@ mod tests {
         let rate = 0.03;
         let future_value = 1.0 / 0.0;
         let periods = 6;
-        let _should_panic = present_value_solution(rate, periods, future_value).present_value;
+        let _should_panic = present_value_solution(rate, periods, future_value);
     }
 
     #[test]
@@ -378,10 +379,10 @@ mod tests {
         let rate = -0.03;
         let future_value = 5000.0;
         let periods = 12;
-        let try_1 = present_value_solution(rate, periods, future_value).present_value;
+        let try_1 = present_value_solution(rate, periods, future_value).present_value();
         assert!(try_1 > future_value);
         let rate = -0.9;
-        let try_2 = present_value_solution(rate, periods, future_value).present_value;
+        let try_2 = present_value_solution(rate, periods, future_value).present_value();
         assert!(try_2 > future_value);
 
         let rate = -3.2;
@@ -400,7 +401,7 @@ mod tests {
         let future_value = 5_000;
         let periods = 12;
         let expected_value_solution = 1.22070313; // google sheet
-        let actual_value_solution = present_value_solution(rate, periods, future_value).present_value;
+        let actual_value_solution = present_value_solution(rate, periods, future_value).present_value();
         assert_rounded_2(expected_value_solution, actual_value_solution);
     }
 
@@ -411,7 +412,7 @@ mod tests {
         let future_value = 5_000_000;
         let periods = 12;
         let expected_value_solution = 0.298023223876953; // google sheet
-        let actual_value_solution = present_value_solution(rate, periods, future_value).present_value;
+        let actual_value_solution = present_value_solution(rate, periods, future_value).present_value();
         assert_rounded_2(expected_value_solution, actual_value_solution);
     }
 
@@ -422,7 +423,7 @@ mod tests {
         let future_value = 0.75;
         let periods = 9;
         let expected_value_solution = 0.249663625036891; // google sheet
-        let actual_value_solution = present_value_solution(rate, periods, future_value).present_value;
+        let actual_value_solution = present_value_solution(rate, periods, future_value).present_value();
         assert_rounded_2(expected_value_solution, actual_value_solution);
     }
 
@@ -435,41 +436,41 @@ mod tests {
         assert_rounded_4(94843.2841, present_value);
 
         let solution = present_value_schedule_solution(&rates, future_value);
-        assert_rounded_4(100000.2500, solution.future_value);
-        assert_rounded_4(94843.2841, solution.present_value);
+        assert_rounded_4(100000.2500, solution.future_value());
+        assert_rounded_4(94843.2841, solution.present_value());
 
         let series = solution.series();
         assert_eq!(6, series.len());
 
         let period = &series[0];
-        assert_eq!(0, period.period);
-        assert_rounded_6(0.0, period.rate);
-        assert_rounded_4(present_value,period.value);
+        assert_eq!(0, period.period());
+        assert_rounded_6(0.0, period.rate());
+        assert_rounded_4(present_value,period.value());
 
         let period = &series[1];
-        assert_eq!(1, period.period);
-        assert_rounded_6(0.04, period.rate);
-        assert_rounded_4(98_637.0154,period.value);
+        assert_eq!(1, period.period());
+        assert_rounded_6(0.04, period.rate());
+        assert_rounded_4(98_637.0154,period.value());
 
         let period = &series[2];
-        assert_eq!(2, period.period);
-        assert_rounded_6(0.07, period.rate);
-        assert_rounded_4(105_541.6065,period.value);
+        assert_eq!(2, period.period());
+        assert_rounded_6(0.07, period.rate());
+        assert_rounded_4(105_541.6065,period.value());
 
         let period = &series[3];
-        assert_eq!(3, period.period);
-        assert_rounded_6(-0.12, period.rate);
-        assert_rounded_4(92_876.6137,period.value);
+        assert_eq!(3, period.period());
+        assert_rounded_6(-0.12, period.rate());
+        assert_rounded_4(92_876.6137,period.value());
 
         let period = &series[4];
-        assert_eq!(4, period.period);
-        assert_rounded_6(-0.03, period.rate);
-        assert_rounded_4(90_090.3153, period.value);
+        assert_eq!(4, period.period());
+        assert_rounded_6(-0.03, period.rate());
+        assert_rounded_4(90_090.3153, period.value());
 
         let period = &series[5];
-        assert_eq!(5, period.period);
-        assert_rounded_6(0.11, period.rate);
-        assert_rounded_4(100_000.2500, period.value);
+        assert_eq!(5, period.period());
+        assert_rounded_6(0.11, period.rate());
+        assert_rounded_4(100_000.2500, period.value());
     }
 
 }

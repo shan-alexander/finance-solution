@@ -106,7 +106,7 @@
 //! // instead of using 12 monthly periods of the periodic rate.
 //! let rate = apr!(0.034, 12);
 //! let answer_2 = future_value::future_value_solution(rate.ear, 1, 500);
-//! dbg!(&answer_2.future_value);
+//! dbg!(&answer_2.future_value());
 //! // assert_approx_equal!(answer_1.future_value, answer_2.future_value); // true
 //! ```
 //! >&answer_2.future_value = 517.2674346801449

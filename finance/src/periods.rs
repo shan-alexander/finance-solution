@@ -182,17 +182,17 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
 /// // the period-by-period values.
 /// let solution = finance::periods_solution(rate, present_value, future_value);
 ///
-/// let fractional_periods = solution.fractional_periods;
+/// let fractional_periods = solution.fractional_periods();
 /// dbg!(&fractional_periods);
 /// finance::assert_rounded_2(20.15, fractional_periods);
 ///
 /// // Get the whole number of periods.
-/// let periods = solution.periods;
+/// let periods = solution.periods();
 /// dbg!(&periods);
 /// assert_eq!(21, periods);
 ///
 /// // Examine the formula.
-/// let formula = solution.formula.clone();
+/// let formula = solution.formula();
 /// dbg!(&formula);
 /// assert_eq!("log(200000.0000 / 100000.0000) base (1 + 0.035000))", formula);
 ///
@@ -203,12 +203,12 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
 /// // original future value.
 /// let last_entry = series.last().unwrap();
 /// dbg!(&last_entry);
-/// finance::assert_rounded_4(205_943.1474, last_entry.value);
+/// finance::assert_rounded_4(205_943.1474, last_entry.value());
 ///
 /// // Create a reduced series with the value at the end of each year.
 /// let filtered_series = series
 ///     .iter()
-///     .filter(|x| x.period % 4 == 0 && x.period != 0)
+///     .filter(|x| x.period() % 4 == 0 && x.period() != 0)
 ///     .collect::<Vec<_>>();
 /// dbg!(&filtered_series);
 /// assert_eq!(5, filtered_series.len());
@@ -219,8 +219,8 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
 /// // $12,000.00.
 /// let solution = finance::periods_solution(-0.06, 15_000.00, 12_000.00);
 /// dbg!(&solution);
-/// finance::assert_rounded_2(3.61, solution.fractional_periods);
-/// assert_eq!(4, solution.periods);
+/// finance::assert_rounded_2(3.61, solution.fractional_periods());
+/// assert_eq!(4, solution.periods());
 ///
 /// // View the period-by-period values.
 /// dbg!(solution.series());
@@ -236,7 +236,8 @@ pub fn periods_solution<P, F>(rate: f64, present_value: P, future_value: F) -> T
     let present_value = present_value.into();
     let future_value = future_value.into();
     let formula = format!("log({:.4} / {:.4}) base (1 + {:.6}))", future_value, present_value, rate);
-    TvmSolution::new_fractional_periods(TvmVariable::Periods,rate, fractional_periods, present_value, future_value, &formula)
+    let formula_symbolic = "***";
+    TvmSolution::new_fractional_periods(TvmVariable::Periods,rate, fractional_periods, present_value, future_value, &formula, formula_symbolic)
 }
 
 fn check_period_parameters(rate: f64, present_value: f64, future_value: f64) {

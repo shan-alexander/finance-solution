@@ -49,13 +49,13 @@ impl TvmVariable {
 /// or [`future_value_solution`].
 #[derive(Debug)]
 pub struct TvmSolution {
-    pub calculated_field: TvmVariable,
-    pub rate: f64,
-    pub periods: u32,
-    pub fractional_periods: f64,
-    pub present_value: f64,
-    pub future_value: f64,
-    pub formula: String,
+    calculated_field: TvmVariable,
+    rate: f64,
+    periods: u32,
+    fractional_periods: f64,
+    present_value: f64,
+    future_value: f64,
+    formula: String,
 }
 
 impl TvmSolution {
@@ -257,22 +257,6 @@ impl TvmSolution {
         series
     }
 }
-
-/*
-impl Debug for TvmSolution {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{{ {}, {}, {}, {}, {}, {}, {} }}",
-               &format!("calculated_field: {:?}", self.calculated_field),
-               &format!("rate: {:.6}", self.rate),
-               &format!("periods: {}", self.periods),
-               &format!("fractional_periods: {:.2}", self.fractional_periods),
-               &format!("present_value: {:.4}", self.present_value),
-               &format!("future_value: {:.4}", self.future_value),
-               &format!("formula: {:?}", self.formula),
-        )
-    }
-}
-*/
 
 /// A record of a Time Value of Money calculation where the rate may vary by period.
 /// 

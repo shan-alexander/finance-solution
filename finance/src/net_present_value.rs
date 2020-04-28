@@ -124,7 +124,7 @@ where C: Into<f64> + Copy
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::*;
+    //use crate::*;
 
     #[test]
     fn test_net_present_value() {

@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 //! Future value annuity calculations. Given a series of cashflows, a number of periods such as years, and fixed
 //! or varying interest rates, what is the value of the series of cashflows at the final payment?
 //!
@@ -6,7 +8,6 @@
 
 // use crate::tvm_cashflow::*;
 // Needed for the Rustdoc comments.
-#[allow(unused_imports)]
 use crate::present_value::present_value;
 use crate::future_value::future_value;
 use crate::tvm_cashflow::*;

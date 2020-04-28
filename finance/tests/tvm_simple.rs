@@ -106,7 +106,7 @@ mod tests {
         }
         for solution in solutions.iter() {
             dbg!(solution);
-            if solution.calculated_field.is_rate() {
+            if solution.calculated_field().is_rate() {
                 // There are a few special cases in which the calculated rate is arbitrarily set to
                 // zero since any value would work. We've already checked rate_calc against those
                 // special cases, so use that here for the comparison.
@@ -114,13 +114,13 @@ mod tests {
             } else {
                 assert_approx_equal_symmetry_test!(rate_in, solution.rate);
             }
-            if solution.calculated_field.is_periods() {
+            if solution.calculated_field().is_periods() {
                 // There are a few special cases in which the number of periods might be zero or one
                 // instead of matching periods_in. So check against the number returned from
                 // periods().
-                assert_eq!(periods_calc, solution.periods);
+                assert_eq!(periods_calc, solution.periods());
             } else {
-                assert_eq!(periods_in, solution.periods);
+                assert_eq!(periods_in, solution.periods());
             }
             assert_approx_equal_symmetry_test!(present_value_in, solution.present_value);
             assert_approx_equal_symmetry_test!(future_value_calc, solution.future_value);

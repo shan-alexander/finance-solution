@@ -92,10 +92,10 @@ fn try_doc_example_solution_1() {
     let solution = finance::future_value_solution(rate, periods, present_value);
     dbg!(&solution);
 
-    let future_value = solution.future_value;
+    let future_value = solution.future_value();
     finance::assert_rounded_4(future_value, 220_026.0467);
 
-    let formula = solution.formula.clone();
+    let formula = solution.formula();
     assert_eq!(formula, "200000.0000 * (1.012000 ^ 8)");
 
     // Calculate the value at the end of each period.

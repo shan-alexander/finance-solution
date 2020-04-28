@@ -143,10 +143,10 @@ pub fn future_value<T>(rate: f64, periods: u32, present_value: T) -> f64
 /// let solution = finance::future_value_solution(rate, periods, present_value);
 /// dbg!(&solution);
 ///
-/// let future_value = solution.future_value;
+/// let future_value = solution.future_value();
 /// finance::assert_rounded_4(future_value, 220_026.0467);
 ///
-/// let formula = solution.formula.clone();
+/// let formula = solution.formula();
 /// assert_eq!(formula, "200000.0000 * (1.012000 ^ 8)");
 ///
 /// // Calculate the value at the end of each period.
@@ -174,13 +174,13 @@ pub fn future_value<T>(rate: f64, periods: u32, present_value: T) -> f64
 /// assert_eq!(14, scenarios.len());
 ///
 /// // Keep only the scenarios where the future value was between $200,000 and $400,000.
-/// scenarios.retain(|x| x.future_value >= 200_000.00 && x.future_value <= 400_000.00);
+/// scenarios.retain(|x| x.future_value() >= 200_000.00 && x.future_value() <= 400_000.00);
 /// dbg!(&scenarios);
 /// assert_eq!(7, scenarios.len());
 ///
 /// // Check the formula for the first scenario.
-/// dbg!(&scenarios[0].formula);
-/// assert_eq!("100000.0000 * (1.060000 ^ 12)", scenarios[0].formula);
+/// dbg!(&scenarios[0].formula());
+/// assert_eq!("100000.0000 * (1.060000 ^ 12)", scenarios[0].formula());
 /// ```
 pub fn future_value_solution<T>(rate: f64, periods: u32, present_value: T) -> TvmSolution
     where T: Into<f64> + Copy
@@ -189,7 +189,8 @@ pub fn future_value_solution<T>(rate: f64, periods: u32, present_value: T) -> Tv
     let rate_multiplier = 1.0 + rate;
     assert!(rate_multiplier >= 0.0);
     let formula = format!("{:.4} * ({:.6} ^ {})", present_value.into(), rate_multiplier, periods);
-    TvmSolution::new(TvmVariable::FutureValue, rate, periods, present_value.into(), future_value, &formula)
+    let formula_symbolic = "***";
+    TvmSolution::new(TvmVariable::FutureValue, rate, periods, present_value.into(), future_value, &formula, formula_symbolic)
 }
 
 /// Calculates a future value based on rates that change for each period.
@@ -277,7 +278,7 @@ pub fn future_value_schedule<T>(rates: &[f64], present_value: T) -> f64
 /// let solution = finance::future_value_schedule_solution(&rates, present_value);
 /// dbg!(&solution);
 ///
-/// let future_value = solution.future_value;
+/// let future_value = solution.future_value();
 /// dbg!(&future_value);
 /// finance::assert_rounded_4(future_value, 12_192.0455);
 ///
@@ -332,7 +333,7 @@ mod tests {
         let periods = 5;
         let present_value_1 = 250_000.00;
         let expected_value = 295489.941778856;
-        let actual_value = future_value_solution(rate_of_return, periods, present_value_1).future_value;
+        let actual_value = future_value_solution(rate_of_return, periods, present_value_1).future_value();
         assert_rounded_4(expected_value, actual_value);
     }
 
@@ -342,7 +343,7 @@ mod tests {
         let periods = 6;
         let present_value_1 = 13_000.0;
         let expected_value = 20_629.37;
-        let actual_value = future_value_solution(rate_of_return, periods, present_value_1).future_value;
+        let actual_value = future_value_solution(rate_of_return, periods, present_value_1).future_value();
         assert_rounded_2(expected_value, actual_value);
     }
 
@@ -353,7 +354,7 @@ mod tests {
         let periods = 6;
         let present_value = 8_804.84368898;
         let expected_value = 5_000.00;
-        let actual_value = future_value_solution(rate_of_return, periods, present_value).future_value;
+        let actual_value = future_value_solution(rate_of_return, periods, present_value).future_value();
         assert_rounded_4(expected_value, actual_value);
     }
 
@@ -383,11 +384,11 @@ mod tests {
         let rate_of_return = -0.03;
         let periods = 12;
         let present_value = 5000.00;
-        let try_1 = future_value_solution(rate_of_return, periods, present_value).future_value;
+        let try_1 = future_value_solution(rate_of_return, periods, present_value).future_value();
         assert!(try_1 < present_value.into());
 
         let rate_of_return = -0.9;
-        let try_2 = future_value_solution(rate_of_return, periods, present_value).future_value;
+        let try_2 = future_value_solution(rate_of_return, periods, present_value).future_value();
         assert!(try_2 < present_value.into());
 
         let rate_of_return = -3.2;

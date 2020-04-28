@@ -140,13 +140,13 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
 /// let solution = finance::rate_solution(periods, present_value, future_value);
 /// dbg!(&solution);
 ///
-/// let rate = solution.rate;
+/// let rate = solution.rate();
 /// dbg!(&rate);
 /// // The rate is 4.138% per year.
 /// finance::assert_rounded_6(0.041380, rate);
 ///
 /// // Examine the formula.
-/// let formula = solution.formula.clone();
+/// let formula = solution.formula();
 /// dbg!(&formula);
 /// assert_eq!("((15000.0000 / 10000.0000) ^ (1 / 10)) - 1", &formula);
 ///
@@ -163,12 +163,15 @@ pub fn rate_solution<P, F>(periods: u32, present_value: P, future_value: F) -> T
     let future_value = future_value.into();
     if present_value == 0.0 && future_value == 0.0 {
         // This is a special case where any rate will work.
-        return TvmSolution::new(TvmVariable::Rate, 0.0, periods, present_value, future_value, "{special case}");
+        let formula = "{special case}";
+        let formula_symbolic = "***";
+        return TvmSolution::new(TvmVariable::Rate, 0.0, periods, present_value, future_value, formula, formula_symbolic);
     }
 
     let rate = rate(periods, present_value, future_value);
     let formula = format!("(({:.4} / {:.4}) ^ (1 / {})) - 1", future_value, present_value, periods);
-    TvmSolution::new(TvmVariable::Rate,rate, periods, present_value.into(), future_value, &formula)
+    let formula_symbolic = "***";
+    TvmSolution::new(TvmVariable::Rate,rate, periods, present_value.into(), future_value, &formula, formula_symbolic)
 }
 
 fn check_rate_parameters(periods: u32, present_value: f64, future_value: f64) {

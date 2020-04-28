@@ -38,15 +38,15 @@ fn try_doc_example_solution() {
     let solution = finance::rate_solution(periods, present_value, future_value);
     dbg!(&solution);
 
-    let rate = solution.rate;
+    let rate = solution.rate();
     dbg!(&rate);
     // The rate is 4.138% per year.
     finance::assert_rounded_6(0.041380, rate);
 
     // Examine the formula.
-    let formula = solution.formula.clone();
-    dbg!(&formula);
-    assert_eq!("((15000.0000 / 10000.0000) ^ (1 / 10)) - 1", &formula);
+    let formula = solution.formula();
+    dbg!(formula);
+    assert_eq!("((15000.0000 / 10000.0000) ^ (1 / 10)) - 1", formula);
 
     // Calculate the period-by-period values.
     let series = solution.series();

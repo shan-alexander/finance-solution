@@ -124,11 +124,11 @@ fn try_doc_example_solution_1() {
     let solution= finance::present_value_solution(rate, periods, future_value);
     dbg!(&solution);
 
-    let present_value = solution.present_value;
+    let present_value = solution.present_value();
     finance::assert_rounded_4(present_value, 30_732.1303);
 
     // Examine the formula.
-    let formula = solution.formula.clone();
+    let formula = solution.formula();
     dbg!(&formula);
     assert_eq!(formula, "50000.0000 / (1.084500 ^ 6)");
 
@@ -162,15 +162,15 @@ fn try_doc_example_solution_2() {
     assert_eq!(12, scenarios.len());
 
     // Find the range of months for the remaining scenarios.
-    let min_months = scenarios.iter().map(|x| x.periods).min().unwrap();
-    let max_months = scenarios.iter().map(|x| x.periods).max().unwrap();
+    let min_months = scenarios.iter().map(|x| x.periods()).min().unwrap();
+    let max_months = scenarios.iter().map(|x| x.periods()).max().unwrap();
     dbg!(min_months, max_months);
     assert_eq!(25, min_months);
     assert_eq!(36, max_months);
 
     // Check the formula for the first scenario.
-    dbg!(&scenarios[0].formula);
-    assert_eq!("100000.0000 / (1.009000 ^ 25)", scenarios[0].formula);
+    dbg!(scenarios[0].formula());
+    assert_eq!("100000.0000 / (1.009000 ^ 25)", scenarios[0].formula());
 }
 
 fn try_doc_example_series() {

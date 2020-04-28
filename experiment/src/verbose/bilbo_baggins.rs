@@ -109,7 +109,7 @@ fn calculate_bilbo_solution(b: BilboBagginsInputs) -> BilboBagginsSolution {
     // dbg!(&inheritance_at_time_of_retirement.present_value);
 
     // step six: Determine how much Bilbo needs at year &retire_in_years_from_now to acheive his retirement goals
-    let how_much_needed_at_moment_of_retirement_to_achieve_goals = &inheritance_at_time_of_retirement.present_value + &retirement_income_at_beginning_of_retirement.present_value_annuity;
+    let how_much_needed_at_moment_of_retirement_to_achieve_goals = &inheritance_at_time_of_retirement.present_value() + &retirement_income_at_beginning_of_retirement.present_value_annuity;
     // dbg!(&how_much_needed_at_moment_of_retirement_to_achieve_goals);
 
     // step seven: determine future_value (at time of retirement) of remaining money after buying the cabin
@@ -124,7 +124,7 @@ fn calculate_bilbo_solution(b: BilboBagginsInputs) -> BilboBagginsSolution {
     // bilbo has &fv_of_money_after_cabin_purchase_at_retirement.future_value 
     // and he needs &how_much_needed_at_moment_of_retirement_to_achieve_goals
     // so get the "PMT" (Excel) aka the payment/annuity needed in the years between cabin purchase and retirement.
-    let net_amount_needed_at_retirement = &how_much_needed_at_moment_of_retirement_to_achieve_goals - &fv_of_money_after_cabin_purchase_at_retirement.future_value;
+    let net_amount_needed_at_retirement = &how_much_needed_at_moment_of_retirement_to_achieve_goals - &fv_of_money_after_cabin_purchase_at_retirement.future_value();
     // dbg!(&net_amount_needed_at_retirement);
     let months_between_cabin_and_retirement = (b.retire_in_years_from_now - b.buy_cabin_in_years_from_now) * 12;
     // dbg!(&months_between_cabin_and_retirement);
