@@ -114,7 +114,7 @@ fn try_formulas() {
     // The formula is "(((100.0000 * 1.034000^10) + 25.0000) * -0.034000) / (1.034000^10 - 1)".
     let formula_result = (((100.0000 * 1.034000f64.powi(10)) + 25.0000) * -0.034000) / (1.034000f64.powi(10) - 1.0);
     dbg!(formula_result);
-    finance::assert_rounded_6!(formula_result, pv_positive_fv_positive.payment);
+    finance::assert_rounded_6!(formula_result, pv_positive_fv_positive.payment());
     println!();
 
     let pv_positive_fv_zero = finance::payment_solution(0.034, 10, 100.0, 0.0);
@@ -122,7 +122,7 @@ fn try_formulas() {
     // The formula is "((100.0000 * 1.034000^10) * -0.034000) / (1.034000^10 - 1)".
     let formula_result = ((100.0000 * 1.034000f64.powi(10)) * -0.034000) / (1.034000f64.powi(10) - 1.0);
     dbg!(formula_result);
-    finance::assert_rounded_6!(formula_result, pv_positive_fv_zero.payment);
+    finance::assert_rounded_6!(formula_result, pv_positive_fv_zero.payment());
     println!();
 }
 
@@ -177,7 +177,7 @@ fn try_test_against_excel_ipmt_month_1() {
     finance::assert_approx_equal!(exp_payment, payment_1);
     let solution = finance::payment_solution(rate, periods, present_value, future_value);
     dbg!(&solution);
-    finance::assert_approx_equal!(exp_payment, solution.payment);
+    finance::assert_approx_equal!(exp_payment, solution.payment());
 }
 
 fn try_test_against_excel_ipmt_month_2() {
@@ -188,7 +188,7 @@ fn try_test_against_excel_ipmt_month_2() {
     let exp_payment = -1_718.11298960604;
     let solution = finance::payment_due_solution(rate, periods, present_value, future_value);
     dbg!(&solution);
-    finance::assert_approx_equal!(exp_payment, solution.payment);
+    finance::assert_approx_equal!(exp_payment, solution.payment());
 }
 
 fn generate_scenarios_for_excel() {

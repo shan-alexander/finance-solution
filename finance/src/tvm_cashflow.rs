@@ -78,17 +78,17 @@ impl fmt::Display for TvmCashflowVariable {
 
 #[derive(Debug)]
 pub struct TvmCashflowSolution {
-    pub calculated_field: TvmCashflowVariable,
-    pub rate: f64,
-    pub periods: u32,
-    pub present_value: f64,
-    pub future_value: f64,
-    pub due_at_beginning: bool,
-    pub payment: f64,
-    pub sum_of_payments: f64,
-    pub sum_of_interest: f64,
-    pub formula: String,
-    pub formula_symbolic: String,
+    calculated_field: TvmCashflowVariable,
+    rate: f64,
+    periods: u32,
+    present_value: f64,
+    future_value: f64,
+    due_at_beginning: bool,
+    payment: f64,
+    sum_of_payments: f64,
+    sum_of_interest: f64,
+    formula: String,
+    formula_symbolic: String,
     // pub input_in_percent: String,
 }
 
@@ -128,6 +128,50 @@ impl TvmCashflowSolution {
         } else {
             unimplemented!()
         }
+    }
+
+    pub fn calculated_field(&self) -> &TvmCashflowVariable {
+        &self.calculated_field
+    }
+
+    pub fn rate(&self) -> f64 {
+        self.rate
+    }
+
+    pub fn periods(&self) -> u32 {
+        self.periods
+    }
+
+    pub fn present_value(&self) -> f64 {
+        self.present_value
+    }
+
+    pub fn future_value(&self) -> f64 {
+        self.future_value
+    }
+
+    pub fn due_at_beginning(&self) -> bool {
+        self.due_at_beginning
+    }
+
+    pub fn payment(&self) -> f64 {
+        self.payment
+    }
+
+    pub fn sum_of_payments(&self) -> f64 {
+        self.sum_of_payments
+    }
+
+    pub fn sum_of_interest(&self) -> f64 {
+        self.sum_of_interest
+    }
+
+    pub fn formula(&self) -> &str {
+        &self.formula
+    }
+
+    pub fn formula_symbolic(&self) -> &str {
+        &self.formula_symbolic
     }
 }
 

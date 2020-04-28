@@ -6,40 +6,40 @@ mod tests {
     fn test_against_excel_ipmt_month_1() {
         // Payments at the end of the period.
         let solution = payment_solution(0.0056, 12, 20000.0, 0.0);
-        assert_approx_equal!(-1727.95439349254, solution.payment);
+        assert_approx_equal!(-1727.95439349254, solution.payment());
         let series = solution.series();
-        assert_approx_equal!(-112.0, series[0].interest);
-        assert_approx_equal!(-102.950655396442, series[1].interest);
-        assert_approx_equal!(-93.8506344631036, series[2].interest);
-        assert_approx_equal!(-84.6996534125387, series[3].interest);
-        assert_approx_equal!(-75.4974268680907, series[4].interest);
-        assert_approx_equal!(-66.2436678549938, series[5].interest);
-        assert_approx_equal!(-56.9380877914235, series[6].interest);
-        assert_approx_equal!(-47.5803964794972, series[7].interest);
-        assert_approx_equal!(-38.1703020962241, series[8].interest);
-        assert_approx_equal!(-28.7075111844048, series[9].interest);
-        assert_approx_equal!(-19.1917286434792, series[10].interest);
-        assert_approx_equal!(-9.62265772032443, series[11].interest);
+        assert_approx_equal!(-112.0, series[0].interest());
+        assert_approx_equal!(-102.950655396442, series[1].interest());
+        assert_approx_equal!(-93.8506344631036, series[2].interest());
+        assert_approx_equal!(-84.6996534125387, series[3].interest());
+        assert_approx_equal!(-75.4974268680907, series[4].interest());
+        assert_approx_equal!(-66.2436678549938, series[5].interest());
+        assert_approx_equal!(-56.9380877914235, series[6].interest());
+        assert_approx_equal!(-47.5803964794972, series[7].interest());
+        assert_approx_equal!(-38.1703020962241, series[8].interest());
+        assert_approx_equal!(-28.7075111844048, series[9].interest());
+        assert_approx_equal!(-19.1917286434792, series[10].interest());
+        assert_approx_equal!(-9.62265772032443, series[11].interest());
     }
 
     #[test]
     fn test_against_excel_ipmt_month_2() {
         // Payments at the beginning of the period.
         let solution = payment_due_solution(0.0056, 12, 20000.0, 0.0);
-        assert_approx_equal!(-1718.33173577222, solution.payment);
+        assert_approx_equal!(-1718.33173577222, solution.payment());
         let series = solution.series();
-        assert_approx_equal!(0.0, series[0].interest);
-        assert_approx_equal!(-102.377342279676, series[1].interest);
-        assert_approx_equal!(-93.3279976761173, series[2].interest);
-        assert_approx_equal!(-84.2279767427791, series[3].interest);
-        assert_approx_equal!(-75.0769956922143, series[4].interest);
-        assert_approx_equal!(-65.8747691477663, series[5].interest);
-        assert_approx_equal!(-56.6210101346693, series[6].interest);
-        assert_approx_equal!(-47.315430071099, series[7].interest);
-        assert_approx_equal!(-37.9577387591728, series[8].interest);
-        assert_approx_equal!(-28.5476443758997, series[9].interest);
-        assert_approx_equal!(-19.0848534640803, series[10].interest);
-        assert_approx_equal!(-9.56907092315476, series[11].interest);
+        assert_approx_equal!(0.0, series[0].interest());
+        assert_approx_equal!(-102.377342279676, series[1].interest());
+        assert_approx_equal!(-93.3279976761173, series[2].interest());
+        assert_approx_equal!(-84.2279767427791, series[3].interest());
+        assert_approx_equal!(-75.0769956922143, series[4].interest());
+        assert_approx_equal!(-65.8747691477663, series[5].interest());
+        assert_approx_equal!(-56.6210101346693, series[6].interest());
+        assert_approx_equal!(-47.315430071099, series[7].interest());
+        assert_approx_equal!(-37.9577387591728, series[8].interest());
+        assert_approx_equal!(-28.5476443758997, series[9].interest());
+        assert_approx_equal!(-19.0848534640803, series[10].interest());
+        assert_approx_equal!(-9.56907092315476, series[11].interest());
     }
 
     #[test]

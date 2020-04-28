@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![allow(unused_imports)]
 // mod fina; // a copy&paste of the finance-math crate library, for quick reference
 use experiment::*;
 use env_logger::Env;

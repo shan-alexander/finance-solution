@@ -172,49 +172,43 @@ fn payment_formula(rate: f64, periods: u32, present_value: f64, future_value: f6
 }
 
 pub(crate) fn payment_series(solution: &TvmCashflowSolution) -> Vec<TvmCashflowPeriod> {
-    assert!(solution.calculated_field.is_payment() || solution.calculated_field.is_payment_due());
+    assert!(solution.calculated_field().is_payment() || solution.calculated_field().is_payment_due());
     let mut series = vec![];
-    let payment = solution.payment;
+    let rate = solution.rate();
+    let periods = solution.periods();
+    let present_value = solution.present_value();
+    let future_value = solution.future_value();
+    let due_at_beginning = solution.due_at_beginning();
+    let payment = solution.payment();
+    let sum_of_payments = solution.sum_of_payments();
+    let sum_of_interest = solution.sum_of_interest();
     let mut payments_to_date = 0.0;
     let mut principal_to_date = 0.0;
     let mut interest_to_date = 0.0;
-    for period in 1..=solution.periods {
-        let principal_remaining_at_start_of_period = solution.present_value + solution.future_value + principal_to_date;
-        let interest = if solution.due_at_beginning && period == 1 {
+    for period in 1..=periods {
+        let principal_remaining_at_start_of_period = present_value + future_value + principal_to_date;
+        let interest = if solution.due_at_beginning() && period == 1 {
             0.0
         } else {
-            -principal_remaining_at_start_of_period * solution.rate
+            -principal_remaining_at_start_of_period * rate
         };
         let principal = payment - interest;
         payments_to_date += payment;
         principal_to_date += principal;
         interest_to_date += interest;
-        let payments_remaining = solution.sum_of_payments - payments_to_date;
-        let principal_remaining = -(solution.present_value + solution.future_value + principal_to_date);
-        let interest_remaining = solution.sum_of_interest - interest_to_date;
-        let (formula, formula_symbolic) = if solution.due_at_beginning && period == 1 {
+        let payments_remaining = sum_of_payments - payments_to_date;
+        let principal_remaining = -(present_value + future_value + principal_to_date);
+        let interest_remaining = sum_of_interest - interest_to_date;
+        let (formula, formula_symbolic) = if due_at_beginning && period == 1 {
             ("0".to_string(), "interest = 0".to_string())
         } else {
-            let formula = format!("{:.4} = -({:.4} * {:.6})", interest, principal_remaining_at_start_of_period, solution.rate);
+            let formula = format!("{:.4} = -({:.4} * {:.6})", interest, principal_remaining_at_start_of_period, rate);
             let formula_symbolic = "interest = -(principal * rate)".to_string();
             (formula, formula_symbolic)
         };
-        let entry = TvmCashflowPeriod {
-            rate: solution.rate,
-            period,
-            payment,
-            payments_to_date,
-            payments_remaining,
-            principal,
-            principal_to_date,
-            principal_remaining,
-            interest,
-            interest_to_date,
-            interest_remaining,
-            due_at_beginning: solution.due_at_beginning,
-            formula,
-            formula_symbolic,
-        };
+        let entry = TvmCashflowPeriod::new(rate, period, payment, payments_to_date,
+            payments_remaining, principal, principal_to_date, principal_remaining, interest,
+            interest_to_date, interest_remaining, due_at_beginning, formula, formula_symbolic);
         series.push(entry);
     }
     if RUN_PAYMENT_INVARIANTS {
@@ -224,61 +218,81 @@ pub(crate) fn payment_series(solution: &TvmCashflowSolution) -> Vec<TvmCashflowP
 }
 
 fn payment_solution_invariant(solution: &TvmCashflowSolution) {
-    let present_and_future_value= solution.present_value + solution.future_value;
-    if solution.due_at_beginning {
-        assert!(solution.calculated_field.is_payment_due());
+    let calculated_field = solution.calculated_field();
+    let rate = solution.rate();
+    let periods = solution.periods();
+    let present_value = solution.present_value();
+    let future_value = solution.future_value();
+    let due_at_beginning = solution.due_at_beginning();
+    let payment = solution.payment();
+    let sum_of_payments = solution.sum_of_payments();
+    let sum_of_interest = solution.sum_of_interest();
+    let formula = solution.formula();
+    let formula_symbolic = solution.formula_symbolic();
+    let present_and_future_value= present_value + future_value;
+    if due_at_beginning {
+        assert!(calculated_field.is_payment_due());
     } else {
-        assert!(solution.calculated_field.is_payment());
+        assert!(calculated_field.is_payment());
     }
-    assert!(solution.rate.is_finite());
-    assert!(solution.present_value.is_finite());
-    assert!(solution.future_value.is_finite());
-    assert!(solution.payment.is_finite());
+    assert!(rate.is_finite());
+    assert!(present_value.is_finite());
+    assert!(future_value.is_finite());
+    assert!(payment.is_finite());
     if present_and_future_value == 0.0 {
-        assert_eq!(0.0, solution.payment);
+        assert_eq!(0.0, payment);
     } else if present_and_future_value.is_sign_positive() {
-        assert!(solution.payment.is_sign_negative());
+        assert!(payment.is_sign_negative());
     } else if present_and_future_value.is_sign_negative() {
-        assert!(solution.payment.is_sign_positive());
+        assert!(payment.is_sign_positive());
     }
-    assert!(solution.sum_of_payments.is_finite());
-    assert_approx_equal!(solution.sum_of_payments, solution.payment * solution.periods as f64);
-    assert_same_sign_or_zero!(solution.sum_of_interest, solution.sum_of_payments);
-    if solution.periods > 0 && solution.rate != 0.0 {
-        assert!(solution.sum_of_interest.abs() < solution.sum_of_payments.abs());
+    assert!(sum_of_payments.is_finite());
+    assert_approx_equal!(sum_of_payments, payment * periods as f64);
+    assert_same_sign_or_zero!(sum_of_interest, sum_of_payments);
+    if periods > 0 && rate != 0.0 {
+        assert!(sum_of_interest.abs() < sum_of_payments.abs());
     }
-    assert_approx_equal!(solution.sum_of_interest, solution.sum_of_payments + present_and_future_value);
-    assert!(solution.formula.len() > 0);
-    assert!(solution.formula_symbolic.len() > 0);
+    assert_approx_equal!(sum_of_interest, sum_of_payments + present_and_future_value);
+    assert!(formula.len() > 0);
+    assert!(formula_symbolic.len() > 0);
 }
 
 fn payment_series_invariant(solution: &TvmCashflowSolution, series: &[TvmCashflowPeriod]) {
-    let present_and_future_value = solution.present_value + solution.future_value;
-    assert_eq!(solution.periods as usize, series.len());
+    // let calculated_field = solution.calculated_field();
+    let rate = solution.rate();
+    let periods = solution.periods();
+    let present_value = solution.present_value();
+    let future_value = solution.future_value();
+    let due_at_beginning = solution.due_at_beginning();
+    let payment = solution.payment();
+    let sum_of_payments = solution.sum_of_payments();
+    let sum_of_interest = solution.sum_of_interest();
+    let present_and_future_value = present_value + future_value;
+    assert_eq!(periods as usize, series.len());
     let mut running_sum_of_payments = 0.0;
     let mut running_sum_of_principal = 0.0;
     let mut running_sum_of_interest = 0.0;
     let mut previous_principal: Option<f64> = None;
     let mut previous_interest: Option<f64> = None;
     for (index, entry) in series.iter().enumerate() {
-        running_sum_of_payments += entry.payment;
-        running_sum_of_principal += entry.principal;
-        running_sum_of_interest += entry.interest;
-        assert_eq!(solution.rate, entry.rate);
-        assert_eq!(index + 1, entry.period as usize);
-        assert_eq!(solution.payment, entry.payment);
-        assert_approx_equal!(running_sum_of_payments, entry.payments_to_date);
-        assert_approx_equal!(solution.sum_of_payments - running_sum_of_payments, entry.payments_remaining);
-        if present_and_future_value == 0.0 || solution.rate == 0.0 || (solution.due_at_beginning && index == 0) {
-            assert_eq!(solution.payment, entry.principal);
-            assert_eq!(0.0, entry.interest);
+        running_sum_of_payments += entry.payment();
+        running_sum_of_principal += entry.principal();
+        running_sum_of_interest += entry.interest();
+        assert_eq!(rate, entry.rate());
+        assert_eq!(index + 1, entry.period() as usize);
+        assert_eq!(payment, entry.payment());
+        assert_approx_equal!(running_sum_of_payments, entry.payments_to_date());
+        assert_approx_equal!(sum_of_payments - running_sum_of_payments, entry.payments_remaining());
+        if present_and_future_value == 0.0 || rate == 0.0 || (due_at_beginning && index == 0) {
+            assert_eq!(payment, entry.principal());
+            assert_eq!(0.0, entry.interest());
         } else {
             if present_and_future_value > 0.0 {
-                assert!(entry.principal < 0.0);
-                assert!(entry.interest < 0.0);
+                assert!(entry.principal() < 0.0);
+                assert!(entry.interest() < 0.0);
             } else {
-                assert!(entry.principal > 0.0);
-                assert!(entry.interest > 0.0);
+                assert!(entry.principal() > 0.0);
+                assert!(entry.interest() > 0.0);
             }
         }
         if index > 0 && previous_interest.unwrap() != 0.0 {
@@ -287,29 +301,29 @@ fn payment_series_invariant(solution: &TvmCashflowSolution, series: &[TvmCashflo
             // at the beginning and we're currently on the second entry. In this case the previous
             // entry will have had zero interest and a principal matching the full payment amount,
             // so the two assertions below wouldn't make sense.
-            assert!(entry.principal.abs() > previous_principal.unwrap().abs());
-            assert!(entry.interest.abs() < previous_interest.unwrap().abs());
+            assert!(entry.principal().abs() > previous_principal.unwrap().abs());
+            assert!(entry.interest().abs() < previous_interest.unwrap().abs());
         }
-        assert_approx_equal!(running_sum_of_principal, entry.principal_to_date);
-        assert_approx_equal!(-present_and_future_value - running_sum_of_principal, entry.principal_remaining);
-        assert_approx_equal!(running_sum_of_interest, entry.interest_to_date);
-        assert_approx_equal!(solution.sum_of_interest - running_sum_of_interest, entry.interest_remaining);
-        assert_approx_equal!(solution.payment, entry.principal + entry.interest);
-        if index == solution.periods as usize - 1 {
+        assert_approx_equal!(running_sum_of_principal, entry.principal_to_date());
+        assert_approx_equal!(-present_and_future_value - running_sum_of_principal, entry.principal_remaining());
+        assert_approx_equal!(running_sum_of_interest, entry.interest_to_date());
+        assert_approx_equal!(sum_of_interest - running_sum_of_interest, entry.interest_remaining());
+        assert_approx_equal!(payment, entry.principal() + entry.interest());
+        if index == periods as usize - 1 {
             // This is the entry for the last period.
-            assert_approx_equal!(0.0, entry.payments_remaining);
-            assert_approx_equal!(0.0, entry.principal_remaining);
-            assert_approx_equal!(0.0, entry.interest_remaining);
+            assert_approx_equal!(0.0, entry.payments_remaining());
+            assert_approx_equal!(0.0, entry.principal_remaining());
+            assert_approx_equal!(0.0, entry.interest_remaining());
         }
-        assert!(entry.formula.len() > 0);
-        assert!(entry.formula_symbolic.len() > 0);
+        assert!(entry.formula().len() > 0);
+        assert!(entry.formula_symbolic().len() > 0);
 
-        previous_principal = Some(entry.principal);
-        previous_interest = Some(entry.interest);
+        previous_principal = Some(entry.principal());
+        previous_interest = Some(entry.interest());
     }
-    assert_approx_equal!(running_sum_of_payments, solution.sum_of_payments);
+    assert_approx_equal!(running_sum_of_payments, sum_of_payments);
     assert_approx_equal!(running_sum_of_principal, -present_and_future_value);
-    assert_approx_equal!(running_sum_of_interest, solution.sum_of_interest);
+    assert_approx_equal!(running_sum_of_interest, sum_of_interest);
 }
 
 /*
