@@ -13,7 +13,8 @@ pub fn main() {
     // find_numerator_failures();
     // find_calculation_failure_curve();
     // dbg!(finance::payment(0.23, 3000, -123_456.7, -12_345.67));
-    try_specify_type_1();
+    // try_specify_type_1();
+    payment_series_rounding_issue();
 }
 
 fn try_payment_debug() {
@@ -319,3 +320,11 @@ fn try_specify_type_1() {
     specify_type_1!(555, f64);
 }
 
+fn payment_series_rounding_issue() {
+    let rate = 0.05;
+    let periods = 1_000;
+    let present_value = 1_000_000.00;
+    let mut principal = present_value;
+    let interest = -principal * rate;
+    dbg!(interest);
+}

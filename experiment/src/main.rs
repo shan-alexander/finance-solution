@@ -17,7 +17,7 @@ fn main() {
     // verbose::periods::main();
     // verbose::payment_solution::main();
     // verbose::net_present_value::main();
-    // verbose::payment::main();
+    verbose::payment::main();
     // verbose::nper::main();
     // verbose::convert_rates::main();
     // verbose::convert_rate::main();

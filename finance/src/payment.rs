@@ -174,10 +174,12 @@ fn payment_formula(rate: f64, periods: u32, present_value: f64, future_value: f6
 pub(crate) fn payment_series(solution: &TvmCashflowSolution) -> Vec<TvmCashflowPeriod> {
     assert!(solution.calculated_field().is_payment() || solution.calculated_field().is_payment_due());
     let mut series = vec![];
+    if solution.future_value() != 0.0 {
+        return series;
+    }
     let rate = solution.rate();
     let periods = solution.periods();
     let present_value = solution.present_value();
-    let future_value = solution.future_value();
     let due_at_beginning = solution.due_at_beginning();
     let payment = solution.payment();
     let sum_of_payments = solution.sum_of_payments();
@@ -186,7 +188,7 @@ pub(crate) fn payment_series(solution: &TvmCashflowSolution) -> Vec<TvmCashflowP
     let mut principal_to_date = 0.0;
     let mut interest_to_date = 0.0;
     for period in 1..=periods {
-        let principal_remaining_at_start_of_period = present_value + future_value + principal_to_date;
+        let principal_remaining_at_start_of_period = present_value + principal_to_date;
         let interest = if solution.due_at_beginning() && period == 1 {
             0.0
         } else {
@@ -197,7 +199,7 @@ pub(crate) fn payment_series(solution: &TvmCashflowSolution) -> Vec<TvmCashflowP
         principal_to_date += principal;
         interest_to_date += interest;
         let payments_remaining = sum_of_payments - payments_to_date;
-        let principal_remaining = -(present_value + future_value + principal_to_date);
+        let principal_remaining = -(present_value + principal_to_date);
         let interest_remaining = sum_of_interest - interest_to_date;
         let (formula, formula_symbolic) = if due_at_beginning && period == 1 {
             ("0".to_string(), "interest = 0".to_string())
@@ -248,8 +250,10 @@ fn payment_solution_invariant(solution: &TvmCashflowSolution) {
     }
     assert!(sum_of_payments.is_finite());
     assert_approx_equal!(sum_of_payments, payment * periods as f64);
-    assert_same_sign_or_zero!(sum_of_interest, sum_of_payments);
-    if periods > 0 && rate != 0.0 {
+    if future_value == 0.0 {
+        assert_same_sign_or_zero!(sum_of_interest, sum_of_payments);
+    }
+    if periods > 0 && rate != 0.0 && future_value == 0.0 && !is_approx_equal!(0.0, present_value) {
         assert!(sum_of_interest.abs() < sum_of_payments.abs());
     }
     assert_approx_equal!(sum_of_interest, sum_of_payments + present_and_future_value);
@@ -258,17 +262,26 @@ fn payment_solution_invariant(solution: &TvmCashflowSolution) {
 }
 
 fn payment_series_invariant(solution: &TvmCashflowSolution, series: &[TvmCashflowPeriod]) {
-    // let calculated_field = solution.calculated_field();
-    let rate = solution.rate();
     let periods = solution.periods();
+    if solution.future_value() != 0.0 {
+        assert_eq!(0, series.len());
+    } else {
+        assert_eq!(periods as usize, series.len());
+    }
+    if series.len() == 0 {
+        return;
+    }
+    let rate = solution.rate();
     let present_value = solution.present_value();
-    let future_value = solution.future_value();
     let due_at_beginning = solution.due_at_beginning();
+    if due_at_beginning {
+        assert!(solution.calculated_field().is_payment_due());
+    } else {
+        assert!(solution.calculated_field().is_payment());
+    }
     let payment = solution.payment();
     let sum_of_payments = solution.sum_of_payments();
     let sum_of_interest = solution.sum_of_interest();
-    let present_and_future_value = present_value + future_value;
-    assert_eq!(periods as usize, series.len());
     let mut running_sum_of_payments = 0.0;
     let mut running_sum_of_principal = 0.0;
     let mut running_sum_of_interest = 0.0;
@@ -283,11 +296,11 @@ fn payment_series_invariant(solution: &TvmCashflowSolution, series: &[TvmCashflo
         assert_eq!(payment, entry.payment());
         assert_approx_equal!(running_sum_of_payments, entry.payments_to_date());
         assert_approx_equal!(sum_of_payments - running_sum_of_payments, entry.payments_remaining());
-        if present_and_future_value == 0.0 || rate == 0.0 || (due_at_beginning && index == 0) {
+        if present_value == 0.0 || rate == 0.0 || (due_at_beginning && index == 0) {
             assert_eq!(payment, entry.principal());
             assert_eq!(0.0, entry.interest());
         } else {
-            if present_and_future_value > 0.0 {
+            if present_value > 0.0 {
                 assert!(entry.principal() < 0.0);
                 assert!(entry.interest() < 0.0);
             } else {
@@ -305,7 +318,7 @@ fn payment_series_invariant(solution: &TvmCashflowSolution, series: &[TvmCashflo
             assert!(entry.interest().abs() < previous_interest.unwrap().abs());
         }
         assert_approx_equal!(running_sum_of_principal, entry.principal_to_date());
-        assert_approx_equal!(-present_and_future_value - running_sum_of_principal, entry.principal_remaining());
+        assert_approx_equal!(-present_value - running_sum_of_principal, entry.principal_remaining());
         assert_approx_equal!(running_sum_of_interest, entry.interest_to_date());
         assert_approx_equal!(sum_of_interest - running_sum_of_interest, entry.interest_remaining());
         assert_approx_equal!(payment, entry.principal() + entry.interest());
@@ -322,7 +335,7 @@ fn payment_series_invariant(solution: &TvmCashflowSolution, series: &[TvmCashflo
         previous_interest = Some(entry.interest());
     }
     assert_approx_equal!(running_sum_of_payments, sum_of_payments);
-    assert_approx_equal!(running_sum_of_principal, -present_and_future_value);
+    assert_approx_equal!(running_sum_of_principal, -present_value);
     assert_approx_equal!(running_sum_of_interest, sum_of_interest);
 }
 
@@ -421,7 +434,6 @@ mod tests {
     }
     */
 
-    /*
     #[test]
     fn test_combinations() {
         // let rates = vec![-0.99, -0.5, -0.05, -0.005, 0.0, 0.005, 0.05, 0.5, 1.0, 10.0, 100.0];
@@ -456,7 +468,6 @@ mod tests {
             }
         }
     }
-    */
 
     fn run_payment_invariants(solution: &TvmCashflowSolution, series: &[TvmCashflowPeriod]) {
         // Display the solution and series only if either one fails its invariant.
