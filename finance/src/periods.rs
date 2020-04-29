@@ -237,7 +237,6 @@ pub fn periods_solution<P, F>(rate: f64, present_value: P, future_value: F) -> T
 {
     let fractional_periods = periods(rate, present_value, future_value);
     assert!(fractional_periods >= 0.0);
-
     let present_value = present_value.into();
     let future_value = future_value.into();
     let rate_multiplier = 1.0 + rate;
