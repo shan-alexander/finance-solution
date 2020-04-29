@@ -14,7 +14,8 @@ pub fn main() {
     // find_calculation_failure_curve();
     // dbg!(finance::payment(0.23, 3000, -123_456.7, -12_345.67));
     // try_specify_type_1();
-    payment_series_rounding_issue();
+    show_payment_series_rounding_issue();
+    
 }
 
 fn try_payment_debug() {
@@ -320,11 +321,29 @@ fn try_specify_type_1() {
     specify_type_1!(555, f64);
 }
 
-fn payment_series_rounding_issue() {
+fn show_payment_series_rounding_issue() {
+    let precision = 12;
+
     let rate = 0.05;
-    let periods = 1_000;
-    let present_value = 1_000_000.00;
-    let mut principal = present_value;
-    let interest = -principal * rate;
-    dbg!(interest);
+    let present_value = -1_000_000;
+    let future_value = 0.0;
+
+    let periods = 12;
+    let solution = finance::payment_solution(rate, periods, present_value, future_value);
+    println!();
+    dbg!(&solution);
+    let series = solution.series();
+    finance::print_series_table(&series, precision);
+
+    let periods = 500;
+    let solution = finance::payment_solution(rate, periods, present_value, future_value);
+    println!();
+    dbg!(&solution);
+    let series = solution.series();
+    let series_filtered: Vec<finance::TvmCashflowPeriod> = series.iter()
+        .filter(|x| x.period() <= 5 || x.period() >= 495 || x.period() % 50 == 0)
+        .map(|x| x.clone())
+        .collect::<Vec<_>>();
+    finance::print_series_table(&series_filtered[..], precision);
 }
+
