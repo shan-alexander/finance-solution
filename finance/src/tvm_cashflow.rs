@@ -5,6 +5,7 @@ use std::fmt;
 // Import needed for the function references in the Rustdoc comments.
 #[allow(unused_imports)]
 use crate::*;
+use std::cmp::max;
 
 #[derive(Debug, Clone)]
 pub enum TvmCashflowVariable {
@@ -199,10 +200,11 @@ impl Debug for TvmCashflowSolution {
 }
 */
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TvmCashflowPeriod {
-    rate: f64,
     period: u32,
+    rate: f64,
+    due_at_beginning: bool,
     // pub cashflow: f64,
     // pub cashflow_0: f64,
     payment: f64,
@@ -214,7 +216,6 @@ pub struct TvmCashflowPeriod {
     interest: f64,
     interest_to_date: f64,
     interest_remaining: f64,
-    due_at_beginning: bool,
     formula: String,
     formula_symbolic: String,
     // pub input_in_percent: String,
@@ -222,8 +223,9 @@ pub struct TvmCashflowPeriod {
 
 impl TvmCashflowPeriod {
     pub(crate) fn new(
-        rate: f64,
         period: u32,
+        rate: f64,
+        due_at_beginning: bool,
         payment: f64,
         payments_to_date: f64,
         payments_remaining: f64,
@@ -233,13 +235,13 @@ impl TvmCashflowPeriod {
         interest: f64,
         interest_to_date: f64,
         interest_remaining: f64,
-        due_at_beginning: bool,
         formula: String,
         formula_symbolic: String,
     ) -> Self {
         Self {
-            rate,
             period,
+            rate,
+            due_at_beginning,
             payment,
             payments_to_date,
             payments_remaining,
@@ -249,7 +251,6 @@ impl TvmCashflowPeriod {
             interest,
             interest_to_date,
             interest_remaining,
-            due_at_beginning,
             formula,
             formula_symbolic,
         }
@@ -311,46 +312,67 @@ impl TvmCashflowPeriod {
         &self.formula_symbolic
     }
 
-    fn print_flat(&self, scale: usize) {
-        println!("TvmCashflowPeriod = {{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} }}",
-                 &format!("\n\trate: {:.}", format!("{:?}", self.rate).yellow()),
-
-
-
-                 rate: f64,
-                 period: u32,
-                 // pub cashflow: f64,
-                 // pub cashflow_0: f64,
-                 payment: f64,
-                 payments_to_date: f64,
-                 payments_remaining: f64,
-                 principal: f64,
-                 principal_to_date: f64,
-                 principal_remaining: f64,
-                 interest: f64,
-                 interest_to_date: f64,
-                 interest_remaining: f64,
-                 due_at_beginning: bool,
-                 formula: String,
-                 formula_symbolic: String,
-                 &format!("calculated_field: {}", self.calculated_field.to_string()),
-    &format!("\n\tperiods (n): {}", self.periods.to_string().yellow()),
-    &format!("\n\tpresent_value (pv): {}", self.present_value),
-    &format!("\n\tfuture_value (fv): {}", self.future_value),
-    &format!("\n\tdue_at_beginning: {}", self.due_at_beginning),
-    //    if self.calculated_field.is_net_present_value() { format!("\n\tcashflow: {}", self.cashflow.to_string().red()) } else { "".to_string() },
-    //    if self.calculated_field.is_net_present_value() { format!("\n\tcashflow_0: {}", self.cashflow_0.to_string().red()) } else { "".to_string() },
-    &format!("\n\tpayment (pmt): {}", if self.calculated_field.is_payment() || self.calculated_field.is_payment_due() { self.payment.to_string().green() } else { self.payment.to_string().normal() }),
-    &format!("\n\tsum_of_payments: {}", self.sum_of_payments),
-    &format!("\n\tsum_of_interest: {}", self.sum_of_interest),
-    &format!("\n\tformula: {:?}", self.formula),
-    &format!("\n\tformula_symbolic: {:?}", self.formula_symbolic),
-    // &format!("input_in_percent: {:.6}%", self.input_in_percent),
-    // &format!("output: {}", self.output.to_string().green()),
-    )
+    pub fn print_flat(&self, precision: usize) {
+        println!("TvmCashflowPeriod = {{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} }}",
+                 &format!("period: {}", self.period),
+                 &format!("due_at_beginning: {}", self.due_at_beginning),
+                 &format!("payment: {:.prec$}", self.payment, prec = precision),
+                 &format!("payments_to_date: {:.prec$}", self.payments_to_date, prec = precision),
+                 &format!("payments_remaining: {:.prec$}", self.payments_remaining, prec = precision),
+                 &format!("principal: {:.prec$}", self.principal, prec = precision),
+                 &format!("principal_to_date: {:.prec$}", self.principal_to_date, prec = precision),
+                 &format!("principal_remaining: {:.prec$}", self.principal_remaining, prec = precision),
+                 &format!("interest: {:.prec$}", self.interest, prec = precision),
+                 &format!("interest_to_date: {:.prec$}", self.interest_to_date, prec = precision),
+                 &format!("interest_remaining: {:.prec$}", self.interest_remaining, prec = precision),
+                 &format!("formula: {:?}", self.formula),
+                 &format!("formula_symbolic: {:?}", self.formula_symbolic));
     }
-    }
-    */
-
 
 }
+
+// pub fn print_series_filtered(series: &[TvmPeriod], filter: )
+
+pub fn print_series_table(series: &[TvmCashflowPeriod], precision: usize) {
+    if series.len() == 0 {
+        return;
+    }
+    let period_width = max("period".len(), series.iter().map(|x| x.period().to_string().len()).max().unwrap());
+    let payments_to_date_width = max("payments_to_date".len(), series.iter().map(|x| format!("{:.prec$}", x.payments_to_date(), prec = precision).len()).max().unwrap());
+    let payments_remaining_width = max("payments_remaining".len(), series.iter().map(|x| format!("{:.prec$}", x.payments_remaining(), prec = precision).len()).max().unwrap());
+    let principal_width = max("principal_width".len(), series.iter().map(|x| format!("{:.prec$}", x.principal(), prec = precision).len()).max().unwrap());
+    let principal_to_date_width = max("principal_to_date".len(), series.iter().map(|x| format!("{:.prec$}", x.principal_to_date(), prec = precision).len()).max().unwrap());
+    let principal_remaining_width = max("principal_remaining".len(), series.iter().map(|x| format!("{:.prec$}", x.principal_remaining(), prec = precision).len()).max().unwrap());
+    let interest_width = max("interest".len(), series.iter().map(|x| format!("{:.prec$}", x.interest(), prec = precision).len()).max().unwrap());
+    let interest_to_date_width = max("interest_to_date".len(), series.iter().map(|x| format!("{:.prec$}", x.interest_to_date(), prec = precision).len()).max().unwrap());
+    let interest_remaining_width = max("interest_remaining".len(), series.iter().map(|x| format!("{:.prec$}", x.interest_remaining(), prec = precision).len()).max().unwrap());
+    println!("\ndue_at_beginning: {}", series[0].due_at_beginning);
+    println!("payment: {:.prec$}", series[0].payment, prec = precision);
+    println!("{:>pe$}  {:>pmtd$}  {:>pmr$}  {:>pr$}  {:>prtd$}  {:>prr$}  {:>i$}  {:>itd$}  {:>ir$}",
+             "period", "payments_to_date", "payments_remaining", "principal", "principal_to_date", "principal_remaining", "interest", "interest_to_date", "interest_remaining",
+             pe = period_width, pmtd = payments_to_date_width, pmr = payments_remaining_width,
+             pr = principal_width, prtd = principal_to_date_width, prr = principal_remaining_width,
+             i = interest_width, itd = interest_to_date_width, ir = interest_remaining_width);
+    println!("{}  {}  {}  {}  {}  {}  {}  {}  {}",
+             "-".repeat(period_width), "-".repeat(payments_to_date_width), "-".repeat(payments_remaining_width),
+             "-".repeat(principal_width), "-".repeat(principal_to_date_width), "-".repeat(principal_remaining_width),
+             "-".repeat(interest_width), "-".repeat(interest_to_date_width), "-".repeat(interest_remaining_width));
+    for entry in series.iter() {
+        println!("{:>pe$}  {:>pmtd$.prec$}  {:>pmr$.prec$}  {:>pr$.prec$}  {:>prtd$.prec$}  {:>prr$.prec$}  {:>i$.prec$}  {:>itd$.prec$}  {:>ir$.prec$}",
+                 entry.period(), entry.payments_to_date(), entry.payments_remaining(),
+                 entry.principal(), entry.principal_to_date(), entry.principal_remaining(),
+                 entry.interest(), entry.interest_to_date(), entry.interest_remaining(),
+                 pe = period_width, pmtd = payments_to_date_width, pmr = payments_remaining_width,
+                 pr = principal_width, prtd = principal_to_date_width, prr = principal_remaining_width,
+                 i = interest_width, itd = interest_to_date_width, ir = interest_remaining_width, prec = precision);
+    }
+}
+
+/*
+pub fn print_series_table_filtered(series: &[TvmCashflowPeriod], predicate: P, precision: usize)
+    where P: FnMut(&TvmCashflowPeriod) -> bool
+{
+
+}
+*/
+
