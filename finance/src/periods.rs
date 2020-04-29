@@ -195,19 +195,20 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
 /// dbg!(&periods);
 /// assert_eq!(21, periods);
 ///
-/// // Examine the formula.
+/// // Examine the formulas.
 /// let formula = solution.formula();
 /// dbg!(&formula);
-/// assert_eq!("log(200000.0000 / 100000.0000) base (1 + 0.035000))", formula);
+/// assert_eq!("20.15 = log(200000.0000 / 100000.0000, base 1.035000)", formula);
+/// let formula_symbolic = solution.formula_symbolic();
+/// dbg!(&formula_symbolic);
+/// assert_eq!("n = log(fv / pv, base (1 + r))", formula_symbolic);
 ///
 /// let series = solution.series();
 /// dbg!(&series);
 ///
-/// // The last period is calculated as if it were a full period so the value is higher than the
-/// // original future value.
 /// let last_entry = series.last().unwrap();
 /// dbg!(&last_entry);
-/// finance::assert_rounded_4(205_943.1474, last_entry.value());
+/// finance::assert_rounded_4(200_000.0, last_entry.value());
 ///
 /// // Create a reduced series with the value at the end of each year.
 /// let filtered_series = series
@@ -240,8 +241,8 @@ pub fn periods_solution<P, F>(rate: f64, present_value: P, future_value: F) -> T
     let present_value = present_value.into();
     let future_value = future_value.into();
     let rate_multiplier = 1.0 + rate;
-    let formula = format!("{:.2} = log[base {:.6}]({:.4} / {:.4})", fractional_periods, rate_mult, future_value, present_value);
-    let formula_symbolic = "n = log[base (1 + r)](fv / pv)";
+    let formula = format!("{:.2} = log({:.4} / {:.4}, base {:.6})", fractional_periods, future_value, present_value, rate_multiplier);
+    let formula_symbolic = "n = log(fv / pv, base (1 + r))";
     TvmSolution::new_fractional_periods(TvmVariable::Periods,rate, fractional_periods, present_value, future_value, &formula, formula_symbolic)
 }
 
