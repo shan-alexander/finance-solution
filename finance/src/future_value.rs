@@ -1,4 +1,4 @@
-//! Future value calculations. Given an initial investment amount, a number of periods such as
+//! **Future value calculations.** Given an initial investment amount, a number of periods such as
 //! years, and fixed or varying interest rates, what is the value of the investment at the end?
 //!
 //! If you need to calculate the present value given a future value, a number of periods, and one
@@ -36,8 +36,10 @@ use crate::{present_value::present_value, rate::rate, periods::periods};
 /// [`periods`] or related functions.
 ///
 /// The formula is:
+/// > future_value = present_value * (1 + rate)<sup>periods</sup>
 ///
-/// future_value = present_value * (1 + rate)<sup>periods</sup>
+/// or with the more commonly used variables:
+/// > fv = pv * (1 + r)<sup>n</sup>
 ///
 /// # Arguments
 /// * `rate` - The rate at which the investment grows or shrinks per period, expressed as a
@@ -112,9 +114,11 @@ pub fn future_value<T>(rate: f64, periods: u32, present_value: T) -> f64
 /// * To calculate the future value with varying rates and return a struct that can produce the
 /// period-by-period values use [`future_value_schedule_solution`].
 ///
-/// The future value formula is:
+/// The formula is:
+/// > future_value = present_value * (1 + rate)<sup>periods</sup>
 ///
-/// future_value = present_value * (1 + rate)<sup>periods</sup>
+/// or with the more commonly used variables:
+/// > fv = pv * (1 + r)<sup>n</sup>
 ///
 /// # Arguments
 /// * `rate` - The rate at which the investment grows or shrinks per period, expressed as a
@@ -188,8 +192,8 @@ pub fn future_value_solution<T>(rate: f64, periods: u32, present_value: T) -> Tv
     let future_value = future_value(rate, periods, present_value);
     let rate_multiplier = 1.0 + rate;
     assert!(rate_multiplier >= 0.0);
-    let formula = format!("{:.4} * ({:.6} ^ {})", present_value.into(), rate_multiplier, periods);
-    let formula_symbolic = "***";
+    let formula = format!("{:.4} = {:.4} * ({:.6} ^ {})", future_value, present_value.into(), rate_multiplier, periods);
+    let formula_symbolic = "fv = pv * (1 + r)^n";
     TvmSolution::new(TvmVariable::FutureValue, rate, periods, present_value.into(), future_value, &formula, formula_symbolic)
 }
 

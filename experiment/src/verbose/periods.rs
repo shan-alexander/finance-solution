@@ -2,10 +2,11 @@
 
 pub fn main() {
     // try_edge_cases();
-    try_symmetric_mult_cases();
+    // try_symmetric_mult_cases();
     // try_doc_example_1();
     // try_doc_example_solution_1();
     // try_doc_example_solution_2();
+    check_formulas();
 }
 
 fn try_edge_cases() {
@@ -98,5 +99,10 @@ fn try_doc_example_solution_2() {
 
     // View the period-by-period values.
     dbg!(solution.series());
+}
+
+fn check_formulas() {
+    let solution = finance::periods_solution(0.11, 100, 200);
+    dbg!(&solution, &solution.series());
 }
 

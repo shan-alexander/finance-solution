@@ -5,6 +5,9 @@ use std::fmt;
 #[allow(unused_imports)]
 use crate::*;
 
+/// Enumeration used for the `calculated_field` field in [`TvmSolution`] and [`TvmSchedule`] to keep
+/// track of what was calculated, either the periodic rate, the number of periods, the present
+/// value, or the future value.
 #[derive(Debug, Clone)]
 pub enum TvmVariable {
     Rate,
@@ -14,6 +17,8 @@ pub enum TvmVariable {
 }
 
 impl TvmVariable {
+    /// Returns true if the variant is TvmVariable::Rate indicating that the periodic rate was
+    /// calculated from the number of periods, the present value, and the future value.
     pub fn is_rate(&self) -> bool {
         match self {
             TvmVariable::Rate => true,
@@ -21,6 +26,8 @@ impl TvmVariable {
         }
     }
 
+    /// Returns true if the variant is TvmVariable::Periods indicating that the number of periods
+    /// was calculated from the periocic rate, the present value, and the future value.
     pub fn is_periods(&self) -> bool {
         match self {
             TvmVariable::Periods => true,
@@ -28,6 +35,8 @@ impl TvmVariable {
         }
     }
 
+    /// Returns true if the variant is TvmVariable::PresentValue indicating that the present value
+    /// was calculated from one or more periocic rates, the number of periods, and the future value.
     pub fn is_present_value(&self) -> bool {
         match self {
             TvmVariable::PresentValue => true,
@@ -35,6 +44,8 @@ impl TvmVariable {
         }
     }
 
+    /// Returns true if the variant is TvmVariable::FutureValue indicating that the future value
+    /// was calculated from one or more periocic rates, the number of periods, and the present value.
     pub fn is_future_value(&self) -> bool {
         match self {
             TvmVariable::FutureValue => true,
@@ -56,23 +67,26 @@ pub struct TvmSolution {
     present_value: f64,
     future_value: f64,
     formula: String,
+    formula_symbolic: String,
 }
 
 impl TvmSolution {
-    pub(crate) fn new(calculated_field: TvmVariable, rate: f64, periods: u32, present_value: f64, future_value: f64, formula: &str) -> Self {
+    pub(crate) fn new(calculated_field: TvmVariable, rate: f64, periods: u32, present_value: f64, future_value: f64, formula: &str, formula_symbolic: &str) -> Self {
         assert!(rate.is_finite());
         assert!(present_value.is_finite());
         assert!(future_value.is_finite());
         assert!(formula.len() > 0);
-        Self::new_fractional_periods(calculated_field, rate, periods as f64, present_value, future_value, formula)
+        assert!(formula_symbolic.len() > 0);
+        Self::new_fractional_periods(calculated_field, rate, periods as f64, present_value, future_value, formula, formula_symbolic)
     }
 
-    pub(crate) fn new_fractional_periods(calculated_field: TvmVariable, rate: f64, fractional_periods: f64, present_value: f64, future_value: f64, formula: &str) -> Self {
+    pub(crate) fn new_fractional_periods(calculated_field: TvmVariable, rate: f64, fractional_periods: f64, present_value: f64, future_value: f64, formula: &str, formula_symbolic: &str) -> Self {
         assert!(rate >= -1.0);
         assert!(fractional_periods >= 0.0);
         assert!(present_value.is_finite());
         assert!(future_value.is_finite());
         assert!(formula.len() > 0);
+        assert!(formula_symbolic.len() > 0);
         Self {
             calculated_field,
             rate,
@@ -81,6 +95,7 @@ impl TvmSolution {
             present_value,
             future_value,
             formula: formula.to_string(),
+            formula_symbolic: formula_symbolic.to_string(),
         }
     }
 
@@ -112,7 +127,7 @@ impl TvmSolution {
     /// // Create a reduced vector with every fourth period.
     /// let filtered_series = series
     ///     .iter()
-    ///     .filter(|x| x.period % 4 == 0)
+    ///     .filter(|x| x.period() % 4 == 0)
     ///     .collect::<Vec<_>>();
     /// dbg!(&filtered_series);
     /// assert_eq!(7, filtered_series.len());
@@ -130,7 +145,7 @@ impl TvmSolution {
     /// // and the formula used.
     /// let solution = finance::future_value_schedule_solution(&rates, present_value);
     /// dbg!(&solution);
-    /// finance::assert_rounded_4(62534.3257, solution.future_value);
+    /// finance::assert_rounded_4(62534.3257, solution.future_value());
     ///
     /// // Calculate the value at the end of each period.
     /// let series = solution.series();
@@ -142,13 +157,13 @@ impl TvmSolution {
     ///
     /// // Confirm that the value of the fourth period is the same as the overall
     /// // future value.
-    /// finance::assert_rounded_4(solution.future_value, series.last().unwrap().value);
+    /// finance::assert_rounded_4(solution.future_value(), series.last().unwrap().value());
     ///
     /// // Find the first period where the value of the investment was at least
     /// // $60,000.
-    /// let period = series.iter().find(|x| x.value >= 60_000.00);
+    /// let period = series.iter().find(|x| x.value() >= 60_000.00);
     /// dbg!(&period);
-    /// assert_eq!(2, period.unwrap().period);
+    /// assert_eq!(2, period.unwrap().period());
     /// ```
     /// Calculate a present value with a fixed rate then examine the period-by-period values. Uses
     /// [`present_value_solution`].
@@ -179,7 +194,7 @@ impl TvmSolution {
     /// // the initial state.
     /// let filtered_series = series
     ///     .iter()
-    ///     .filter(|x| x.period % 2 == 0 && x.period != 0)
+    ///     .filter(|x| x.period() % 2 == 0 && x.period() != 0)
     ///     .collect::<Vec<_>>();
     /// dbg!(&filtered_series);
     /// assert_eq!(5, filtered_series.len());
@@ -209,7 +224,7 @@ impl TvmSolution {
     /// // Create a filtered list of periods, only those with a negative rate.
     /// let filtered_series = series
     ///     .iter()
-    ///     .filter(|x| x.rate < 0.0)
+    ///     .filter(|x| x.rate() < 0.0)
     ///     .collect::<Vec<_>>();
     /// dbg!(&filtered_series);
     /// assert_eq!(2, filtered_series.len());
@@ -227,14 +242,14 @@ impl TvmSolution {
                 } else {
                     self.rate
                 };
-                let (value, formula) = if period == self.periods {
-                    (self.future_value, format!("{:.4}", self.future_value))
+                let (value, formula, formula_symbolic) = if period == self.periods {
+                    (self.future_value, format!("{:.4}", self.future_value), "***".to_string())
                 } else {
-                    (prev_value.unwrap() / rate_multiplier, format!("{:.4} / {:.6}", prev_value.unwrap(), rate_multiplier))
+                    (prev_value.unwrap() / rate_multiplier, format!("{:.4} / {:.6}", prev_value.unwrap(), rate_multiplier), "***".to_string())
                 };
                 assert!(value.is_finite());
                 prev_value = Some(value);
-                series.insert(0, TvmPeriod::new(period, rate, value, &formula))
+                series.insert(0, TvmPeriod::new(period, rate, value, &formula, &formula_symbolic))
             };
         } else if self.calculated_field.is_rate() || self.calculated_field.is_periods() || self.calculated_field.is_future_value() {
             let mut prev_value = None;
@@ -244,17 +259,80 @@ impl TvmSolution {
                 } else {
                     self.rate
                 };
-                let (value, formula) = if period == 0 {
-                    (self.present_value, format!("{:.4}", self.present_value))
+                let (value, formula, formula_symbolic) = if period == 0 {
+                    (self.present_value, format!("{:.4}", self.present_value), "***".to_string())
                 } else {
-                    (prev_value.unwrap() * rate_multiplier, format!("{:.4} * {:.6}", prev_value.unwrap(), rate_multiplier))
+                    (prev_value.unwrap() * rate_multiplier, format!("{:.4} * {:.6}", prev_value.unwrap(), rate_multiplier), "***".to_string())
                 };
                 assert!(value.is_finite());
                 prev_value = Some(value);
-                series.push(TvmPeriod::new(period, rate, value, &formula))
+                series.push(TvmPeriod::new(period, rate, value, &formula, &formula_symbolic))
             };
         }
         series
+    }
+
+    /// Returns a variant of [`TvmVariable`] showing which value was calculated, either the periodic
+    /// rate, number of periods, present value, or future value. To test for the enum variant use
+    /// functions like `TvmVariable::is_rate`.
+    ///
+    /// # Examples
+    /// ```
+    /// // Calculate the future value of $25,000 that grows at 5% for 12 yeors.
+    /// let solution = finance::future_value_solution(0.05, 12, 25_000);
+    /// assert!(solution.calculated_field().is_future_value());
+    /// ```
+    pub fn calculated_field(&self) -> &TvmVariable {
+        &self.calculated_field
+    }
+
+    /// Returns the periodic rate which is a calculated value if this `TvmSolution` struct is the
+    /// result of a call to [`rate_solution`] and otherwise is one of the input values.
+    pub fn rate(&self) -> f64 {
+        self.rate
+    }
+
+    /// Returns the number of periods as a whole number. This is a calculated value if this
+    /// `TvmSolution` struct is the result of a call to [`periods_solution`] and otherwise it's
+    /// one of the input values. If the value was calculated the true result may not have been a
+    /// whole number so this is that number rounded away from zero.
+    pub fn periods(&self) -> u32 {
+        self.periods
+    }
+
+    /// Returns the number of periods as a floating point number. This is a calculated value if this
+    /// `TvmSolution` struct is the result of a call to [`periods_solution`] and otherwise it's
+    /// one of the input values.
+    pub fn fractional_periods(&self) -> f64 {
+        self.fractional_periods
+    }
+
+    /// Returns the present value which is a calculated value if this `TvmSolution` struct is the
+    /// result of a call to [`present_value_solution`] and otherwise is one of the input values.
+    pub fn present_value(&self) -> f64 {
+        self.present_value
+    }
+
+    /// Returns the future value which is a calculated value if this `TvmSolution` struct is the
+    /// result of a call to [`future_value_solution`] and otherwise is one of the input values.
+    pub fn future_value(&self) -> f64 {
+        self.future_value
+    }
+
+    /// Returns a text version of the formula used to calculate the result which may have been the
+    /// periodic rate, number of periods, present value, or future value depending on which function
+    /// was called. The formula includes the actual values rather than variable names. For the
+    /// formula with variables such as r for rate call `formula_symbolic`.
+    pub fn formula(&self) -> &str {
+        &self.formula
+    }
+
+    /// Returns a text version of the formula used to calculate the result which may have been the
+    /// periodic rate, number of periods, present value, or future value depending on which function
+    /// was called. The formula uses variables such as n for the number of periods. For the formula
+    /// with the actual values rather than variables call `formula`.
+    pub fn formula_symbolic(&self) -> &str {
+        &self.formula_symbolic
     }
 }
 
@@ -263,11 +341,11 @@ impl TvmSolution {
 /// It's the result of calling [`present_value_schedule`] or [`future_value_schedule`].
 #[derive(Debug)]
 pub struct TvmSchedule {
-    pub calculated_field: TvmVariable,
-    pub rates: Vec<f64>,
-    pub periods: u32,
-    pub present_value: f64,
-    pub future_value: f64,
+    calculated_field: TvmVariable,
+    rates: Vec<f64>,
+    periods: u32,
+    present_value: f64,
+    future_value: f64,
 }
 
 impl TvmSchedule {
@@ -292,12 +370,14 @@ impl TvmSchedule {
         if self.calculated_field.is_present_value() {
             if self.periods == 0 {
                 // Special case.
-                series.push(TvmPeriod::new(0, 0.0, self.present_value, &format!("{:.4}", self.present_value)));
+                let formula = format!("{:.4}", self.present_value);
+                let formula_symbolic = "***";
+                series.push(TvmPeriod::new(0, 0.0, self.present_value, &formula, formula_symbolic));
             } else {
                 let mut next_value = None;
                 for period in (0..=self.periods).rev() {
-                    let (value, formula, rate) = if period > 0 && period == self.periods {
-                        (self.future_value, format!("{:.4}", self.future_value), self.rates[(period - 1) as usize])
+                    let (value, formula, formula_symbolic, rate) = if period > 0 && period == self.periods {
+                        (self.future_value, format!("{:.4}", self.future_value), "***".to_string(), self.rates[(period - 1) as usize])
                     } else {
                         // We want the rate for the period after this one. Since periods are 1-based and
                         // the vector of rates is 0-based, this means using the current period number as
@@ -313,18 +393,18 @@ impl TvmSchedule {
                         } else {
                             self.rates[(period - 1) as usize]
                         };
-                        (next_value.unwrap() / next_rate_multiplier, format!("{:.4} / {:.6}", next_value.unwrap(), next_rate_multiplier), rate)
+                        (next_value.unwrap() / next_rate_multiplier, format!("{:.4} / {:.6}", next_value.unwrap(), next_rate_multiplier), "***".to_string(), rate)
                     };
                     assert!(value.is_finite());
                     next_value = Some(value);
-                    series.insert(0, TvmPeriod::new(period, rate, value, &formula))
+                    series.insert(0, TvmPeriod::new(period, rate, value, &formula, &formula_symbolic))
                 };
             }
         } else if self.calculated_field.is_future_value() {
             let mut prev_value = None;
             for period in 0..=self.periods {
-                let (value, formula, rate) = if period == 0 {
-                    (self.present_value, format!("{:.4}", self.present_value), 0.0)
+                let (value, formula, formula_symbolic, rate) = if period == 0 {
+                    (self.present_value, format!("{:.4}", self.present_value), "***".to_string(), 0.0)
                 } else {
                     // We want the rate for the current period. However, periods are 1-based and
                     // the vector of rates is 0-based, so the corresponding rate is at period - 1.
@@ -332,14 +412,58 @@ impl TvmSchedule {
                     assert!(rate >= -1.0);
                     let rate_multiplier = 1.0 + rate;
                     assert!(rate_multiplier >= 0.0);
-                    (prev_value.unwrap() * rate_multiplier, format!("{:.4} * {:.6}", prev_value.unwrap(), rate_multiplier), rate)
+                    (prev_value.unwrap() * rate_multiplier, format!("{:.4} * {:.6}", prev_value.unwrap(), rate_multiplier), "***".to_string(), rate)
                 };
                 assert!(value.is_finite());
                 prev_value = Some(value);
-                series.push(TvmPeriod::new(period, rate, value, &formula))
+                series.push(TvmPeriod::new(period, rate, value, &formula, &formula_symbolic))
             };
         }
         series
+    }
+
+    /// Returns a variant of [`TvmVariable`] showing which value was calculated, either the present
+    /// value or the future value. To test for the enum variant use functions like
+    /// `TvmVariable::is_future_value`.
+    ///
+    /// # Examples
+    /// ```
+    /// let solution = finance::present_value_schedule_solution(&[0.011, 0.012, 0.009], 75_000);
+    /// assert!(solution.calculated_field().is_present_value());
+    /// ```
+    pub fn calculated_field(&self) -> &TvmVariable {
+        &self.calculated_field
+    }
+
+    /// Returns the periodic rates that were passed to the function.
+    pub fn rates(&self) -> &[f64] {
+        &self.rates
+    }
+
+    /// Returns the number of periods which was derived from the number of rates passed to the
+    /// function.
+    ///
+    /// # Examples
+    /// ```
+    /// let solution = finance::future_value_schedule_solution(&[0.05, 0.07, 0.05], 100_000);
+    /// assert_eq!(3, solution.periods());
+    /// ```
+    pub fn periods(&self) -> u32 {
+        self.periods
+    }
+
+    /// Returns the present value which is a calculated value if this `TvmSchedule` struct is the
+    /// result of a call to [`present_value_schedule_solution`] and otherwise is one of the input
+    /// values.
+    pub fn present_value(&self) -> f64 {
+        self.present_value
+    }
+
+    /// Returns the future value which is a calculated value if this `TvmSchedule` struct is the
+    /// result of a call to [`future_value_schedule_solution`] and otherwise is one of the input
+    /// values.
+    pub fn future_value(&self) -> f64 {
+        self.future_value
     }
 }
 
@@ -352,22 +476,58 @@ impl TvmSchedule {
 /// * Part of PvmSchedule produced by calling [`present_value_schedule`] or
 /// [`future_value_schedule`].
 pub struct TvmPeriod {
-    pub period: u32,
-    pub rate: f64,
-    pub value: f64,
-    pub formula: String,
+    period: u32,
+    rate: f64,
+    value: f64,
+    formula: String,
+    formula_symbolic: String,
 }
 
 impl TvmPeriod {
-    pub(crate) fn new(period: u32, rate: f64, value: f64, formula: &str) -> Self {
+    pub(crate) fn new(period: u32, rate: f64, value: f64, formula: &str, formula_symbolic: &str) -> Self {
         assert!(rate.is_finite());
         assert!(value.is_finite());
         assert!(formula.len() > 0);
+        assert!(formula_symbolic.len() > 0);
         Self {
             period,
             rate,
             value,
-            formula: formula.to_string() }
+            formula: formula.to_string(),
+            formula_symbolic: formula_symbolic.to_string()
+        }
+    }
+
+    /// Returns the period number. The first real period is 1 but there's also a period 0 which
+    /// which shows the starting conditions.
+    pub fn period(&self) -> u32 {
+        self.period
+    }
+
+    /// Returns the periodic rate for the current period. If the containing struct is a
+    /// [`TvmSolution`] every period will have the same rate. If it's a [`TvmSchedule`] each period
+    /// may have a different rate.
+    pub fn rate(&self) -> f64 {
+        self.rate
+    }
+
+    /// Returns the value of the investment at the end of the current period.
+    pub fn value(&self) -> f64 {
+        self.value
+    }
+
+    /// Returns a text version of the formula used to calculate the value for the current period.
+    /// The formula includes the actual values rather than variable names. For the formula with
+    /// variables such as pv for present value call `formula_symbolic`.
+    pub fn formula(&self) -> &str {
+        &self.formula
+    }
+
+    /// Returns a text version of the formula used to calculate the value for the current period.
+    /// The formula includes variables such as r for the rate. For the formula with actual values
+    /// rather than variables call `formula`.
+    pub fn formula_symbolic(&self) -> &str {
+        &self.formula_symbolic
     }
 }
 
@@ -385,4 +545,3 @@ impl Debug for TvmPeriod {
 fn round_fractional_periods(fractional_periods: f64) -> u32 {
     round_4(fractional_periods).ceil() as u32
 }
-

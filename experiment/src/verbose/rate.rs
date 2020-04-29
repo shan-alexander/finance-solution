@@ -1,6 +1,9 @@
+
+
 pub fn main() {
-    try_doc_example();
-    try_doc_example_solution();
+    // try_doc_example();
+    // try_doc_example_solution();
+    check_formulas();
 }
 
 fn try_doc_example() {
@@ -53,8 +56,8 @@ fn try_doc_example_solution() {
     dbg!(&series);
 }
 
-
-
-
-
+fn check_formulas() {
+    let solution = finance::rate_solution(4, 100, 200);
+    dbg!(&solution, &solution.series());
+}
 

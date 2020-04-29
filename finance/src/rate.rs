@@ -34,8 +34,10 @@ use crate::{future_value::future_value, present_value::present_value, periods::p
 /// [`periods`] or related functions.
 ///
 /// The formula is:
+/// > rate = (future_value / present_value)<sup>1 / periods</sup> - 1
 ///
-/// rate = ((future_value / present_value) ^ (1 / periods)) - 1
+/// or with the more commonly used variables:
+/// > r = (fv / pv)<sup>1 / n</sup> - 1
 ///
 /// # Arguments
 /// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
@@ -105,8 +107,10 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
 /// [`periods`] or related functions.
 ///
 /// The formula is:
+/// > rate = (future_value / present_value)<sup>1 / periods</sup> - 1
 ///
-/// rate = ((future_value / present_value) ^ (1 / periods)) - 1
+/// or with the more commonly used variables:
+/// > r = (fv / pv)<sup>1 / n</sup> - 1
 ///
 /// # Arguments
 /// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
@@ -147,8 +151,8 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
 ///
 /// // Examine the formula.
 /// let formula = solution.formula();
-/// dbg!(&formula);
-/// assert_eq!("((15000.0000 / 10000.0000) ^ (1 / 10)) - 1", &formula);
+/// dbg!(formula);
+/// assert_eq!("((15000.0000 / 10000.0000) ^ (1 / 10)) - 1", formula);
 ///
 /// // Calculate the period-by-period values.
 /// let series = solution.series();
@@ -169,8 +173,8 @@ pub fn rate_solution<P, F>(periods: u32, present_value: P, future_value: F) -> T
     }
 
     let rate = rate(periods, present_value, future_value);
-    let formula = format!("(({:.4} / {:.4}) ^ (1 / {})) - 1", future_value, present_value, periods);
-    let formula_symbolic = "***";
+    let formula = format!("{:.6} = (({:.4} / {:.4}) ^ (1 / {})) - 1", rate, future_value, present_value, periods);
+    let formula_symbolic = "r = ((fv / pv) ^ (1 / n)) - 1";
     TvmSolution::new(TvmVariable::Rate,rate, periods, present_value.into(), future_value, &formula, formula_symbolic)
 }
 

@@ -28,8 +28,10 @@ use crate::{future_value::future_value, rate::rate, periods::periods};
 /// period-by-period values use [`present_value_schedule_solution`].
 ///
 /// The present value formula is:
+/// > present_value = future_value / (1 + rate)<sup>periods</sup>
 ///
-/// present_value = future_value / (1 + rate)<sup>periods</sup>
+/// or with the more commonly used variables:
+/// > pv = fv / (1 + r)<sup>n</sup>
 ///
 /// # Arguments
 /// * `rate` - The rate at which the investment grows or shrinks per period,
@@ -92,8 +94,10 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T) -> f64
 /// period-by-period values use [`present_value_schedule_solution`].
 ///
 /// The present value formula is:
+/// > present_value = future_value / (1 + rate)<sup>periods</sup>
 ///
-/// present_value = future_value / (1 + rate)<sup>periods</sup>
+/// or with the more commonly used variables:
+/// > pv = fv / (1 + r)<sup>n</sup>
 ///
 /// # Arguments
 /// * `rate` - The rate at which the investment grows or shrinks per period,
@@ -169,7 +173,7 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T) -> f64
 /// assert_eq!(36, max_months);
 ///
 /// // Check the formula for the first scenario.
-/// dbg!(&scenarios[0].formula);
+/// dbg!(&scenarios[0].formula());
 /// assert_eq!("100000.0000 / (1.009000 ^ 25)", scenarios[0].formula());
 /// ```
 /// Error case: The investment loses 111% per year. There's no way to work out what this means so
@@ -186,8 +190,8 @@ pub fn present_value_solution<T>(rate: f64, periods: u32, future_value: T) -> Tv
     let present_value = present_value(rate, periods, future_value);
     let rate_multiplier = 1.0 + rate;
     assert!(rate_multiplier >= 0.0);
-    let formula = format!("{:.4} / ({:.6} ^ {})", future_value.into(), rate_multiplier, periods);
-    let formula_symbolic = "***";
+    let formula = format!("{:.4} = {:.4} / ({:.6} ^ {})", present_value, future_value.into(), rate_multiplier, periods);
+    let formula_symbolic = "pv = fv / (1 + r)^n";
     TvmSolution::new(TvmVariable::PresentValue, rate, periods, present_value, future_value.into(), &formula, formula_symbolic)
 }
 

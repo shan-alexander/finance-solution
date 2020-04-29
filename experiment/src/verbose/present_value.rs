@@ -11,6 +11,7 @@ pub fn main() {
     try_doc_example_schedule();
     try_doc_example_schedule_solution();
     try_doc_example_schedule_series();
+    dbg!(finance::present_value_solution(0.009, 1, 100_000));
 }
 
 fn try_present_value_solution() {
@@ -157,7 +158,7 @@ fn try_doc_example_solution_2() {
     assert_eq!(36, scenarios.len());
 
     // Keep only the scenarios where the present value is less than or equal to $80,000.
-    scenarios.retain(|x| x.present_value <= 80_000.00);
+    scenarios.retain(|x| x.present_value() <= 80_000.00);
     dbg!(&scenarios);
     assert_eq!(12, scenarios.len());
 
@@ -202,7 +203,7 @@ fn try_doc_example_series() {
     // the initial state.
     let filtered_series = series
         .iter()
-        .filter(|x| x.period % 2 == 0 && x.period != 0)
+        .filter(|x| x.period() % 2 == 0 && x.period() != 0)
         .collect::<Vec<_>>();
     dbg!(&filtered_series);
     assert_eq!(5, filtered_series.len());
@@ -236,7 +237,7 @@ fn try_doc_example_schedule_solution() {
     let solution = finance::present_value_schedule_solution(&rates, future_value);
     dbg!(&solution);
 
-    let present_value = solution.present_value;
+    let present_value = solution.present_value();
     finance::assert_rounded_4(present_value, 23_678.6383);
 
     // Calculate the value for each period.
@@ -268,7 +269,7 @@ fn try_doc_example_schedule_series() {
     // Create a filtered list of periods, only those with a negative rate.
     let filtered_series = series
         .iter()
-        .filter(|x| x.rate < 0.0)
+        .filter(|x| x.rate() < 0.0)
         .collect::<Vec<_>>();
     dbg!(&filtered_series);
     assert_eq!(2, filtered_series.len());

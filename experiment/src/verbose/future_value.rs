@@ -9,9 +9,10 @@ pub fn main() {
     // try_doc_example_solution_2();
     // try_doc_example_series();
     // try_doc_example_schedule();
-    try_doc_example_schedule_solution();
+    // try_doc_example_schedule_solution();
     // try_doc_example_schedule_series();
     // try_find_rate();
+    dbg!(finance::future_value_solution(0.012, 8, 200_000));
 }
 
 fn try_future_value() {
@@ -124,13 +125,13 @@ fn try_doc_example_solution_2() {
     assert_eq!(14, scenarios.len());
 
     // Keep only the scenarios where the future value was between $200,000 and $400,000.
-    scenarios.retain(|x| x.future_value >= 200_000.00 && x.future_value <= 400_000.00);
+    scenarios.retain(|x| x.future_value() >= 200_000.00 && x.future_value() <= 400_000.00);
     dbg!(&scenarios);
     assert_eq!(7, scenarios.len());
 
     // Check the formula for the first scenario.
-    dbg!(&scenarios[0].formula);
-    assert_eq!("100000.0000 * (1.060000 ^ 12)", scenarios[0].formula);
+    dbg!(scenarios[0].formula());
+    assert_eq!("100000.0000 * (1.060000 ^ 12)", scenarios[0].formula());
 }
 
 fn try_doc_example_series() {
@@ -159,7 +160,7 @@ fn try_doc_example_series() {
     // Create a reduced vector with every fourth period.
     let filtered_series = series
         .iter()
-        .filter(|x| x.period % 4 == 0)
+        .filter(|x| x.period() % 4 == 0)
         .collect::<Vec<_>>();
     dbg!(&filtered_series);
     assert_eq!(7, filtered_series.len());
@@ -188,7 +189,7 @@ fn try_doc_example_schedule_solution() {
     let solution = finance::future_value_schedule_solution(&rates, present_value);
     dbg!(&solution);
 
-    let future_value = solution.future_value;
+    let future_value = solution.future_value();
     dbg!(&future_value);
     finance::assert_rounded_4(future_value, 12_192.0455);
 
@@ -209,7 +210,7 @@ fn try_doc_example_schedule_series() {
     // and the formula used.
     let solution = finance::future_value_schedule_solution(&rates, present_value);
     dbg!(&solution);
-    finance::assert_rounded_4(62534.3257, solution.future_value);
+    finance::assert_rounded_4(62534.3257, solution.future_value());
 
     // Calculate the value at the end of each period.
     let series = solution.series();
@@ -221,13 +222,13 @@ fn try_doc_example_schedule_series() {
 
     // Confirm that the value of the fourth period is the same as the overall
     // future value.
-    finance::assert_rounded_4(solution.future_value, series.last().unwrap().value);
+    finance::assert_rounded_4(solution.future_value(), series.last().unwrap().value());
 
     // Find the first period where the value of the investment was at least
     // $60,000.
-    let period = series.iter().find(|x| x.value >= 60_000.00);
-    dbg!(&period);
-    assert_eq!(2, period.unwrap().period);
+    let entry = series.iter().find(|x| x.value() >= 60_000.00);
+    dbg!(&entry);
+    assert_eq!(2, entry.unwrap().period());
 }
 
 fn try_find_rate() {
@@ -248,5 +249,4 @@ fn try_find_rate() {
     dbg!(&calc_periods);
 
     dbg!(25.0f64.log(2.0));
-
 }

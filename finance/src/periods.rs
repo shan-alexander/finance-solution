@@ -36,8 +36,10 @@ use crate::{future_value::future_value, present_value::present_value, rate::rate
 /// [`rate`] or related functions.
 ///
 /// The formula is:
+/// > periods = log<sub>(1 + rate)</sub> (future_value / present_value)
 ///
-/// periods = log<sub>(1 + rate)</sub> (future_value / present_value)
+/// or with the more commonly used variables:
+/// > n = log<sub>(1 + r)</sub> (fv / pv)
 ///
 /// # Arguments
 /// * `rate` - The rate at which the investment grows or shrinks per period, expressed as a
@@ -136,8 +138,10 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
 /// [`rate`] or related functions.
 ///
 /// The formula is:
+/// > periods = log<sub>(1 + rate)</sub> (future_value / present_value)
 ///
-/// periods = log<sub>(1 + rate)</sub> (future_value / present_value)
+/// or with the more commonly used variables:
+/// > n = log<sub>(1 + r)</sub> (fv / pv)
 ///
 /// # Arguments
 /// * `rate` - The rate at which the investment grows or shrinks per period, expressed as a
@@ -235,8 +239,9 @@ pub fn periods_solution<P, F>(rate: f64, present_value: P, future_value: F) -> T
 
     let present_value = present_value.into();
     let future_value = future_value.into();
-    let formula = format!("log({:.4} / {:.4}) base (1 + {:.6}))", future_value, present_value, rate);
-    let formula_symbolic = "***";
+    let rate_multiplier = 1.0 + rate;
+    let formula = format!("{:.2} = log[base {:.6}]({:.4} / {:.4})", fractional_periods, rate_mult, future_value, present_value);
+    let formula_symbolic = "n = log[base (1 + r)](fv / pv)";
     TvmSolution::new_fractional_periods(TvmVariable::Periods,rate, fractional_periods, present_value, future_value, &formula, formula_symbolic)
 }
 

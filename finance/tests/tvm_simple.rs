@@ -30,17 +30,17 @@ mod tests {
     }
 
     fn check_symmetry(rate_in: f64, periods_in: u32, present_value_in: f64) {
-        dbg!("test_symmetry_internal", rate_in, periods_in, present_value_in);
+        //bg!("test_symmetry_internal", rate_in, periods_in, present_value_in);
 
         // Calculate the future value given the other three inputs so that we have all four values
         // which we can use in various combinations to confirm that all four basic TVM functions
         // return consistent values.
         let future_value_calc = future_value(rate_in, periods_in, present_value_in);
-        dbg!(future_value_calc);
-        dbg!(future_value_calc.is_normal());
+        //bg!(future_value_calc);
+        //bg!(future_value_calc.is_normal());
 
         let rate_calc = rate(periods_in, present_value_in, future_value_calc);
-        dbg!(rate_calc);
+        //bg!(rate_calc);
         if periods_in == 0 || present_value_in == 0.0 {
             // With zero periods or zero for the present value, presumably the future value is the
             // same as the present value and any periodic rate would be fine so we arbitrarily
@@ -48,14 +48,14 @@ mod tests {
             assert_approx_equal_symmetry_test!(present_value_in, future_value_calc);
             assert_approx_equal_symmetry_test!(0.0, rate_calc);
         } else {
-            dbg!(rate_calc, rate_in);
+            //bg!(rate_calc, rate_in);
             assert_approx_equal_symmetry_test!(rate_calc, rate_in);
         }
 
         let fractional_periods_calc = periods(rate_in, present_value_in, future_value_calc);
-        dbg!(fractional_periods_calc);
+        //bg!(fractional_periods_calc);
         let periods_calc = round_4(fractional_periods_calc).ceil() as u32;
-        dbg!(periods_calc);
+        //bg!(periods_calc);
         if rate_in == 0.0 || present_value_in == 0.0 || periods_in == 0 {
             // If the rate is zero or the present value is zero then the present value and future
             // value will be the same and periods() will return zero since no periods are required.
@@ -74,7 +74,7 @@ mod tests {
 
         if future_value_calc.is_normal() {
             let present_value_calc = present_value(rate_in, periods_in,future_value_calc);
-            dbg!(present_value_calc);
+            //bg!(present_value_calc);
             assert_approx_equal_symmetry_test!(present_value_calc, present_value_in);
         };
 
@@ -87,12 +87,12 @@ mod tests {
 
         if future_value_calc.is_normal() {
             let present_value_schedule_calc = present_value_schedule(&rates_in, future_value_calc);
-            // dbg!(present_value_schedule_calc);
+            //bg!(present_value_schedule_calc);
             assert_approx_equal_symmetry_test!(present_value_schedule_calc, present_value_in);
         }
 
         let future_value_schedule_calc = future_value_schedule(&rates_in, present_value_in);
-        dbg!(future_value_schedule_calc);
+        //bg!(future_value_schedule_calc);
         assert_approx_equal_symmetry_test!(future_value_schedule_calc, future_value_calc);
 
         // Create TvmSolution structs by solving for each of the four possible variables.
@@ -105,14 +105,14 @@ mod tests {
             solutions.push(present_value_solution(rate_in, periods_in, future_value_calc));
         }
         for solution in solutions.iter() {
-            dbg!(solution);
+            //bg!(solution);
             if solution.calculated_field().is_rate() {
                 // There are a few special cases in which the calculated rate is arbitrarily set to
                 // zero since any value would work. We've already checked rate_calc against those
                 // special cases, so use that here for the comparison.
-                assert_approx_equal_symmetry_test!(rate_calc, solution.rate);
+                assert_approx_equal_symmetry_test!(rate_calc, solution.rate());
             } else {
-                assert_approx_equal_symmetry_test!(rate_in, solution.rate);
+                assert_approx_equal_symmetry_test!(rate_in, solution.rate());
             }
             if solution.calculated_field().is_periods() {
                 // There are a few special cases in which the number of periods might be zero or one
@@ -122,8 +122,8 @@ mod tests {
             } else {
                 assert_eq!(periods_in, solution.periods());
             }
-            assert_approx_equal_symmetry_test!(present_value_in, solution.present_value);
-            assert_approx_equal_symmetry_test!(future_value_calc, solution.future_value);
+            assert_approx_equal_symmetry_test!(present_value_in, solution.present_value());
+            assert_approx_equal_symmetry_test!(future_value_calc, solution.future_value());
         }
 
         let mut schedules = vec![
@@ -133,23 +133,23 @@ mod tests {
             schedules.push(present_value_schedule_solution(&rates_in, future_value_calc));
         }
         for schedule in schedules.iter() {
-            dbg!(schedule);
-            assert_eq!(periods_in, schedule.rates.len() as u32);
-            assert_eq!(periods_in, schedule.periods);
-            assert_approx_equal_symmetry_test!(present_value_in, schedule.present_value);
-            assert_approx_equal_symmetry_test!(future_value_calc, schedule.future_value);
+            //bg!(schedule);
+            assert_eq!(periods_in, schedule.rates().len() as u32);
+            assert_eq!(periods_in, schedule.periods());
+            assert_approx_equal_symmetry_test!(present_value_in, schedule.present_value());
+            assert_approx_equal_symmetry_test!(future_value_calc, schedule.future_value());
         }
         
         // Check each series in isolation.
         for solution in solutions.iter() {
-            let label = format!("Solution for {:?}", solution.calculated_field);
-            dbg!(&label);
-            check_series_internal(label, solution.calculated_field.clone(), &solution.series(), rate_in, periods_in, present_value_in, future_value_calc, rate_calc, periods_calc);
+            let label = format!("Solution for {:?}", solution.calculated_field());
+            //bg!(&label);
+            check_series_internal(label, solution.calculated_field().clone(), &solution.series(), rate_in, periods_in, present_value_in, future_value_calc, rate_calc, periods_calc);
         }
         for schedule in schedules.iter() {
-            let label = format!("Schedule for {:?}", schedule.calculated_field);
-            dbg!(&label);
-            check_series_internal(label, schedule.calculated_field.clone(), &schedule.series(), rate_in, periods_in, present_value_in, future_value_calc, rate_calc, periods_calc);
+            let label = format!("Schedule for {:?}", schedule.calculated_field());
+            //bg!(&label);
+            check_series_internal(label, schedule.calculated_field().clone(), &schedule.series(), rate_in, periods_in, present_value_in, future_value_calc, rate_calc, periods_calc);
         }
 
         // Confirm that all of the series have the same values for all periods regardless of how we
@@ -158,21 +158,21 @@ mod tests {
         // to use the result of rate_solution() and present_value_solution() but not
         // periods_solution() since there are some special cases in which this will create fewer
         // periods than the other functions.
-        let reference_solution = solutions.iter().find(|x| x.calculated_field.is_future_value()).unwrap();
-        for solution in solutions.iter().filter(|x| !x.calculated_field.is_future_value()) {
-            let label = format!("Solution for {:?}", solution.calculated_field);
-            check_series_same_values(reference_solution, label, solution.calculated_field.clone(), &solution.series());
+        let reference_solution = solutions.iter().find(|x| x.calculated_field().is_future_value()).unwrap();
+        for solution in solutions.iter().filter(|x| !x.calculated_field().is_future_value()) {
+            let label = format!("Solution for {:?}", solution.calculated_field());
+            check_series_same_values(reference_solution, label, solution.calculated_field().clone(), &solution.series());
         }
         for schedule in schedules.iter() {
-            let label = format!("Schedule for {:?}", schedule.calculated_field);
-            check_series_same_values(reference_solution, label, schedule.calculated_field.clone(), &schedule.series());
+            let label = format!("Schedule for {:?}", schedule.calculated_field());
+            check_series_same_values(reference_solution, label, schedule.calculated_field().clone(), &schedule.series());
         }
 
     }
 
     fn check_series_internal(label: String, calculated_field: TvmVariable, series: &[TvmPeriod], rate_in: f64, periods_in: u32, present_value_in: f64, future_value_calc: f64, rate_calc: f64, periods_calc: u32) {
-        dbg!(label);
-        dbg!(&series);
+        //bg!(label);
+        //bg!(&series);
         if calculated_field.is_periods() {
             // There are a few special cases in which the number of periods might be zero or one
             // instead of matching periods_in. So check against the number returned from
@@ -183,55 +183,55 @@ mod tests {
         }
         let mut prev_value: Option<f64> = None;
         for (period, entry) in series.iter().enumerate() {
-            assert_eq!(period as u32, entry.period);
+            assert_eq!(period as u32, entry.period());
             if period == 0 {
-                assert_approx_equal_symmetry_test!(0.0, entry.rate);
+                assert_approx_equal_symmetry_test!(0.0, entry.rate());
                 // The first entry should always contain the starting value.
-                assert_approx_equal_symmetry_test!(present_value_in, entry.value);
+                assert_approx_equal_symmetry_test!(present_value_in, entry.value());
             } else {
                 // We're past period 0.
                 let effective_rate = if calculated_field.is_rate() {
                     // There are a few special cases in which the calculated rate is arbitrarily set
                     // to zero since any value would work. We've already checked rate_calc against
                     // those special cases, so use that here for the comparison.
-                    assert_approx_equal_symmetry_test!(rate_calc, entry.rate);
+                    assert_approx_equal_symmetry_test!(rate_calc, entry.rate());
                     rate_calc
                 } else {
-                    assert_approx_equal_symmetry_test!(rate_in, entry.rate);
+                    assert_approx_equal_symmetry_test!(rate_in, entry.rate());
                     rate_in
                 };
                 // Compare this period's value to the one before.
                 if effective_rate == 0.0 || prev_value.unwrap() == 0.0 {
                     // The rate is zero or the previous value was zero so each period's value should
                     // be the same as the one before.
-                    assert_approx_equal_symmetry_test!(entry.value, prev_value.unwrap());
+                    assert_approx_equal_symmetry_test!(entry.value(), prev_value.unwrap());
                 } else if present_value_in.signum() == effective_rate.signum() {
                     // Either the starting value and the rate are both positive or they're both
                     // negative. In either case each period's value should be greater than the one
                     // before.
-                    assert!(entry.value > prev_value.unwrap());
+                    assert!(entry.value() > prev_value.unwrap());
                 } else {
                     // Either the starting value is positive and the rate is negative or vice versa.
                     // In either case each period's value should be smaller than the one before.
-                    assert!(entry.value < prev_value.unwrap());
+                    assert!(entry.value() < prev_value.unwrap());
                 }
             }
             if period == series.len() - 1 {
                 // This is the last period's entry. It should contain the future value.
-                dbg!(future_value_calc, entry.value);
-                assert_approx_equal_symmetry_test!(future_value_calc, entry.value);
+                //bg!(future_value_calc, entry.value());
+                assert_approx_equal_symmetry_test!(future_value_calc, entry.value());
             }
-            prev_value = Some(entry.value);
+            prev_value = Some(entry.value());
         }
     }
 
     fn check_series_same_values(reference_solution: &TvmSolution, label: String, calculated_field: TvmVariable, series: &[TvmPeriod]) {
-        dbg!(reference_solution);
+        //bg!(reference_solution);
         let reference_series = reference_solution.series();
-        dbg!(&reference_series);
+        //bg!(&reference_series);
 
-        dbg!(label);
-        dbg!(&series);
+        //bg!(label);
+        //bg!(&series);
 
         if calculated_field.is_periods() && reference_series.len() != series.len() {
 
@@ -241,19 +241,19 @@ mod tests {
             // There will always be at least a period 0.
             let reference_entry = &reference_series[0];
             let entry = &series[0];
-            dbg!(&reference_entry, &entry);
-            assert_eq!(reference_entry.period, entry.period);
-            assert_approx_equal_symmetry_test!(reference_entry.rate, entry.rate);
-            assert_approx_equal_symmetry_test!(reference_entry.value, entry.value);
+            //bg!(&reference_entry, &entry);
+            assert_eq!(reference_entry.period(), entry.period());
+            assert_approx_equal_symmetry_test!(reference_entry.rate(), entry.rate());
+            assert_approx_equal_symmetry_test!(reference_entry.value(), entry.value());
 
             // Check the last period.
             let reference_entry = &reference_series.last().unwrap();
             let entry = &series.last().unwrap();
-            dbg!(&reference_entry, &entry);
+            //bg!(&reference_entry, &entry);
             if reference_series.len() > 1 && series.len() > 1 {
-                assert_approx_equal_symmetry_test!(reference_entry.rate, entry.rate);
+                assert_approx_equal_symmetry_test!(reference_entry.rate(), entry.rate());
             }
-            assert_approx_equal_symmetry_test!(reference_entry.value, entry.value);
+            assert_approx_equal_symmetry_test!(reference_entry.value(), entry.value());
 
         } else {
 
@@ -264,18 +264,18 @@ mod tests {
 
             for (period, reference_entry) in reference_series.iter().enumerate() {
                 let entry = &series[period];
-                dbg!(&reference_entry, &entry);
-                assert_eq!(reference_entry.period, entry.period);
+                //bg!(&reference_entry, &entry);
+                assert_eq!(reference_entry.period(), entry.period());
                 if calculated_field.is_rate() {
                     // There are a few special cases where the calculated rate will be zero since
                     // any answer would work.
-                    if entry.rate != 0.0 {
-                        assert_approx_equal_symmetry_test!(reference_entry.rate, entry.rate);
+                    if entry.rate() != 0.0 {
+                        assert_approx_equal_symmetry_test!(reference_entry.rate(), entry.rate());
                     }
                 } else {
-                    assert_approx_equal_symmetry_test!(reference_entry.rate, entry.rate);
+                    assert_approx_equal_symmetry_test!(reference_entry.rate(), entry.rate());
                 }
-                // dbg!(reference_entry.value, round_2(reference_entry.value), entry.value, round_2(entry.value));
+                //bg!(reference_entry.value, round_2(reference_entry.value), entry.value, round_2(entry.value));
                 // assert_approx_equal_symmetry_test!(reference_entry.value, entry.value);
                 // assert_eq!(reference_entry.value.round(), entry.value.round());
             }
