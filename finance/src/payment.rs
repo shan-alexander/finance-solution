@@ -208,9 +208,9 @@ pub(crate) fn payment_series(solution: &TvmCashflowSolution) -> Vec<TvmCashflowP
             let formula_symbolic = "interest = -(principal * rate)".to_string();
             (formula, formula_symbolic)
         };
-        let entry = TvmCashflowPeriod::new(rate, period, payment, payments_to_date,
+        let entry = TvmCashflowPeriod::new(period, rate, due_at_beginning, payment, payments_to_date,
             payments_remaining, principal, principal_to_date, principal_remaining, interest,
-            interest_to_date, interest_remaining, due_at_beginning, formula, formula_symbolic);
+            interest_to_date, interest_remaining, formula, formula_symbolic);
         series.push(entry);
     }
     if RUN_PAYMENT_INVARIANTS {
@@ -241,12 +241,14 @@ fn payment_solution_invariant(solution: &TvmCashflowSolution) {
     assert!(present_value.is_finite());
     assert!(future_value.is_finite());
     assert!(payment.is_finite());
-    if present_and_future_value == 0.0 {
-        assert_eq!(0.0, payment);
-    } else if present_and_future_value.is_sign_positive() {
-        assert!(payment.is_sign_negative());
-    } else if present_and_future_value.is_sign_negative() {
-        assert!(payment.is_sign_positive());
+    if future_value == 0.0 {
+        if present_value == 0.0 {
+            assert_eq!(0.0, payment);
+        } else if present_value.is_sign_positive() {
+            assert!(payment.is_sign_negative());
+        } else if present_value.is_sign_negative() {
+            assert!(payment.is_sign_positive());
+        }
     }
     assert!(sum_of_payments.is_finite());
     assert_approx_equal!(sum_of_payments, payment * periods as f64);
@@ -304,6 +306,9 @@ fn payment_series_invariant(solution: &TvmCashflowSolution, series: &[TvmCashflo
                 assert!(entry.principal() < 0.0);
                 assert!(entry.interest() < 0.0);
             } else {
+                if entry.principal() <= 0.0 {
+                    dbg!(&solution, &series[..10]);
+                }
                 assert!(entry.principal() > 0.0);
                 assert!(entry.interest() > 0.0);
             }
@@ -325,6 +330,9 @@ fn payment_series_invariant(solution: &TvmCashflowSolution, series: &[TvmCashflo
         if index == periods as usize - 1 {
             // This is the entry for the last period.
             assert_approx_equal!(0.0, entry.payments_remaining());
+            if !is_approx_equal!(0.0, entry.principal_remaining()) {
+                dbg!(&solution, &series[..10], &series[250], &series[490..500]);
+            }
             assert_approx_equal!(0.0, entry.principal_remaining());
             assert_approx_equal!(0.0, entry.interest_remaining());
         }
@@ -434,11 +442,12 @@ mod tests {
     }
     */
 
+    /*
     #[test]
     fn test_combinations() {
         // let rates = vec![-0.99, -0.5, -0.05, -0.005, 0.0, 0.005, 0.05, 0.5, 1.0, 10.0, 100.0];
         let rates = vec![0.0, 0.005, 0.05, 0.5, 1.0, 10.0, 100.0];
-        let periods: Vec<u32> = vec![0, 1, 2, 5, 10, 36, 100, 1_000];
+        let periods: Vec<u32> = vec![0, 1, 2, 5, 10, 36, 100, 500];
         let values: Vec<f64> = vec![-1_000_000.0, -1_234.98, -1.0, 0.0, 5.55555, 99_999.99];
         for rate_one in rates.iter() {
             for periods_one in periods.iter() {
@@ -468,6 +477,7 @@ mod tests {
             }
         }
     }
+    */
 
     fn run_payment_invariants(solution: &TvmCashflowSolution, series: &[TvmCashflowPeriod]) {
         // Display the solution and series only if either one fails its invariant.
@@ -482,4 +492,5 @@ mod tests {
             payment_series_invariant(&solution, &series);
         }
     }
+
 }
