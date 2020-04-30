@@ -12,7 +12,9 @@ pub fn main() {
     // try_doc_example_schedule_solution();
     // try_doc_example_schedule_series();
     // try_find_rate();
-    dbg!(finance::future_value_solution(0.012, 8, 200_000));
+    try_series_print_table();
+    // check_formulas();
+    // dbg!(finance::future_value_solution(0.012, 8, 200_000));
 }
 
 fn try_future_value() {
@@ -250,3 +252,39 @@ fn try_find_rate() {
 
     dbg!(25.0f64.log(2.0));
 }
+
+fn try_series_print_table() {
+    let locale = num_format::Locale::en;
+    // let locale = num_format::Locale::vi;
+    let precision = 2;
+
+    let rate = 0.05;
+    let periods = 12;
+    let present_value = 1_000;
+    let solution = finance::future_value_solution(rate, periods, present_value);
+    let series = solution.series();
+    dbg!(&solution, &series);
+
+    series.print_table(&locale, precision);
+
+    finance::future_value_solution(0.05, 12, 1_000)
+        .series()
+        .filter(|x| x.value() > 1_400.0)
+        .print_table(&locale, precision);
+
+    finance::future_value_schedule_solution(&[0.04, 0.07, 0.06, 0.05], 1_000)
+        .series()
+        .print_table(&locale, precision);
+
+    finance::future_value_schedule_solution(&[0.04, 0.07, 0.06, 0.05], 1_000)
+        .print_series_table(&locale, precision);
+}
+
+fn check_formulas() {
+    let solution = finance::future_value_solution(0.11, 5, 100);
+    dbg!(&solution, &solution.series());
+
+    let schedule = finance::future_value_schedule_solution(&[0.11, 0.09, 0.12], 100);
+    dbg!(&schedule, &schedule.series());
+}
+

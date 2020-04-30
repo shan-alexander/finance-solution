@@ -1,9 +1,10 @@
-use std::fmt::Debug;
-use std::fmt;
+// use std::fmt::Debug;
+// use std::fmt;
 
 // Import needed for the function references in the Rustdoc comments.
 #[allow(unused_imports)]
 use crate::*;
+use std::ops::Deref;
 
 /// Enumeration used for the `calculated_field` field in [`TvmSolution`] and [`TvmSchedule`] to keep
 /// track of what was calculated, either the periodic rate, the number of periods, the present
@@ -229,47 +230,65 @@ impl TvmSolution {
     /// dbg!(&filtered_series);
     /// assert_eq!(2, filtered_series.len());
     /// ```
-    pub fn series(&self) -> Vec<TvmPeriod> {
-        let rate_multiplier = 1.0 + self.rate;
-        assert!(rate_multiplier >= 0.0);
-        let mut series = vec![];
-        // Add the values at each period.
+    pub fn series(&self) -> TvmSeries {
         if self.calculated_field.is_present_value() {
-            let mut prev_value = None;
-            for period in (0..=self.periods).rev() {
-                let rate = if period == 0 {
-                    0.0
-                } else {
-                    self.rate
-                };
-                let (value, formula, formula_symbolic) = if period == self.periods {
-                    (self.future_value, format!("{:.4}", self.future_value), "***".to_string())
-                } else {
-                    (prev_value.unwrap() / rate_multiplier, format!("{:.4} / {:.6}", prev_value.unwrap(), rate_multiplier), "***".to_string())
-                };
-                assert!(value.is_finite());
-                prev_value = Some(value);
-                series.insert(0, TvmPeriod::new(period, rate, value, &formula, &formula_symbolic))
-            };
+            present_value_series(self)
         } else if self.calculated_field.is_rate() || self.calculated_field.is_periods() || self.calculated_field.is_future_value() {
+            // For these three cases the period-by-period values are calculated the same way,
+            // starting with the present value and multiplying the value by (1 + rate) for each
+            // period. The only nuance is that if we got here from a periods calculation the last
+            // period may not be a full one, so there is some special handling of the formulas and
+            // values.
+
+            let rate_multiplier = 1.0 + self.rate;
+            assert!(rate_multiplier >= 0.0);
+
+            // For each period after 0, prev_value will hold the value of the previous period.
             let mut prev_value = None;
+
+            let mut series = vec![];
+
+            // Add the values at each period.
             for period in 0..=self.periods {
-                let rate = if period == 0 {
+                let one_rate = if period == 0 {
                     0.0
                 } else {
                     self.rate
                 };
                 let (value, formula, formula_symbolic) = if period == 0 {
-                    (self.present_value, format!("{:.4}", self.present_value), "***".to_string())
+                    let value = self.present_value;
+                    let formula = format!("{:.4}", value);
+                    let formula_symbolic = "value = pv";
+                    (value, formula, formula_symbolic)
                 } else {
-                    (prev_value.unwrap() * rate_multiplier, format!("{:.4} * {:.6}", prev_value.unwrap(), rate_multiplier), "***".to_string())
+                    if self.calculated_field.is_periods() && period == self.periods {
+                        // We calculated periods and this may not be a whole number, so for the last
+                        // period use the future value. If instead we multiplied the previous
+                        // period's value by (1 + rate) we could overshoot the future value.
+                        let value = self.future_value;
+                        let formula = format!("{:.4}", value);
+                        let formula_symbolic = "value = fv";
+                        (value, formula, formula_symbolic)
+                    } else {
+                        // The usual case.
+                        let value = prev_value.unwrap() * rate_multiplier;
+                        let formula = format!("{:.4} = {:.4} * {:.6}", value, prev_value.unwrap(), rate_multiplier);
+                        let formula_symbolic = "value = {previous period value} * (1 + r)";
+                        (value, formula, formula_symbolic)
+                    }
                 };
                 assert!(value.is_finite());
                 prev_value = Some(value);
-                series.push(TvmPeriod::new(period, rate, value, &formula, &formula_symbolic))
-            };
+                series.push(TvmPeriod::new(period, one_rate, value, &formula, formula_symbolic))
+            }
+            TvmSeries::new(series)
+        } else {
+            panic!("Unexpected calculated field: {:?}", self.calculated_field);
         }
-        series
+    }
+
+    pub fn print_series_table(&self, locale: &num_format::Locale, precision: usize) {
+        self.series().print_table(locale, precision);
     }
 
     /// Returns a variant of [`TvmVariable`] showing which value was calculated, either the periodic
@@ -364,62 +383,18 @@ impl TvmSchedule {
         }
     }
 
-    pub fn series(&self) -> Vec<TvmPeriod> {
-        let mut series = vec![];
-        // Add the values at each period.
+    pub fn series(&self) -> TvmSeries {
         if self.calculated_field.is_present_value() {
-            if self.periods == 0 {
-                // Special case.
-                let formula = format!("{:.4}", self.present_value);
-                let formula_symbolic = "***";
-                series.push(TvmPeriod::new(0, 0.0, self.present_value, &formula, formula_symbolic));
-            } else {
-                let mut next_value = None;
-                for period in (0..=self.periods).rev() {
-                    let (value, formula, formula_symbolic, rate) = if period > 0 && period == self.periods {
-                        (self.future_value, format!("{:.4}", self.future_value), "***".to_string(), self.rates[(period - 1) as usize])
-                    } else {
-                        // We want the rate for the period after this one. Since periods are 1-based and
-                        // the vector of rates is 0-based, this means using the current period number as
-                        // the index into the vector.
-                        let next_rate = self.rates[period as usize];
-                        assert!(next_rate >= -1.0);
-                        let next_rate_multiplier = 1.0 + next_rate;
-                        assert!(next_rate_multiplier >= 0.0);
-                        // While we are going to divide by the rate of the next period, the rate that
-                        // will appear in the TvmPeriod struct is the rate for the current period.
-                        let rate = if period == 0 {
-                            0.0
-                        } else {
-                            self.rates[(period - 1) as usize]
-                        };
-                        (next_value.unwrap() / next_rate_multiplier, format!("{:.4} / {:.6}", next_value.unwrap(), next_rate_multiplier), "***".to_string(), rate)
-                    };
-                    assert!(value.is_finite());
-                    next_value = Some(value);
-                    series.insert(0, TvmPeriod::new(period, rate, value, &formula, &formula_symbolic))
-                };
-            }
+            present_value_schedule_series(self)
         } else if self.calculated_field.is_future_value() {
-            let mut prev_value = None;
-            for period in 0..=self.periods {
-                let (value, formula, formula_symbolic, rate) = if period == 0 {
-                    (self.present_value, format!("{:.4}", self.present_value), "***".to_string(), 0.0)
-                } else {
-                    // We want the rate for the current period. However, periods are 1-based and
-                    // the vector of rates is 0-based, so the corresponding rate is at period - 1.
-                    let rate = self.rates[period as usize - 1];
-                    assert!(rate >= -1.0);
-                    let rate_multiplier = 1.0 + rate;
-                    assert!(rate_multiplier >= 0.0);
-                    (prev_value.unwrap() * rate_multiplier, format!("{:.4} * {:.6}", prev_value.unwrap(), rate_multiplier), "***".to_string(), rate)
-                };
-                assert!(value.is_finite());
-                prev_value = Some(value);
-                series.push(TvmPeriod::new(period, rate, value, &formula, &formula_symbolic))
-            };
+            future_value_schedule_series(self)
+        } else {
+            panic!("Unexpected calculated field: {:?}", self.calculated_field);
         }
-        series
+    }
+
+    pub fn print_series_table(&self, locale: &num_format::Locale, precision: usize) {
+        self.series().print_table(locale, precision);
     }
 
     /// Returns a variant of [`TvmVariable`] showing which value was calculated, either the present
@@ -467,14 +442,50 @@ impl TvmSchedule {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct TvmSeries(Vec<TvmPeriod>);
+
+impl TvmSeries {
+    pub fn new(series: Vec<TvmPeriod>) -> Self {
+        Self {
+            0: series,
+        }
+    }
+
+    pub fn filter<P>(&self, predicate: P) -> Self
+        where P: Fn(&&TvmPeriod) -> bool
+    {
+        Self {
+            0: self.iter().filter(|x| predicate(x)).map(|x| x.clone()).collect()
+        }
+    }
+
+    pub fn print_table(&self, locale: &num_format::Locale, precision: usize) {
+        let columns = vec![("period", "i"), ("rate", "f"), ("value", "f")];
+        let mut data = self.iter()
+            .map(|entry| vec![entry.period.to_string(), entry.rate.to_string(), entry.value.to_string()])
+            .collect::<Vec<_>>();
+        print_table_locale(&columns, &mut data, locale, precision);
+    }
+}
+
+impl Deref for TvmSeries {
+    type Target = Vec<TvmPeriod>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 /// The value of an investment at the end of a given period, part of a Time Value of Money
 /// calculation.
 ///
 /// This is either:
-/// * Part of PvmSolution produced by calling [`rate_solution`], [`periods_solution`],
+/// * Part of [`TvmSolution`] produced by calling [`rate_solution`], [`periods_solution`],
 /// [`present_value_solution`], or [`future_value_solution`].
-/// * Part of PvmSchedule produced by calling [`present_value_schedule`] or
+/// * Part of [`TvmSchedule`] produced by calling [`present_value_schedule`] or
 /// [`future_value_schedule`].
+#[derive(Clone, Debug)]
 pub struct TvmPeriod {
     period: u32,
     rate: f64,
@@ -531,16 +542,19 @@ impl TvmPeriod {
     }
 }
 
+/*
 impl Debug for TvmPeriod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{{ {}, {}, {}, {} }}",
+        write!(f, "{{ {}, {}, {}, {}, {} }}",
                &format!("period: {}", self.period),
                &format!("rate: {:.6}", self.rate),
                &format!("value: {:.4}", self.value),
                &format!("formula: {:?}", self.formula),
+               &format!("formula_symbolic: {:?}", self.formula_symbolic),
         )
     }
 }
+*/
 
 fn round_fractional_periods(fractional_periods: f64) -> u32 {
     round_4(fractional_periods).ceil() as u32

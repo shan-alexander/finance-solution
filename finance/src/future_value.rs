@@ -150,8 +150,13 @@ pub fn future_value<T>(rate: f64, periods: u32, present_value: T) -> f64
 /// let future_value = solution.future_value();
 /// finance::assert_rounded_4(future_value, 220_026.0467);
 ///
+/// // Examine the formulas.
 /// let formula = solution.formula();
-/// assert_eq!(formula, "200000.0000 * (1.012000 ^ 8)");
+/// dbg!(&formula);
+/// assert_eq!(formula, "220026.0467 = 200000.0000 * (1.012000 ^ 8)");
+/// let formula_symbolic = solution.formula_symbolic();
+/// dbg!(&formula_symbolic);
+/// assert_eq!(formula_symbolic, "fv = pv * (1 + r)^n");
 ///
 /// // Calculate the value at the end of each period.
 /// let series = solution.series();
@@ -182,9 +187,13 @@ pub fn future_value<T>(rate: f64, periods: u32, present_value: T) -> f64
 /// dbg!(&scenarios);
 /// assert_eq!(7, scenarios.len());
 ///
-/// // Check the formula for the first scenario.
-/// dbg!(&scenarios[0].formula());
-/// assert_eq!("100000.0000 * (1.060000 ^ 12)", scenarios[0].formula());
+/// // Check the formulas for the first of the remainingc scenarios.
+/// let formula = scenarios[0].formula();
+/// dbg!(&formula);
+/// assert_eq!("201219.6472 = 100000.0000 * (1.060000 ^ 12)", formula);
+/// let formula_symbolic = scenarios[0].formula_symbolic();
+/// dbg!(&formula_symbolic);
+/// assert_eq!("fv = pv * (1 + r)^n", formula_symbolic);
 /// ```
 pub fn future_value_solution<T>(rate: f64, periods: u32, present_value: T) -> TvmSolution
     where T: Into<f64> + Copy
@@ -311,6 +320,42 @@ fn check_future_value_parameters(rate: f64, _periods: u32, present_value: f64) {
         warn!("You provided a periodic rate ({}) greater than 1. Are you sure you expect a {}% return?", rate, rate * 100.0);
     }
     assert!(present_value.is_finite(), "The present value must be finite (not NaN or infinity)");
+}
+
+pub(crate) fn future_value_schedule_series(schedule: &TvmSchedule) -> TvmSeries {
+    assert!(schedule.calculated_field().is_future_value());
+
+    // After period 0 this will hold the value of the previous period.
+    let mut prev_value = None;
+
+    // Add the values at each period.
+    let mut series = vec![];
+    for period in 0..=schedule.periods() {
+        let (value, formula, formula_symbolic, rate) = if period == 0 {
+            // This is period 0, the starting point, so the value at the end of this period is
+            // simply the present value.
+            let value = schedule.present_value();
+            let formula = format!("{:.4}", value);
+            let formula_symbolic = "value = pv";
+            let rate = 0.0;
+            (value, formula, formula_symbolic, rate)
+        } else {
+            // We want the rate for the current period. However, periods are 1-based and
+            // the vector of rates is 0-based, so the corresponding rate is at period - 1.
+            let rate = schedule.rates()[period as usize - 1];
+            assert!(rate >= -1.0);
+            let rate_multiplier = 1.0 + rate;
+            assert!(rate_multiplier >= 0.0);
+            let value = prev_value.unwrap() * rate_multiplier;
+            let formula = format!("{:.4} = {:.4} * {:.6}", value, prev_value.unwrap(), rate_multiplier);
+            let formula_symbolic = "value = {previous period value} * (1 + r)";
+            (value, formula, formula_symbolic, rate)
+        };
+        assert!(value.is_finite());
+        prev_value = Some(value);
+        series.push(TvmPeriod::new(period, rate, value, &formula, &formula_symbolic))
+    }
+    TvmSeries::new(series)
 }
 
 #[cfg(test)]
