@@ -1,3 +1,6 @@
+use num_format::{Locale, ToFormattedString};
+use itertools::Itertools;
+
 extern crate float_cmp;
 
 pub mod future_value;
@@ -51,6 +54,7 @@ pub use tvm_simple::*;
 pub mod tvm_convert_rate;
 #[doc(inline)]
 pub use tvm_convert_rate::*;
+use std::cmp::max;
 
 // use tvm_convert_rate::*;
 // use convert_rate::*;
@@ -206,6 +210,71 @@ macro_rules! apr {
         }
         repeats
     }};
+}
+
+pub(crate) fn format_int_locale<T>(val: T, locale: &Locale) -> String
+    where T: ToFormattedString
+{
+    val.to_formatted_string(locale)
+}
+
+pub(crate) fn format_float_locale<T>(val: T, locale: &Locale, precision: usize) -> String
+    where T: Into<f64>
+{
+    let val = val.into();
+    if val.is_finite() {
+        // let locale = SystemLocale::default().unwrap();
+        let left = format_int_locale(val.trunc().abs() as i128, locale);
+        let right = &format!("{:.*}", precision, val.fract().abs())[2..];
+        let minus_sign = if val.is_sign_negative() { locale.minus_sign() } else { "" };
+        format!("{}{}{}{}", minus_sign, left, locale.decimal(), right)
+    } else {
+        format!("{:?}", val)
+    }
+}
+
+pub fn print_table_locale(columns: &Vec<(&str, &str)>, data: &mut Vec<Vec<String>>, locale: &num_format::Locale, precision: usize) {
+    if columns.len() == 0 || data.len() == 0 {
+        return;
+    }
+    
+    let column_separator = "  ";
+
+    let column_count = data[0].len();
+
+    for row_index in 0..data.len() {
+        for col_index in 0..column_count {
+            let col_type = columns[col_index].1.to_lowercase();
+            //bg!(&col_type, &data[row_index][col_index]);
+            if col_type != "s" {
+                data[row_index][col_index] = if col_type == "f" {
+                    format_float_locale(data[row_index][col_index].parse::<f64>().unwrap(), locale, precision)
+                } else if col_type == "i" {
+                    format_int_locale(data[row_index][col_index].parse::<i128>().unwrap(), locale)
+                } else {
+                    panic!("Unexpected column type = \"{}\"", col_type)
+                }
+            }
+        }
+    }
+
+    let mut column_widths = vec![];
+    for col_index in 0..column_count {
+        let mut width = columns[col_index].0.len();
+        for row_index in 0..data.len() {
+            width = max(width, data[row_index][col_index].len());
+        }
+        column_widths.push(width);
+    }
+
+    let header_line = columns.iter().enumerate().map(|(col_index, column)| format!("{:>width$}", column.0, width = column_widths[col_index])).join(column_separator);
+    println!("{}", header_line);
+    let dash_line = columns.iter().enumerate().map(|(col_index, _column)| "-".repeat(column_widths[col_index])).join(column_separator);
+    println!("{}", dash_line);
+    for row in data.iter() {
+        let value_line = row.iter().enumerate().map(|(col_index, value)| format!("{:>width$}", value, width = column_widths[col_index])).join(column_separator);
+        println!("{}", value_line);
+    }
 }
 
 #[derive(Debug)]

@@ -15,7 +15,6 @@ pub fn main() {
     // dbg!(finance::payment(0.23, 3000, -123_456.7, -12_345.67));
     // try_specify_type_1();
     show_payment_series_rounding_issue();
-    
 }
 
 fn try_payment_debug() {
@@ -136,7 +135,11 @@ fn try_payment_series() {
     let future_value = 0.0;
     let solution = finance::payment_solution(rate, periods, present_value, future_value);
     dbg!(&solution);
-    dbg!(&solution.series());
+    let series = solution.series();
+    dbg!(&series);
+    for entry in series.iter().filter(|x| x.period() % 3 == 0) {
+        dbg!(entry);
+    }
 }
 
 fn try_payment_due_series() {
@@ -322,9 +325,12 @@ fn try_specify_type_1() {
 }
 
 fn show_payment_series_rounding_issue() {
+    let locale = num_format::Locale::en;
+    // let locale = num_format::Locale::vi;
     let precision = 12;
 
     let rate = 0.05;
+    //let rate = 0.0005;
     let present_value = -1_000_000;
     let future_value = 0.0;
 
@@ -333,17 +339,31 @@ fn show_payment_series_rounding_issue() {
     println!();
     dbg!(&solution);
     let series = solution.series();
-    finance::print_series_table(&series, precision);
+    // finance::print_series_table(&series, precision);
+    series.print_table(&locale, precision);
 
-    let periods = 500;
+    finance::payment_solution(rate, periods, present_value, future_value)
+        .series()
+        .print_table(&locale, precision);
+
+    finance::payment_solution(rate, periods, present_value, future_value)
+        .series()
+        .filter(|x| x.period() % 4 == 0)
+        .print_table(&locale, precision);
+
+    /*
+    let periods = 1_200;
     let solution = finance::payment_solution(rate, periods, present_value, future_value);
     println!();
     dbg!(&solution);
     let series = solution.series();
     let series_filtered: Vec<finance::TvmCashflowPeriod> = series.iter()
-        .filter(|x| x.period() <= 5 || x.period() >= 495 || x.period() % 50 == 0)
+        .filter(|x| x.period() <= 5 || x.period() >= (periods - 5) || x.period() % 50 == 0)
+        // .filter(|x| x.period() >= (periods - 5))
         .map(|x| x.clone())
         .collect::<Vec<_>>();
     finance::print_series_table(&series_filtered[..], precision);
+    //finance::print_series_table_locale(&series_filtered[..], &locale, precision);
+    */
 }
 

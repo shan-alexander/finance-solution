@@ -6,6 +6,7 @@ use std::fmt;
 #[allow(unused_imports)]
 use crate::*;
 use std::cmp::max;
+use std::ops::Deref;
 
 #[derive(Debug, Clone)]
 pub enum TvmCashflowVariable {
@@ -123,7 +124,7 @@ impl TvmCashflowSolution {
         }
     }
 
-    pub fn series(&self) -> Vec<TvmCashflowPeriod> {
+    pub fn series(&self) -> TvmCashflowSeries {
         if self.calculated_field.is_payment() || self.calculated_field.is_payment_due() {
             payment_series(self)
         } else {
@@ -199,6 +200,45 @@ impl Debug for TvmCashflowSolution {
     }
 }
 */
+
+#[derive(Clone, Debug)]
+pub struct TvmCashflowSeries(Vec<TvmCashflowPeriod>);
+
+impl TvmCashflowSeries {
+    pub fn new(series: Vec<TvmCashflowPeriod>) -> Self {
+        Self {
+            0: series,
+        }
+    }
+
+    pub fn filter<P>(&self, predicate: P) -> Self
+        where P: Fn(&&TvmCashflowPeriod) -> bool
+    {
+        Self {
+            0: self.iter().filter(|x| predicate(x)).map(|x| x.clone()).collect()
+        }
+    }
+
+    pub fn print_table(&self, locale: &num_format::Locale, precision: usize) {
+        let columns = vec![("period", "i"), ("payments_to_date", "f"), ("payments_remaining", "f"),
+                           ("principal", "f"), ("principal_to_date", "f"), ("principal_remaining", "f"),
+                           ("interest", "f"), ("interest_to_date", "f"), ("interest_remaining", "f")];
+        let mut data = self.iter()
+            .map(|entry| vec![entry.period.to_string(), entry.payments_to_date.to_string(), entry.payments_remaining.to_string(),
+                              entry.principal.to_string(), entry.principal_to_date.to_string(), entry.principal_remaining.to_string(),
+                              entry.interest.to_string(), entry.interest_to_date.to_string(), entry.interest_remaining.to_string()])
+            .collect::<Vec<_>>();
+        print_table_locale(&columns, &mut data, locale, precision);
+    }
+}
+
+impl Deref for TvmCashflowSeries {
+    type Target = Vec<TvmCashflowPeriod>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct TvmCashflowPeriod {
@@ -328,11 +368,11 @@ impl TvmCashflowPeriod {
                  &format!("formula: {:?}", self.formula),
                  &format!("formula_symbolic: {:?}", self.formula_symbolic));
     }
-
 }
 
 // pub fn print_series_filtered(series: &[TvmPeriod], filter: )
 
+/*
 pub fn print_series_table(series: &[TvmCashflowPeriod], precision: usize) {
     if series.len() == 0 {
         return;
@@ -367,6 +407,44 @@ pub fn print_series_table(series: &[TvmCashflowPeriod], precision: usize) {
                  i = interest_width, itd = interest_to_date_width, ir = interest_remaining_width, prec = precision);
     }
 }
+*/
+
+/*
+pub fn print_series_table_locale(series: &[TvmCashflowPeriod], locale: &num_format::Locale, precision: usize) {
+    if series.len() == 0 {
+        return;
+    }
+    let period_width = max("period".len(), series.iter().map(|x| format_int_locale(x.period(), locale).len()).max().unwrap());
+    let payments_to_date_width = max("payments_to_date".len(), series.iter().map(|x| format_float_locale(x.payments_to_date(), locale, precision).len()).max().unwrap());
+    let payments_remaining_width = max("payments_remaining".len(), series.iter().map(|x| format_float_locale(x.payments_remaining(), locale, precision).len()).max().unwrap());
+    let principal_width = max("principal".len(), series.iter().map(|x| format_float_locale(x.principal(), locale, precision).len()).max().unwrap());
+    let principal_to_date_width = max("principal_to_date".len(), series.iter().map(|x| format_float_locale(x.principal_to_date(), locale, precision).len()).max().unwrap());
+    let principal_remaining_width = max("principal_remaining".len(), series.iter().map(|x| format_float_locale(x.principal_remaining(), locale, precision).len()).max().unwrap());
+    let interest_width = max("interest".len(), series.iter().map(|x| format_float_locale(x.interest(), locale, precision).len()).max().unwrap());
+    let interest_to_date_width = max("interest_to_date".len(), series.iter().map(|x| format_float_locale(x.interest_to_date(), locale, precision).len()).max().unwrap());
+    let interest_remaining_width = max("interest_remaining".len(), series.iter().map(|x| format_float_locale(x.interest_remaining(), locale, precision).len()).max().unwrap());
+    println!("\ndue_at_beginning: {}", series[0].due_at_beginning);
+    println!("payment: {:.prec$}", series[0].payment, prec = precision);
+    println!("{:>pe$}  {:>pmtd$}  {:>pmr$}  {:>pr$}  {:>prtd$}  {:>prr$}  {:>i$}  {:>itd$}  {:>ir$}",
+             "period", "payments_to_date", "payments_remaining", "principal", "principal_to_date", "principal_remaining", "interest", "interest_to_date", "interest_remaining",
+             pe = period_width, pmtd = payments_to_date_width, pmr = payments_remaining_width,
+             pr = principal_width, prtd = principal_to_date_width, prr = principal_remaining_width,
+             i = interest_width, itd = interest_to_date_width, ir = interest_remaining_width);
+    println!("{}  {}  {}  {}  {}  {}  {}  {}  {}",
+             "-".repeat(period_width), "-".repeat(payments_to_date_width), "-".repeat(payments_remaining_width),
+             "-".repeat(principal_width), "-".repeat(principal_to_date_width), "-".repeat(principal_remaining_width),
+             "-".repeat(interest_width), "-".repeat(interest_to_date_width), "-".repeat(interest_remaining_width));
+    for entry in series.iter() {
+        println!("{:>pe$}  {:>pmtd$}  {:>pmr$}  {:>pr$}  {:>prtd$}  {:>prr$}  {:>i$}  {:>itd$}  {:>ir$}",
+                 format_int_locale(entry.period(), locale), format_float_locale(entry.payments_to_date(), locale, precision), format_float_locale(entry.payments_remaining(), locale, precision),
+                 format_float_locale(entry.principal(), locale, precision), format_float_locale(entry.principal_to_date(), locale, precision), format_float_locale(entry.principal_remaining(), locale, precision),
+                 format_float_locale(entry.interest(), locale, precision), format_float_locale(entry.interest_to_date(), locale, precision), format_float_locale(entry.interest_remaining(), locale, precision),
+                 pe = period_width, pmtd = payments_to_date_width, pmr = payments_remaining_width,
+                 pr = principal_width, prtd = principal_to_date_width, prr = principal_remaining_width,
+                 i = interest_width, itd = interest_to_date_width, ir = interest_remaining_width);
+    }
+}
+*/
 
 /*
 pub fn print_series_table_filtered(series: &[TvmCashflowPeriod], predicate: P, precision: usize)

@@ -171,11 +171,11 @@ fn payment_formula(rate: f64, periods: u32, present_value: f64, future_value: f6
     (formula, formula_symbolic)
 }
 
-pub(crate) fn payment_series(solution: &TvmCashflowSolution) -> Vec<TvmCashflowPeriod> {
+pub(crate) fn payment_series(solution: &TvmCashflowSolution) -> TvmCashflowSeries {
     assert!(solution.calculated_field().is_payment() || solution.calculated_field().is_payment_due());
     let mut series = vec![];
     if solution.future_value() != 0.0 {
-        return series;
+        return TvmCashflowSeries::new(series);
     }
     let rate = solution.rate();
     let periods = solution.periods();
@@ -216,7 +216,7 @@ pub(crate) fn payment_series(solution: &TvmCashflowSolution) -> Vec<TvmCashflowP
     if RUN_PAYMENT_INVARIANTS {
         payment_series_invariant(solution, &series);
     }
-    series
+    TvmCashflowSeries::new(series)
 }
 
 fn payment_solution_invariant(solution: &TvmCashflowSolution) {
