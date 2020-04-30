@@ -325,8 +325,8 @@ fn try_specify_type_1() {
 }
 
 fn show_payment_series_rounding_issue() {
-    let locale = num_format::Locale::en;
-    // let locale = num_format::Locale::vi;
+    let locale = finance::num_format::Locale::en;
+    // let locale = finance::num_format::Locale::vi;
     let precision = 12;
 
     let rate = 0.05;

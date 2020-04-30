@@ -2,6 +2,7 @@ use num_format::{Locale, ToFormattedString};
 use itertools::Itertools;
 
 extern crate float_cmp;
+pub extern crate num_format;
 
 pub mod future_value;
 #[doc(inline)]

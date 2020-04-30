@@ -254,8 +254,8 @@ fn try_find_rate() {
 }
 
 fn try_series_print_table() {
-    let locale = num_format::Locale::en;
-    // let locale = num_format::Locale::vi;
+    let locale = finance::num_format::Locale::en;
+    // let locale = finance::num_format::Locale::vi;
     let precision = 2;
 
     let rate = 0.05;
