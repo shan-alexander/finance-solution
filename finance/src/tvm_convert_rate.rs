@@ -11,7 +11,9 @@ use crate::*;
 pub enum ConvertRateVariable {
     Apr,
     Ear,
-    Epr
+    Epr,
+    AprContinuous,
+    EarContinuous
 }
 impl ConvertRateVariable {
     pub fn is_apr(&self) -> bool {
@@ -22,13 +24,25 @@ impl ConvertRateVariable {
     }
     pub fn is_epr(&self) -> bool {
         match self {
-            ConvertRateVariable::Apr => true,
+            ConvertRateVariable::Epr => true,
             _ => false,
         }
     }
     pub fn is_ear(&self) -> bool {
         match self {
-            ConvertRateVariable::Apr => true,
+            ConvertRateVariable::Ear => true,
+            _ => false,
+        }
+    }
+    pub fn is_apr_continuous(&self) -> bool {
+        match self {
+            ConvertRateVariable::AprContinuous => true,
+            _ => false,
+        }
+    }
+    pub fn is_ear_continuous(&self) -> bool {
+        match self {
+            ConvertRateVariable::EarContinuous => true,
             _ => false,
         }
     }
@@ -39,6 +53,8 @@ impl fmt::Display for ConvertRateVariable {
            ConvertRateVariable::Apr => write!(f, "Apr"),
            ConvertRateVariable::Epr => write!(f, "Epr"),
            ConvertRateVariable::Ear => write!(f, "Ear"),
+           ConvertRateVariable::AprContinuous => write!(f, "AprContinuous"),
+           ConvertRateVariable::EarContinuous => write!(f, "EarContinuous"),
        }
     }
 }
