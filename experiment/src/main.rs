@@ -11,7 +11,7 @@ fn main() {
     // format::main();
     // verbose::present_value::main();
     // verbose::present_value_annuity::main();
-    // verbose::future_value::main();
+    verbose::future_value::main();
     // verbose::future_value_annuity::main();
     // verbose::rate::main();
     // verbose::periods::main();
@@ -35,11 +35,11 @@ fn main() {
 
     // dbg!(finance::convert_rate::apr(0.034, 12));
     // dbg!(finance::convert_rate::apr_continuous(0.034));
-    dbg!(finance::convert_rate::epr(0.034, 12));
-    dbg!(finance::convert_rate::ear(0.034, 12));
-    dbg!(finance::convert_rate::apr(0.034, 12));
-    dbg!(finance::convert_rate::apr_continuous(0.10));
-    dbg!(finance::convert_rate::ear_continuous(0.10517091807564749));
+    // dbg!(finance::convert_rate::epr(0.034, 12));
+    // dbg!(finance::convert_rate::ear(0.034, 12));
+    // dbg!(finance::convert_rate::apr(0.034, 12));
+    // dbg!(finance::convert_rate::apr_continuous(0.10));
+    // dbg!(finance::convert_rate::ear_continuous(0.10517091807564749));
 
     // let b = epr!(0.034, 12);
     // dbg!(b);

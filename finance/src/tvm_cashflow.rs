@@ -1,9 +1,9 @@
+#![allow(unused_imports)]
 // use std::fmt::Debug;
 use std::fmt;
 // use colored::*;
 
 // Import needed for the function references in the Rustdoc comments.
-#[allow(unused_imports)]
 use crate::*;
 use std::cmp::max;
 use std::ops::Deref;

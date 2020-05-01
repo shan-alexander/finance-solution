@@ -12,9 +12,10 @@ pub fn main() {
     // try_doc_example_schedule_solution();
     // try_doc_example_schedule_series();
     // try_find_rate();
-    try_series_print_table();
+    // try_series_print_table();
     // check_formulas();
     // dbg!(finance::future_value_solution(0.012, 8, 200_000));
+    try_continuous();
 }
 
 fn try_future_value() {
@@ -286,5 +287,13 @@ fn check_formulas() {
 
     let schedule = finance::future_value_schedule_solution(&[0.11, 0.09, 0.12], 100);
     dbg!(&schedule, &schedule.series());
+}
+
+fn try_continuous() {
+    let apr = 0.05;
+    let years = 5;
+    let present_value = 1_000;
+
+    dbg!(finance::future_value(apr, years, present_value));
 }
 

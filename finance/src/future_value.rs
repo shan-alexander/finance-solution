@@ -358,6 +358,17 @@ pub(crate) fn future_value_schedule_series(schedule: &TvmSchedule) -> TvmSeries 
     TvmSeries::new(series)
 }
 
+pub fn future_value_continuous<T>(apr: f64, years: u32, present_value: T) -> f64
+    where T: Into<f64> + Copy
+{
+    let present_value = present_value.into();
+    check_future_value_parameters(apr, years, present_value);
+
+    let future_value = present_value * std::f64::consts::E.powf((1.0 + apr) * years as f64);
+    assert!(future_value.is_finite());
+    future_value
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
