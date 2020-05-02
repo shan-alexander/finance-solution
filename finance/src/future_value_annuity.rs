@@ -1,6 +1,6 @@
 #![allow(unused_imports)]
 
-//! Future value annuity calculations. Given a series of cashflows, a number of periods such as years, and fixed
+//! **Future value annuity calculations**. Given a series of cashflows, a number of periods such as years, and fixed
 //! or varying interest rates, what is the value of the series of cashflows at the final payment?
 //!
 
@@ -285,4 +285,24 @@ mod tests {
         // assert_approx_equal!(5838.66016, fv);
         assert_eq!(5838.66016, (fv * 100000.).round() / 100000.);
     }
+
+    #[test]
+    fn test_futue_value_annuity_1() {
+        let rate = 0.034;
+        let periods = 1;
+        let annuity = 500;
+        let fv = future_value_annuity(rate, periods, annuity);
+        // assert_approx_equal!(5838.66016, fv);
+        assert_eq!(500.0000, (fv * 100000.).round() / 100000.);
+    }
+    #[test]
+    fn test_futue_value_annuity_2() {
+        let rate = 0.034;
+        let periods = 400;
+        let annuity = 500;
+        let fv = future_value_annuity(rate, periods, annuity);
+        // assert_approx_equal!(9455966284.4844600, fv);
+        assert_eq!(9455966284.4844600, (fv * 100000.).round() / 100000.);
+    }
+
 }

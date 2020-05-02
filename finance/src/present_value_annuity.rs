@@ -1,4 +1,4 @@
-//! Present value annuity calculations. Given a series of cashflows, a number of periods such as years, and fixed
+//! **Present value _annuity_ calculations**. Given a series of cashflows, a number of periods such as years, and fixed
 //! or varying interest rates, what is the current value of the series of cashflows?
 //!
 
@@ -62,7 +62,7 @@ pub fn present_value_annuity<T>(rate: f64, periods: u32, annuity: T) -> f64
     // check_present_value__annuity_parameters(rate, periods, cashflow);
     let mut pv_accumulator = 0_f64;
     for i in 0..periods { 
-        let present_value = present_value(rate, i as u32, pmt);
+        let present_value = present_value(rate, (i+1) as u32, pmt);
         pv_accumulator = pv_accumulator + present_value;
     }
     pv_accumulator
@@ -321,5 +321,31 @@ fn present_value_annuity_internal(rate:f64, periods:u32, annuity:f64, due: bool)
     // let fv = future_value_annuity(rate, periods, cashflow);
     let fv = future_value(rate, periods, pv);
     TvmCashflowSolution::new(pvann_type, rate, periods, pv, fv, due, annuity, &formula, &formula_symbolic)
+
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::*;
+
+#[test]
+    fn test_present_value_annuity_1() {
+        let rate = 0.034;
+        let periods = 1;
+        let annuity = 500;
+        let pv = present_value_annuity(rate, periods, annuity);
+        // assert_approx_equal!(483.5589942, fv);
+        assert_eq!(483.55899, (pv * 100000.).round() / 100000.);
+    }
+    #[test]
+    fn test_present_value_annuity_2() {
+        let rate = 0.034;
+        let periods = 400;
+        let annuity = 500;
+        let pv = present_value_annuity(rate, periods, annuity);
+        // assert_approx_equal!(14705.8594824, fv);
+        assert_eq!(14705.85948, (pv * 100000.).round() / 100000.);
+    }
 
 }

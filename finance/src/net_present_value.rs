@@ -1,4 +1,4 @@
-//! Net Present Value calculations. Given a series of cashflows, an initial investment, a number of periods such as years, and fixed
+//! **Net Present Value calculations**. Given a series of cashflows, an initial investment, a number of periods such as years, and fixed
 //! or varying interest rates, what is the net value of the series of cashflows (initial investment is the cashflow at time0)?
 //!
 
@@ -51,7 +51,7 @@ use crate::*;
 /// dbg!(&net_present_value);
 ///
 /// // Confirm that the present value is correct to four decimal places (one hundredth of a cent).
-/// finance::assert_approx_equal!( 3321.438623, net_present_value);
+/// finance::assert_approx_equal!( 3179.3410288, net_present_value);
 /// ```
 pub fn net_present_value<C, I>(rate: f64, periods: u32, initial_investment: I, cashflow: C) -> f64 
 where I: Into<f64> + Copy, C: Into<f64> + Copy
@@ -114,7 +114,7 @@ where C: Into<f64> + Copy
 
     let mut pv_accumulator = 0_f64;
     for i in 0..periods { 
-        let present_value = present_value(r[i as usize], i as u32, c[i as usize + 1]);
+        let present_value = present_value(r[i as usize], (i+1) as u32, c[i as usize + 1]);
         pv_accumulator = pv_accumulator + present_value;
     }
     let npv = initial_investment + pv_accumulator;
@@ -127,12 +127,22 @@ mod tests {
     //use crate::*;
 
     #[test]
-    fn test_net_present_value() {
+    fn test_net_present_value_1() {
         let rate = 0.034;
         let periods = 10;
         let ii = -1000;
         let cf = 500;
         let npv = net_present_value(rate, periods, ii, cf);
-        assert_approx_equal!(3321.4386237990, npv);
+        assert_approx_equal!(3179.3410288, npv);
+    }
+
+    #[test]
+    fn test_net_present_value_2() {
+        let rate = 0.034;
+        let periods = 400;
+        let ii = -1000;
+        let cf = 500;
+        let npv = net_present_value(rate, periods, ii, cf);
+        assert_eq!(13_705.85948, (100_000. * npv).round() / 100_000.);
     }
 }

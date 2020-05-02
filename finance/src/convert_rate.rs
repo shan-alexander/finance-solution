@@ -1,5 +1,5 @@
 //! **Rate conversions**. Given a rate and number of compound periods per year, what is this rate
-//! when converted to APR, Effective annual, and Periodic rates? Also consider the `apr!` `ear!` and `epr!` macros.
+//! when converted to APR, Effective annual, and Periodic rates? Also consider the `apr` `ear` and `epr` helper functions.
 //!
 //! **APR**: **Annual Percentage Rate**, also written as Nominal Rate, or annual discount rate. An annualized represenation of the interest rate.
 //!
