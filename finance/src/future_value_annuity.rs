@@ -1,30 +1,30 @@
 #![allow(unused_imports)]
 
-//! **Future value annuity calculations**. Given a series of cashflows, a number of periods such as years, and fixed
-//! or varying interest rates, what is the value of the series of cashflows at the final payment?
+//! **Future value _annuity_ calculations**. Given a series of cashflows, a number of periods such as years, and a fixed
+//! interest rate, what is the value of the series of cashflows (annuity) at the final payment?
 //!
 
 // to do: add "use log::warn;" and helper logs
 
-// use crate::tvm_cashflow::*;
-// Needed for the Rustdoc comments.
-use crate::present_value::present_value;
+// Needed for the Rustdoc comments and module.
 use crate::future_value::future_value;
+use crate::present_value::present_value;
 use crate::tvm_cashflow::*;
-// use crate::*;
+use crate::assert_approx_equal;
 
-
-
-/// Returns the future value of a future series of constant cashflows and constant rate. For simple cases. Returns f64.
-///
-/// Related functions:
-// / * To calculate a future value with a varying rate or varying cashflow or both, use [`future_value_annuity_schedule`].
-///
+/// Returns the **future value of annuity** (a series of constant cashflows) at a constant rate. Returns f64.
+/// 
+/// ### Quick Glance: how to use
+/// ```
+/// let fv_ann = finance::future_value_annuity(0.034, 5, 500);
+/// finance::assert_approx_equal!(fv_ann, 2_675.8789282); 
+/// ```
+/// 
 /// The future value annuity formula is:
 ///
-/// future value = sum( cashflow * (1 + rate)<sup>period</sup> )
+/// future value ann = sum( cashflow * (1 + rate)<sup>period</sup> )
 /// or
-/// future value = annuity * ?
+/// future value ann = Constant_Cashflow * ((1+periodic_rate)^n -1) / periodic_rate 
 ///
 /// # Arguments
 /// * `rate` - The rate at which the investment grows or shrinks per period,
@@ -54,7 +54,7 @@ use crate::tvm_cashflow::*;
 /// dbg!(&future_value_ann);
 ///
 /// // Confirm that the future value is correct to four decimal places (one hundredth of a cent).
-/// // finance::assert_approx_equal!( , future_value_ann);
+/// // assert_approx_equal!( , future_value_ann);
 /// ```
 pub fn future_value_annuity<T>(rate: f64, periods: u32, annuity: T) -> f64
     where T: Into<f64> + Copy
@@ -80,9 +80,9 @@ pub fn future_value_annuity<T>(rate: f64, periods: u32, annuity: T) -> f64
 ///
 /// The future value annuity due formula is:
 ///
-/// present_value = sum( (cashflow / (1 + rate)<sup>period</sup>) + ((1 + rate) * cashflow) )
+/// future value ann due = sum( (cashflow * (1 + rate)<sup>period</sup>) + (cashflow * (1 + rate)) )
 /// or
-/// future value = annuity * (1 + rate) + annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate)
+/// future value ann due = annuity * ((1+periodic_rate)^n -1) / periodic_rate + (annuity * (1+rate))
 ///
 /// # Arguments
 /// * `rate` - The rate at which the investment grows or shrinks per period,
@@ -96,7 +96,7 @@ pub fn future_value_annuity<T>(rate: f64, periods: u32, annuity: T) -> f64
 /// losing more than its full value every period.
 ///
 /// # Examples
-/// Present value of a series of $2000 cashflows.
+/// Future value annuity due of a series of $2000 cashflows.
 /// ```
 /// // The rate is 2.1% per month.
 /// let rate = 0.021;
@@ -108,17 +108,17 @@ pub fn future_value_annuity<T>(rate: f64, periods: u32, annuity: T) -> f64
 /// let cashflow = 2_000;
 ///
 /// // Find the current value.
-/// let present_value_ann = finance::present_value_annuity(rate, periods, cashflow);
-/// dbg!(&present_value_ann);
+/// let future_value_ann_due = finance::future_value_annuity_due(rate, periods, cashflow);
+/// dbg!(&future_value_ann_due);
 ///
 /// // Confirm that the future value is correct to four decimal places (one hundredth of a cent).
-/// // finance::assert_approx_equal!( , present_value_ann);
+/// // finance::assert_approx_equal!( , future_value_ann_due);
 /// ```
 pub fn future_value_annuity_due<T>(rate: f64, periods: u32, annuity: T) -> f64
     where T: Into<f64> + Copy
 {
     let pmt = annuity.into();
-    // check_present_value__annuity_parameters(rate, periods, cashflow);
+    // check_future_value__annuity_parameters(rate, periods, cashflow);
     let mut fv_accumulator = (1. +  rate) * pmt;
     for i in 0..periods { 
         let future_value = future_value(rate, i as u32, pmt);
@@ -136,9 +136,9 @@ pub fn future_value_annuity_due<T>(rate: f64, periods: u32, annuity: T) -> f64
 ///
 /// The future value annuity formula is:
 ///
-/// present_value = sum( cashflow / (1 + rate)<sup>period</sup> )
+/// future value ann = sum( cashflow * (1 + rate)<sup>period</sup> )
 /// or
-/// future value = annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate)
+/// future value ann = Constant_Cashflow * ((1+periodic_rate)^n -1) / periodic_rate 
 /// 
 /// # Arguments
 /// * `rate` - The rate at which the investment grows or shrinks per period,
@@ -199,9 +199,9 @@ pub fn future_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T) ->
 ///
 /// The future value annuity due formula is:
 ///
-/// future value = sum( cashflow * (1 + rate)<sup>period</sup> )
+/// future value ann due = sum( (cashflow * (1 + rate)<sup>period</sup>) + (cashflow * (1 + rate)) )
 /// or
-/// future value = annuity * ?
+/// future value ann due = annuity * ((1+periodic_rate)^n -1) / periodic_rate + (annuity * (1+rate))
 /// 
 /// # Arguments
 /// * `rate` - The rate at which the investment grows or shrinks per period,
@@ -210,10 +210,6 @@ pub fn future_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T) ->
 /// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
 /// * `cashflow` - The value of the constant cashflow (aka payment).
 ///
-// / # Panics
-// / The call will fail if `rate` is less than -1.0 as this would mean the investment is
-// / losing more than its full value every period.
-// /
 /// # Examples
 /// Future value of a $500 annuity (a series of $500 cashflows).
 /// ```
@@ -227,12 +223,12 @@ pub fn future_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T) ->
 /// let cashflow = 500;
 ///
 /// // Find the future value.
-/// let future_value_ann = finance::future_value_annuity_solution(rate, periods, cashflow);
-/// dbg!(&future_value_ann);
+/// let future_value_ann_due = finance::future_value_annuity_due_solution(rate, periods, cashflow);
+/// dbg!(&future_value_ann_due);
 /// ```
 /// The `dbg!` above will display: (need to fix)<br>
 /// >{<br>
-/// >calculated_field: Future Value Annuity<br>
+/// >calculated_field: FutureValueAnnuityDue<br>
 /// >rate (r): 0.034<br>
 /// >periods (n): 10<br>
 /// >present_value (pv): 4838.438623799037<br>

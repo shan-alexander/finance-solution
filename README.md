@@ -155,6 +155,7 @@ We have a backlog of items we intend to include in this crate:
 - IRR
 - MIRR
 - WACC
+- PV and FV annuity schedules (varying rates and cashflows)
 - Payback Period
 - Profitability Index
 - Return on investment

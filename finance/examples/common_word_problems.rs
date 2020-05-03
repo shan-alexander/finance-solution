@@ -7,6 +7,7 @@
 
 // use finance::{present_value_solution, future_value_solution, future_value, periods_solution, periods};
 use finance::*;
+use num_format::{Locale};
 
 pub fn main() {
     pv_problem_1();
@@ -23,6 +24,12 @@ pub fn main() {
     fv_annuity_problem_1();
 
     // retirement_problem_1();
+
+    let present_value = 13_000;
+    let periods = 5;
+    let rate = 0.08;
+    let answer = payment_solution(rate, periods, present_value, 0);
+    dbg!(answer.series().print_table(&Locale::en, 4));
 
 }
 
