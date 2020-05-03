@@ -1,4 +1,7 @@
 #![allow(unused_imports)]
+
+//! The internal module which supports the solution struct for the Cashflow family of functions (e.g., `payment`).
+
 // use std::fmt::Debug;
 use std::fmt;
 // use colored::*;

@@ -15,6 +15,7 @@ fn check_future_value_annuity_parameters(rate:f64, periods:u32, cashflow:f64) {
     assert!(rate > -1.0);
     assert!(rate.is_finite());
     assert!(cashflow.is_finite());
+    assert!(periods > 0);
 }
 
 /// Returns the **future value of annuity** (a series of constant cashflows) at a constant rate. Returns f64.

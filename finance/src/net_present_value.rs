@@ -1,5 +1,5 @@
-//! **Net Present Value calculations**. Given a series of cashflows, an initial investment, a number of periods such as years, and fixed
-//! or varying interest rates, what is the net value of the series of cashflows (initial investment is the cashflow at time0)?
+//! **Net Present Value calculations**. Given a series of cashflows, an initial investment (the cashflow at time0), a number of periods such as years, and fixed
+//! or varying interest rates, what is the net value of the series of cashflows right now?
 //!
 
 // use crate::tvm_cashflow::*;
@@ -8,15 +8,17 @@
 use crate::present_value_annuity::present_value_annuity;
 use crate::*;
 
-/// Returns the net present value of a future series of constant cashflows and constant rate, subtracting the initial investment cost. Returns f64.
+/// Returns the **net present value** of a future series of constant cashflows and constant rate, subtracting the initial investment cost. Returns f64.
 ///
 /// Related functions:
-/// * To calculate a present value with a varying rate or varying cashflow or both, use [`present_value_annuity_schedule`].
+/// * To calculate a net present value with a varying rate or varying cashflow or both, use [`net_present_value_schedule`].
 ///
 /// The net present value annuity formula is:
 ///
 /// npv = initial_investment + sum( cashflow / (1 + rate)<sup>period</sup> )
+/// 
 /// or
+/// 
 /// npv = initial_investment +  cashflow * ((1. - (1. / (1. + rate)).powf(periods)) / rate)
 ///
 /// # Arguments
@@ -28,30 +30,19 @@ use crate::*;
 /// * `initial investment` - The value of the initial investment (should be negative, or 0).
 ///
 /// # Panics
-/// The call will fail if `rate` is less than -1.0 as this would mean the investment is
-/// losing more than its full value every period.
+/// The call will fail if `initial_investment` is positive. This value should always be negative, and cashflows be positive, or the reverse, because these monies are going opposite directions.
 ///
 /// # Examples
 /// Net Present Value of a series of -$1000 investment which will payback $500 yearly for 10 years.
 /// ```
-/// // The rate is 3.4% per month.
-/// let rate = 0.034;
+/// use finance::*;
+/// let (rate, periods, initial_investment, cashflow) = (0.034, 10, -1000, 500);
 ///
-/// // The investment will grow for 10 months.
-/// let periods = 10;
-///
-/// // The initial investment is -$1000
-/// let initial_investment = -1000;
-/// 
-/// // The cashflow is $500.
-/// let cashflow = 500;
-///
-/// // Find the current value of this scenario.
-/// let net_present_value = finance::net_present_value(rate, periods, initial_investment, cashflow);
-/// dbg!(&net_present_value);
+/// // Find the present value of this scenario.
+/// let net_present_value = net_present_value(rate, periods, initial_investment, cashflow);
 ///
 /// // Confirm that the present value is correct to four decimal places (one hundredth of a cent).
-/// finance::assert_approx_equal!( 3179.3410288, net_present_value);
+/// assert_approx_equal!(3179.3410288, net_present_value);
 /// ```
 pub fn net_present_value<C, I>(rate: f64, periods: u32, initial_investment: I, cashflow: C) -> f64 
 where I: Into<f64> + Copy, C: Into<f64> + Copy
@@ -63,8 +54,27 @@ where I: Into<f64> + Copy, C: Into<f64> + Copy
     npv
 }
 
-/// Returns the net present value of a schedule of rates and cashflows (can be varying), subtracting the initial investment cost. Returns f64.
+/// Returns the **net present value of a schedule** of rates and cashflows (can be varying), subtracting the initial investment cost. Returns f64.
 ///
+/// # Examples
+/// Net Present Value of a series of -$1000 investment which will payback $500 yearly for 10 years.
+/// ```
+/// use finance::*;
+/// let (rates, cashflows) = (vec![0.034, 0.089, 0.055], vec![-1000, 200, 300, 500]);
+///
+/// // Find the present value of this scenario.
+/// let net_present_value = net_present_value_schedule(&rates, &cashflows);
+///
+/// // Confirm that the present value is correct to four decimal places (one hundredth of a cent).
+/// assert_approx_equal!(-127.8016238, net_present_value);
+/// 
+/// //present_value(0.034, 1, 200): $193.42
+/// //present_value(0.089, 2, 300): $252.97
+/// //present_value(0.055, 3, 500): $425.81
+/// //initial investment:          -$1000
+/// //sum of the above:            -$127.80 (net present value)
+/// 
+/// ```
 pub fn net_present_value_schedule<C>(rates: &[f64], cashflows: &[C]) -> f64 
 where C: Into<f64> + Copy
 {
