@@ -67,7 +67,7 @@
 //! use finance::*;
 //! 
 //! let apr = convert_rate::convert_apr_to_ear_solution(0.034, 12);  // provides same output as apr! macro                                                       
-//! dbg!(apr.ear);
+//! dbg!(apr.ear());
 //! // prints to terminal: 
 //! ```
 //!  >0.03453486936028982
@@ -105,7 +105,7 @@
 //! // using 1 year as the period and the effective annual rate, 
 //! // instead of using 12 monthly periods of the periodic rate.
 //! let rate = apr(0.034, 12);
-//! let answer_2 = future_value::future_value_solution(rate.ear, 1, 500);
+//! let answer_2 = future_value::future_value_solution(rate.ear(), 1, 500);
 //! dbg!(&answer_2.future_value());
 //! // assert_approx_equal!(answer_1.future_value, answer_2.future_value); // true
 //! ```
@@ -292,7 +292,7 @@ pub fn convert_apr_to_ear(apr: f64, compounding_periods_in_year: u32) -> f64 {
 /// // There are 12 compounding periods per year (monthly compounding).
 /// let periods = 12;
 ///
-/// let effective_annual_rate = convert_apr_to_ear_solution(nominal_rate, periods).ear;
+/// let effective_annual_rate = convert_apr_to_ear_solution(nominal_rate, periods).ear();
 /// 
 /// // Confirm that the future value is correct to six decimal places.
 /// assert_approx_equal!(0.034535, effective_annual_rate);
@@ -413,7 +413,7 @@ pub fn convert_ear_to_apr(ear: f64, compounding_periods_in_year: u32) -> f64 {
 /// // There are 12 compounding periods per year.
 /// let periods = 12;
 ///
-/// let nominal_rate = convert_rate::convert_ear_to_apr_solution(effective_annual_rate, periods).apr;
+/// let nominal_rate = convert_rate::convert_ear_to_apr_solution(effective_annual_rate, periods).apr();
 /// 
 /// // Confirm that the future value is correct to six decimal places.
 /// assert_approx_equal!(0.034, nominal_rate);
@@ -515,12 +515,12 @@ mod tests {
                     let apr_epr = convert_apr_to_epr(rate, periods);
                     let _epr_apr = convert_epr_to_apr(apr_epr, periods);
                     let apr_ = apr(rate, periods);
-                    assert_approx_equal!(apr_epr, apr_.epr);
+                    assert_approx_equal!(apr_epr, apr_.epr());
                     assert_approx_equal!(_epr_apr, rate);
 
                     let apr_ear = convert_apr_to_ear(rate, periods);
                     let _ear_apr = convert_ear_to_apr(apr_ear, periods);
-                    assert_approx_equal!(apr_ear, apr_.ear);
+                    assert_approx_equal!(apr_ear, apr_.ear());
                     assert_approx_equal!(_ear_apr, rate);
                 }
                 
@@ -542,12 +542,12 @@ mod tests {
                     let ear_apr = convert_ear_to_apr(rate, periods);
                     let _apr_ear = convert_apr_to_ear(ear_apr, periods);
                     let ear_ = ear(rate, periods);
-                    assert_approx_equal!(ear_apr, ear_.apr);
+                    assert_approx_equal!(ear_apr, ear_.apr());
                     assert_approx_equal!(_apr_ear, rate);
 
                     let ear_epr = convert_ear_to_epr(rate, periods);
                     let _epr_ear = convert_epr_to_ear(ear_epr, periods);
-                    assert_approx_equal!(ear_epr, ear_.epr);
+                    assert_approx_equal!(ear_epr, ear_.epr());
                     assert_approx_equal!(_epr_ear, rate);  
                 }
                 
@@ -570,12 +570,12 @@ mod tests {
                     let epr_apr = convert_epr_to_apr(rate, periods);
                     let _apr_epr = convert_apr_to_epr(epr_apr, periods);
                     let epr_ = epr(rate, periods);
-                    assert_approx_equal!(epr_apr, epr_.apr);
+                    assert_approx_equal!(epr_apr, epr_.apr());
                     assert_approx_equal!(_apr_epr, rate);
 
                     let epr_ear = convert_epr_to_ear(rate, periods);
                     let _ear_epr = convert_ear_to_epr(epr_ear, periods);
-                    assert_approx_equal!(epr_ear, epr_.ear);
+                    assert_approx_equal!(epr_ear, epr_.ear());
                     assert_approx_equal!(_ear_epr, rate);  
                 }
                 

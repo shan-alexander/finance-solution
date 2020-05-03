@@ -61,18 +61,18 @@ impl fmt::Display for ConvertRateVariable {
 
 // #[derive(Debug)]
 pub struct ConvertRateSolution {
-    pub input_name: ConvertRateVariable,
-    pub input_rate: f64,
-    pub compounds_per_year: u32,
-    pub apr_in_percent: String,
-    pub epr_in_percent: String,
-    pub ear_in_percent: String,
-    pub apr: f64,
-    pub epr: f64,
-    pub ear: f64,
-    pub apr_formula: String,
-    pub epr_formula: String,
-    pub ear_formula: String,
+    input_name: ConvertRateVariable,
+    input_rate: f64,
+    compounds_per_year: u32,
+    apr_in_percent: String,
+    epr_in_percent: String,
+    ear_in_percent: String,
+    apr: f64,
+    epr: f64,
+    ear: f64,
+    apr_formula: String,
+    epr_formula: String,
+    ear_formula: String,
 }
 impl ConvertRateSolution {
     pub fn new(input_name: ConvertRateVariable, input_rate: f64, compounds_per_year: u32, apr_in_percent: String, epr_in_percent: String, ear_in_percent: String, apr:f64, epr:f64, ear:f64, apr_formula: &str, epr_formula: &str, ear_formula: &str) -> Self {
@@ -90,6 +90,43 @@ impl ConvertRateSolution {
             epr_formula: epr_formula.to_string(),
             ear_formula: ear_formula.to_string(),
         }
+    }
+
+    /// Returns the input rate.
+    pub fn input_rate(&self) -> f64 {
+        self.input_rate
+    }
+    /// Returns the annual rate (apr).
+    pub fn apr(&self) -> f64 {
+        self.apr
+    }
+    /// Returns the periodic rate (epr).
+    pub fn epr(&self) -> f64 {
+        self.epr
+    }
+    /// Returns the effective annual rate (ear).
+    pub fn ear(&self) -> f64 {
+        self.ear
+    }
+    /// Returns the input name (Ear, Apr, Epr, AprContinuous...etc).
+    pub fn input_name(&self) -> &ConvertRateVariable {
+        &self.input_name
+    }
+    /// Returns the compounds per year as u32.
+    pub fn compounds_per_year(&self) -> u32 {
+        self.compounds_per_year
+    }
+    /// Returns the annual rate (APR) in percentage format (for example, 3.58%).
+    pub fn apr_in_percent(&self) -> &String {
+        &self.apr_in_percent
+    }
+    /// Returns the effective annual rate (EAR) in percentage format (for example, 3.69%).
+    pub fn ear_in_percent(&self) -> &String {
+        &self.ear_in_percent
+    }
+    /// Returns the periodic rate (EPR) in percentage format (for example, 1.12%).
+    pub fn epr_in_percent(&self) -> &String {
+        &self.epr_in_percent
     }
 }
 
