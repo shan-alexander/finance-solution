@@ -1,3 +1,5 @@
+//! The internal module which supports the solution struct for Rate Conversion (see `convert_rate`).
+
 use std::fmt::Debug;
 use std::fmt;
 use colored::*;

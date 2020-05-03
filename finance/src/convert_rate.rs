@@ -137,7 +137,7 @@ fn assert_inputs(rate:f64, periods:u32, fn_type: ConvertRateVariable) {
 }
 
 
-/// **Helper function** to convert an **quoted annual rate (apr)** into all possible conversions (ear, epr). Returns a solution struct.
+/// **Helper function** to convert an quoted annual rate (apr) into all possible conversions (ear, epr). Returns a solution struct.
 pub fn apr(apr:f64, compounding_periods_in_year:u32) -> ConvertRateSolution {
     assert_inputs(apr, compounding_periods_in_year, tvm_convert_rate::ConvertRateVariable::Apr);
     let ear = (1_f64 + (apr/compounding_periods_in_year as f64)).powf(compounding_periods_in_year as f64) - 1_f64;
@@ -151,7 +151,7 @@ pub fn apr(apr:f64, compounding_periods_in_year:u32) -> ConvertRateSolution {
     tvm_convert_rate::ConvertRateSolution::new(tvm_convert_rate::ConvertRateVariable::Apr, apr, compounding_periods_in_year, apr_in_percent, epr_in_percent, ear_in_percent, apr, epr, ear, &apr_formula, &epr_formula, &ear_formula,)
 }
 
-/// Helper function to convert an APR into an EAR using continuous compounding. Returns solution struct.
+/// **Helper function** to convert an APR into an EAR using continuous compounding. Returns solution struct.
 pub fn apr_continuous(apr:f64) -> ConvertRateSolution {
     let compounding_periods_in_year = 1; // not used
     assert_inputs(apr, compounding_periods_in_year, tvm_convert_rate::ConvertRateVariable::AprContinuous);
@@ -174,7 +174,7 @@ pub fn apr_continuous(apr:f64) -> ConvertRateSolution {
     tvm_convert_rate::ConvertRateSolution::new(tvm_convert_rate::ConvertRateVariable::AprContinuous, apr, compounding_periods_in_year, apr_in_percent, epr_in_percent, ear_in_percent, apr, epr, ear, &apr_formula, &epr_formula, &ear_formula,)          
 }
 
-/// Helper function to convert an EAR into an APR using continuous compounding. Returns solution struct.
+/// **Helper function** to convert an EAR into an APR using continuous compounding. Returns solution struct.
 pub fn ear_continuous(ear:f64) -> ConvertRateSolution {
     let compounding_periods_in_year = 1; // not used
     assert_inputs(ear, compounding_periods_in_year, tvm_convert_rate::ConvertRateVariable::EarContinuous);
@@ -196,7 +196,7 @@ pub fn ear_continuous(ear:f64) -> ConvertRateSolution {
     let ear_formula = format!("");
     tvm_convert_rate::ConvertRateSolution::new(tvm_convert_rate::ConvertRateVariable::EarContinuous, ear, compounding_periods_in_year, apr_in_percent, epr_in_percent, ear_in_percent, apr, epr, ear, &apr_formula, &epr_formula, &ear_formula,)          
 }
-
+/// **Helper function** to convert an effective annual rate (ear) into all possible conversions (apr, epr). Returns a solution struct.
 pub fn ear(ear:f64, compounding_periods_in_year:u32) -> ConvertRateSolution {
     convert_rate::assert_inputs(ear, compounding_periods_in_year, tvm_convert_rate::ConvertRateVariable::Ear);
     let apr = convert_rate::convert_ear_to_apr(ear, compounding_periods_in_year);
