@@ -1,28 +1,24 @@
 //! **Present value _annuity_ calculations**. Given a series of cashflows, a number of periods such as years, and fixed
-//! or varying interest rates, what is the current value of the series of cashflows?
+//! or varying interest rates, what is the current value of the series of cashflows (annuity) right now?
 //!
 
 // to do: add "use log::warn;" and helper logs
 
-// use crate::tvm_cashflow::*;
 // Needed for the Rustdoc comments.
 #[allow(unused_imports)]
 use crate::present_value::present_value;
 use crate::future_value::future_value;
 use crate::tvm_cashflow::*;
-// use crate::*;
 
 
-
-/// Returns the present value of a future series of constant cashflows and constant rate. For simple cases. Returns f64.
+/// Returns the **present value of an annuity** (series of constant cashflows) at a constant rate. Returns f64.
 ///
-/// Related functions:
-/// * To calculate a present value with a varying rate or varying cashflow or both, use [`present_value_annuity_schedule`].
-///
-/// The present value annuity formula is:
+/// The present value annuity formula is (both yield the same result):
 ///
 /// present_value = sum( cashflow / (1 + rate)<sup>period</sup> )
+/// 
 /// or
+/// 
 /// present value = annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate)
 ///
 /// # Arguments
@@ -30,13 +26,22 @@ use crate::tvm_cashflow::*;
 /// expressed as a floating point number. For instance 0.05 would mean 5%. Often appears as
 /// `r` or `i` in formulas.
 /// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
-/// * `cashflow` - The value of the constant cashflow (aka payment).
+/// * `cashflow` - The value of the constant cashflow (aka payment, or annuity).
 ///
 /// # Panics
 /// The call will fail if `rate` is less than -1.0 as this would mean the investment is
 /// losing more than its full value every period.
 ///
 /// # Examples
+/// 
+/// Quick glance, how to use:
+/// ```
+/// use finance::*;
+/// let (rate, periods, annuity)  = (0.034, 10, 21_000);
+/// let my_annuity = present_value_annuity_solution(rate, periods, annuity);
+/// dbg!(my_annuity);
+/// ```
+/// 
 /// Present value of a series of $2000 cashflows.
 /// ```
 /// // The rate is 2.1% per month.
@@ -68,7 +73,7 @@ pub fn present_value_annuity<T>(rate: f64, periods: u32, annuity: T) -> f64
     pv_accumulator
 }
 
-/// Returns the present value of an annuity due (a future series of constant cashflows) with constant rate, where the payment is at the beginning of the period. Returns f64.
+/// Returns the **present value of an annuity due** (a series of constant cashflows with the first payment at the beginning of the period, starting at time-now) with constant rate. Returns f64.
 ///
 /// Related functions:
 // / * To calculate a present value with a varying rate or varying cashflow or both, use [`present_value_annuity_schedule`].
@@ -331,21 +336,40 @@ mod tests {
 
 #[test]
     fn test_present_value_annuity_1() {
-        let rate = 0.034;
-        let periods = 1;
-        let annuity = 500;
+        let (rate, periods, annuity) = (0.034, 1, 500);
         let pv = present_value_annuity(rate, periods, annuity);
-        // assert_approx_equal!(483.5589942, fv);
         assert_eq!(483.55899, (pv * 100000.).round() / 100000.);
     }
     #[test]
     fn test_present_value_annuity_2() {
-        let rate = 0.034;
-        let periods = 400;
-        let annuity = 500;
+        // big periods
+        let (rate, periods, annuity) = (0.034, 400, 500);
         let pv = present_value_annuity(rate, periods, annuity);
-        // assert_approx_equal!(14705.8594824, fv);
         assert_eq!(14705.85948, (pv * 100000.).round() / 100000.);
+    }
+
+    #[test]
+    fn test_present_value_annuity_3() {
+        // negative rate
+        let (rate, periods, annuity) = (-0.034, 52, 500);
+        let pv = present_value_annuity(rate, periods, annuity);
+        assert_eq!(74_148.8399, (pv * 100000.).round() / 100000.);
+    }
+
+    #[test]
+    fn test_present_value_annuity_4() {
+        // big negative rate
+        let (rate, periods, annuity) = (-0.999, 3, 500);
+        let pv = present_value_annuity(rate, periods, annuity);
+        assert_eq!(500_500_499_999.99854, (pv * 100000.).round() / 100000.);
+    }
+
+    #[test]
+    fn test_present_value_annuity_5() {
+        // big precision
+        let (rate, periods, annuity) = (0.00034, 2_800, 5_000_000);
+        let pv = present_value_annuity(rate, periods, annuity);
+        assert_eq!(9028959259.062, (pv * 1000.).round() / 1000.);
     }
 
 }
