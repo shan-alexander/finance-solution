@@ -1,6 +1,6 @@
 # libf financial library for Rust
 
-## Libf is a financial library for time-value-of-money problems.
+## libf is a financial library for time-value-of-money problems.
 
 People who will find this crate helpful include:
 - **Students of Finance** who want to solve their financial problems using something better than a crude handheld calculator. Using this library also reduces the chance of human error, and provides better output and data displays than Excel.
@@ -151,7 +151,7 @@ Bonus highlights include:
 - Functional parameters like rate and periods are strictly enforced to f64 for rate and u32 for periods. Periods are not allowed to be negative, and periods larger than 2000 will likely lead to computer-inherent floating point representation errors, so we provide a `warn!` for situations when we believe the inputs may create inaccuracies in the final output. It is up to the user to enable warn logs.
 
 ## To-do items for this crate
-We have a backlog of items we intend to included in this crate:
+We have a backlog of items we intend to include in this crate:
 - IRR
 - MIRR
 - WACC
