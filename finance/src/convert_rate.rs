@@ -122,7 +122,7 @@ use log::{warn};
 use crate::tvm_convert_rate::*;
 use crate::*;
 
-pub fn assert_inputs(rate:f64, periods:u32, fn_type: ConvertRateVariable) {
+fn assert_inputs(rate:f64, periods:u32, fn_type: ConvertRateVariable) {
     assert!(periods >= 1);
     assert!(rate.is_finite());
     if fn_type.is_ear() { 
@@ -136,6 +136,8 @@ pub fn assert_inputs(rate:f64, periods:u32, fn_type: ConvertRateVariable) {
     }
 }
 
+
+/// **Helper function** to convert an **quoted annual rate (apr)** into all possible conversions (ear, epr). Returns a solution struct.
 pub fn apr(apr:f64, compounding_periods_in_year:u32) -> ConvertRateSolution {
     assert_inputs(apr, compounding_periods_in_year, tvm_convert_rate::ConvertRateVariable::Apr);
     let ear = (1_f64 + (apr/compounding_periods_in_year as f64)).powf(compounding_periods_in_year as f64) - 1_f64;
@@ -149,6 +151,7 @@ pub fn apr(apr:f64, compounding_periods_in_year:u32) -> ConvertRateSolution {
     tvm_convert_rate::ConvertRateSolution::new(tvm_convert_rate::ConvertRateVariable::Apr, apr, compounding_periods_in_year, apr_in_percent, epr_in_percent, ear_in_percent, apr, epr, ear, &apr_formula, &epr_formula, &ear_formula,)
 }
 
+/// Helper function to convert an APR into an EAR using continuous compounding. Returns solution struct.
 pub fn apr_continuous(apr:f64) -> ConvertRateSolution {
     let compounding_periods_in_year = 1; // not used
     assert_inputs(apr, compounding_periods_in_year, tvm_convert_rate::ConvertRateVariable::AprContinuous);
@@ -171,6 +174,7 @@ pub fn apr_continuous(apr:f64) -> ConvertRateSolution {
     tvm_convert_rate::ConvertRateSolution::new(tvm_convert_rate::ConvertRateVariable::AprContinuous, apr, compounding_periods_in_year, apr_in_percent, epr_in_percent, ear_in_percent, apr, epr, ear, &apr_formula, &epr_formula, &ear_formula,)          
 }
 
+/// Helper function to convert an EAR into an APR using continuous compounding. Returns solution struct.
 pub fn ear_continuous(ear:f64) -> ConvertRateSolution {
     let compounding_periods_in_year = 1; // not used
     assert_inputs(ear, compounding_periods_in_year, tvm_convert_rate::ConvertRateVariable::EarContinuous);
@@ -206,6 +210,12 @@ pub fn ear(ear:f64, compounding_periods_in_year:u32) -> ConvertRateSolution {
     tvm_convert_rate::ConvertRateSolution::new(tvm_convert_rate::ConvertRateVariable::Ear, ear, compounding_periods_in_year, apr_in_percent, epr_in_percent, ear_in_percent, apr, epr, ear, &apr_formula, &epr_formula, &ear_formula,)
 }
 
+/// Helper function to convert a periodic interest rate (EPR) to all rate conversions. Returns solution struct.
+/// 
+/// Note: an EPR of 0.99 with a large number of periods can create decimal inaccuracies due to floating point representation. 
+/// The epr conversion method is tested and guaranteed accurate up to 780 periods between rates -0.034 and 0.989 however any rates outside this
+/// range may result in floating point representation / rounding errors (extremely small differences like 0.00001, but if the period count is an extreme case like 2000, this can result in a difference of $1-$4 on a TVM problem).
+/// 
 pub fn epr(epr:f64, compounding_periods_in_year:u32) -> ConvertRateSolution {
     convert_rate::assert_inputs(epr, compounding_periods_in_year, tvm_convert_rate::ConvertRateVariable::Epr);
     let apr = epr * compounding_periods_in_year as f64;
@@ -486,44 +496,32 @@ pub fn convert_epr_to_apr_solution(epr: f64, compounding_periods_in_year: u32) -
 }
 
 
-// fn round_6(val:f64) -> f64 { (val * 1_000_000.).round() / 1_000_000.}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    //use crate::*;
     
     #[test]
-    fn test_convert_rate_solution_symmetry() {
-        let apr_epr_ear_rates = vec!(0.034, -0.034, 0.00283333333, -0.00283333333, 0.0345348693603, 0.0, -0.0, 1.0, 2.1, 0.00001);
+    fn test_convert_rate_apr_symmetry() {
+        let apr_rates = vec!(0.034, -0.034, 0.00283333333, -0.00283333333, 0.0345348693603, 0.0, -0.0, 1.0, 2.1, 0.00001);
         let periods = vec![12, 1, 2, 3, 4, 6, 24, 52, 365, 780];
         
-        for rates_i in apr_epr_ear_rates {
+        for rates_i in apr_rates {
             for &periods_i in periods.iter() {
                 check_rate_conversion_symmetry(rates_i, periods_i);
 
-                fn check_rate_conversion_symmetry(rate:f64, periods:u32) {
+                fn check_rate_conversion_symmetry(rate:f64, periods:u32) {  
                     // apr scenarios
                     let apr_epr = convert_apr_to_epr(rate, periods);
                     let _epr_apr = convert_epr_to_apr(apr_epr, periods);
+                    let apr_ = apr(rate, periods);
+                    assert_approx_equal!(apr_epr, apr_.epr);
+                    assert_approx_equal!(_epr_apr, rate);
 
-                    // ear scenarios
-
-
-                    // let apr_epr = convert_apr_to_epr_solution(rate, periods);
-                    // let ae = convert_apr_to_ear_solution(rate, periods);
-
-                    // assert_approx_equal!(apr_epr.output_rate, convert_ear_to_epr(ae.output_rate, periods));
-                    // assert_approx_equal!(ae.output_rate, convert_epr_to_ear(apr_epr.output_rate, periods));
-                    
-
-                    // let pa = convert_epr_to_apr_solution(rate, periods);
-                    // let pe = convert_epr_to_ear_solution(rate, periods);
-                    
-                    // let ea = convert_ear_to_apr_solution(rate, periods);
-                    // let ep = convert_ear_to_epr_solution(rate, periods);
-
-                    
+                    let apr_ear = convert_apr_to_ear(rate, periods);
+                    let _ear_apr = convert_ear_to_apr(apr_ear, periods);
+                    assert_approx_equal!(apr_ear, apr_.ear);
+                    assert_approx_equal!(_ear_apr, rate);
                 }
                 
             }
@@ -531,15 +529,72 @@ mod tests {
     }
 
     #[test]
+    fn test_convert_rate_ear_symmetry() {
+        let ear_rates = vec!(0.034, -0.034, 0.00283333333, -0.00283333333, 0.0345348693603, 0.0, -0.0, 1.0, 2.1, 0.00001);
+        let periods = vec![12, 1, 2, 3, 4, 6, 24, 52, 365, 780];
+        
+        for rates_i in ear_rates {
+            for &periods_i in periods.iter() {
+                check_rate_conversion_symmetry(rates_i, periods_i);
+
+                fn check_rate_conversion_symmetry(rate:f64, periods:u32) {
+                    // ear scenarios
+                    let ear_apr = convert_ear_to_apr(rate, periods);
+                    let _apr_ear = convert_apr_to_ear(ear_apr, periods);
+                    let ear_ = ear(rate, periods);
+                    assert_approx_equal!(ear_apr, ear_.apr);
+                    assert_approx_equal!(_apr_ear, rate);
+
+                    let ear_epr = convert_ear_to_epr(rate, periods);
+                    let _epr_ear = convert_epr_to_ear(ear_epr, periods);
+                    assert_approx_equal!(ear_epr, ear_.epr);
+                    assert_approx_equal!(_epr_ear, rate);  
+                }
+                
+            }
+        }
+    }
+
+    #[test]
+    fn test_convert_rate_epr_symmetry() {
+        let epr_rates = vec!(0.034, -0.034, 0.00283333333, -0.00283333333, 0.0345348693603, 0.0, -0.039, -0.0, 0.98, 0.00001, 0.98999);
+        let periods = vec![12, 1, 2, 3, 4, 6, 24, 52, 365, 780];
+        // note: epr_rate of 0.99 causes floating point representation error on big periods. Periods over 780 also cause failed tests.
+        
+        for rates_i in epr_rates {
+            for &periods_i in periods.iter() {
+                check_rate_conversion_symmetry(rates_i, periods_i);
+
+                fn check_rate_conversion_symmetry(rate:f64, periods:u32) {
+                    // epr scenarios
+                    let epr_apr = convert_epr_to_apr(rate, periods);
+                    let _apr_epr = convert_apr_to_epr(epr_apr, periods);
+                    let epr_ = epr(rate, periods);
+                    assert_approx_equal!(epr_apr, epr_.apr);
+                    assert_approx_equal!(_apr_epr, rate);
+
+                    let epr_ear = convert_epr_to_ear(rate, periods);
+                    let _ear_epr = convert_ear_to_epr(epr_ear, periods);
+                    assert_approx_equal!(epr_ear, epr_.ear);
+                    assert_approx_equal!(_ear_epr, rate);  
+                }
+                
+            }
+        }
+    }
+
+
+
+    #[test]
     fn test_convert_rates_simple_1() {
         // test on excel values using 12 periods
         const PERIODS: u32 = 12;
         let apr_epr_ear_rates = vec!((0.034, 0.00283333333, 0.0345348693603),
                                      (-0.034, -0.002833333333, -0.03347513889),
-                                    //  (1.0, 0.08333333333, 1.6130352902247),
-                                    //  (-1.0, -0.083333333333, -0.64800437199),
-                                    //  (2.1, 0.175, 5.9255520766347), 
-                                    //  (-2.1, -0.175,-0.90058603794)
+                                     (1.0, 0.08333333333, 1.6130352902247),
+                                     (-1.0, -0.083333333333, -0.64800437199),
+                                     (2.1, 0.175, 5.9255520766347), 
+                                     (-2.1, -0.175,-0.90058603794)
                                 );
         for rate_tupe in apr_epr_ear_rates {
                 let ap = convert_apr_to_epr(rate_tupe.0, PERIODS);
