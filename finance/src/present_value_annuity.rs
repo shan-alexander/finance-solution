@@ -1,4 +1,5 @@
 #![allow(unused_imports)]
+
 //! **Present value _annuity_ calculations**. Given a series of cashflows, a number of periods such as years, and fixed
 //! or varying interest rates, what is the current value of the series of cashflows (annuity) right now?
 //!
