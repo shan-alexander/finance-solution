@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 // word problems:
 // https://www.westga.edu/~rbest/finc3511/sampleprobs/sample5.pdf
 

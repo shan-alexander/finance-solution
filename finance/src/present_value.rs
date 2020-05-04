@@ -10,8 +10,6 @@
 //! If you need to calculate the number of periods given a fixed rate and a present and future value
 //! use [`periods`] or related functions.
 
-// To do: Add a _continuous() variation: http://www.edmichaelreggie.com/TMVContent/APR.htm
-
 use log::warn;
 
 use crate::tvm_simple::*;
@@ -202,7 +200,7 @@ pub fn present_value_solution<T>(rate: f64, periods: u32, future_value: T) -> Tv
     assert!(rate_multiplier >= 0.0);
     let formula = format!("{:.4} = {:.4} / ({:.6} ^ {})", present_value, future_value.into(), rate_multiplier, periods);
     let formula_symbolic = "pv = fv / (1 + r)^n";
-    TvmSolution::new(TvmVariable::PresentValue, rate, periods, present_value, future_value.into(), &formula, formula_symbolic)
+    TvmSolution::new(TvmVariable::PresentValue, false, rate, periods, present_value, future_value.into(), &formula, formula_symbolic)
 }
 
 /// Calculates a present value based on rates that change for each period.
@@ -440,6 +438,8 @@ pub(crate) fn present_value_schedule_series(schedule: &TvmSchedule) -> TvmSeries
 pub fn present_value_continuous<T>(apr: f64, years: u32, future_value: T) -> f64
     where T: Into<f64> + Copy
 {
+    // http://www.edmichaelreggie.com/TMVContent/APR.htm
+
     let future_value = future_value.into();
     check_present_value_parameters(apr, years, future_value);
 

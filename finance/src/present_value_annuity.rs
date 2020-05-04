@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 //! **Present value _annuity_ calculations**. Given a series of cashflows, a number of periods such as years, and fixed
 //! or varying interest rates, what is the current value of the series of cashflows (annuity) right now?
 //!
@@ -5,11 +6,9 @@
 // to do: add "use log::warn;" and helper logs
 
 // Needed for the Rustdoc comments.
-#[allow(unused_imports)]
 use crate::present_value::present_value;
 use crate::future_value::future_value;
 use crate::tvm_cashflow::*;
-
 
 /// Returns the **present value of an annuity** (series of constant cashflows) at a constant rate. Returns f64.
 ///

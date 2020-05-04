@@ -242,10 +242,10 @@ pub fn periods_solution<P, F>(rate: f64, present_value: P, future_value: F) -> T
     let rate_multiplier = 1.0 + rate;
     let formula = format!("{:.2} = log({:.4} / {:.4}, base {:.6})", fractional_periods, future_value, present_value, rate_multiplier);
     let formula_symbolic = "n = log(fv / pv, base (1 + r))";
-    TvmSolution::new_fractional_periods(TvmVariable::Periods,rate, fractional_periods, present_value, future_value, &formula, formula_symbolic)
+    TvmSolution::new_fractional_periods(TvmVariable::Periods,false, rate, fractional_periods, present_value, future_value, &formula, formula_symbolic)
 }
 
-pub fn periods_continuous<P, F>(apr: f64, present_value: P, future_value: F) -> f64
+pub fn years_continuous<P, F>(apr: f64, present_value: P, future_value: F) -> f64
     where
         P: Into<f64> + Copy,
         F: Into<f64> + Copy

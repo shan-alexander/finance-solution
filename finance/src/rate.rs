@@ -169,13 +169,13 @@ pub fn rate_solution<P, F>(periods: u32, present_value: P, future_value: F) -> T
         // This is a special case where any rate will work.
         let formula = "{special case}";
         let formula_symbolic = "***";
-        return TvmSolution::new(TvmVariable::Rate, 0.0, periods, present_value, future_value, formula, formula_symbolic);
+        return TvmSolution::new(TvmVariable::Rate, false,0.0, periods, present_value, future_value, formula, formula_symbolic);
     }
 
     let rate = rate(periods, present_value, future_value);
     let formula = format!("{:.6} = (({:.4} / {:.4}) ^ (1 / {})) - 1", rate, future_value, present_value, periods);
     let formula_symbolic = "r = ((fv / pv) ^ (1 / n)) - 1";
-    TvmSolution::new(TvmVariable::Rate,rate, periods, present_value.into(), future_value, &formula, formula_symbolic)
+    TvmSolution::new(TvmVariable::Rate,false, rate, periods, present_value.into(), future_value, &formula, formula_symbolic)
 }
 
 pub fn apr_continuous<P, F>(periods: u32, present_value: P, future_value: F) -> f64

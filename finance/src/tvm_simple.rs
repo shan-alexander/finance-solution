@@ -62,6 +62,7 @@ impl TvmVariable {
 #[derive(Debug)]
 pub struct TvmSolution {
     calculated_field: TvmVariable,
+    continuous_compounding: bool,
     rate: f64,
     periods: u32,
     fractional_periods: f64,
@@ -72,16 +73,16 @@ pub struct TvmSolution {
 }
 
 impl TvmSolution {
-    pub(crate) fn new(calculated_field: TvmVariable, rate: f64, periods: u32, present_value: f64, future_value: f64, formula: &str, formula_symbolic: &str) -> Self {
+    pub(crate) fn new(calculated_field: TvmVariable, continuous_compounding: bool, rate: f64, periods: u32, present_value: f64, future_value: f64, formula: &str, formula_symbolic: &str) -> Self {
         assert!(rate.is_finite());
         assert!(present_value.is_finite());
         assert!(future_value.is_finite());
         assert!(formula.len() > 0);
         assert!(formula_symbolic.len() > 0);
-        Self::new_fractional_periods(calculated_field, rate, periods as f64, present_value, future_value, formula, formula_symbolic)
+        Self::new_fractional_periods(calculated_field, continuous_compounding, rate, periods as f64, present_value, future_value, formula, formula_symbolic)
     }
 
-    pub(crate) fn new_fractional_periods(calculated_field: TvmVariable, rate: f64, fractional_periods: f64, present_value: f64, future_value: f64, formula: &str, formula_symbolic: &str) -> Self {
+    pub(crate) fn new_fractional_periods(calculated_field: TvmVariable, continuous_compounding: bool, rate: f64, fractional_periods: f64, present_value: f64, future_value: f64, formula: &str, formula_symbolic: &str) -> Self {
         assert!(rate >= -1.0);
         assert!(fractional_periods >= 0.0);
         assert!(present_value.is_finite());
@@ -90,6 +91,7 @@ impl TvmSolution {
         assert!(formula_symbolic.len() > 0);
         Self {
             calculated_field,
+            continuous_compounding,
             rate,
             periods: round_fractional_periods(fractional_periods),
             fractional_periods,

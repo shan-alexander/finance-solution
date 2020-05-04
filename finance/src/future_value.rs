@@ -203,7 +203,7 @@ pub fn future_value_solution<T>(rate: f64, periods: u32, present_value: T) -> Tv
     assert!(rate_multiplier >= 0.0);
     let formula = format!("{:.4} = {:.4} * ({:.6} ^ {})", future_value, present_value.into(), rate_multiplier, periods);
     let formula_symbolic = "fv = pv * (1 + r)^n";
-    TvmSolution::new(TvmVariable::FutureValue, rate, periods, present_value.into(), future_value, &formula, formula_symbolic)
+    TvmSolution::new(TvmVariable::FutureValue, false, rate, periods, present_value.into(), future_value, &formula, formula_symbolic)
 }
 
 /// Calculates a future value based on rates that change for each period.
@@ -313,15 +313,6 @@ pub fn future_value_schedule_solution<T>(rates: &[f64], present_value: T) -> Tvm
     TvmSchedule::new(TvmVariable::FutureValue, rates, present_value.into(), future_value)
 }
 
-fn check_future_value_parameters(rate: f64, _periods: u32, present_value: f64) {
-    assert!(rate.is_finite(), "The rate must be finite (not NaN or infinity)");
-    assert!(rate >= -1.0, "The rate must be greater than or equal to -1.0 because a rate lower than -100% would mean the investment loses more than its full value in a period.");
-    if rate.abs() > 1. {
-        warn!("You provided a periodic rate ({}) greater than 1. Are you sure you expect a {}% return?", rate, rate * 100.0);
-    }
-    assert!(present_value.is_finite(), "The present value must be finite (not NaN or infinity)");
-}
-
 pub(crate) fn future_value_schedule_series(schedule: &TvmSchedule) -> TvmSeries {
     assert!(schedule.calculated_field().is_future_value());
 
@@ -366,9 +357,18 @@ pub fn future_value_continuous<T>(apr: f64, years: u32, present_value: T) -> f64
     let present_value = present_value.into();
     check_future_value_parameters(apr, years, present_value);
 
-    let future_value = present_value * std::f64::consts::E.powf((1.0 + apr) * years as f64);
+    let future_value = present_value * std::f64::consts::E.powf(apr * years as f64);
     assert!(future_value.is_finite());
     future_value
+}
+
+fn check_future_value_parameters(rate: f64, _periods: u32, present_value: f64) {
+    assert!(rate.is_finite(), "The rate must be finite (not NaN or infinity)");
+    assert!(rate >= -1.0, "The rate must be greater than or equal to -1.0 because a rate lower than -100% would mean the investment loses more than its full value in a period.");
+    if rate.abs() > 1. {
+        warn!("You provided a periodic rate ({}) greater than 1. Are you sure you expect a {}% return?", rate, rate * 100.0);
+    }
+    assert!(present_value.is_finite(), "The present value must be finite (not NaN or infinity)");
 }
 
 #[cfg(test)]
