@@ -448,6 +448,15 @@ pub fn present_value_continuous<T>(apr: f64, years: u32, future_value: T) -> f64
     present_value
 }
 
+pub fn present_value_continuous_solution<T>(apr: f64, years: u32, future_value: T) -> TvmSolution
+    where T: Into<f64> + Copy
+{
+    let present_value = present_value_continuous(apr, years, future_value);
+    let formula = format!("{:.4} = {:.4} / {:.6}^({:.6} * {})", present_value, future_value.into(), std::f64::consts::E, apr, years);
+    let formula_symbolic = "pv = fv / e^(rt)";
+    TvmSolution::new(TvmVariable::PresentValue, true, apr, years, present_value, future_value.into(), &formula, formula_symbolic)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

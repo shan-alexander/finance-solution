@@ -362,6 +362,15 @@ pub fn future_value_continuous<T>(apr: f64, years: u32, present_value: T) -> f64
     future_value
 }
 
+pub fn future_value_continuous_solution<T>(apr: f64, years: u32, present_value: T) -> TvmSolution
+    where T: Into<f64> + Copy
+{
+    let future_value = future_value_continuous(apr, years, present_value);
+    let formula = format!("{:.4} = {:.4} * {:.6}^({:.6} * {})", future_value, present_value.into(), std::f64::consts::E, apr, years);
+    let formula_symbolic = "fv = pv * e^(rt)";
+    TvmSolution::new(TvmVariable::FutureValue, true, apr, years, present_value.into(), future_value, &formula, formula_symbolic)
+}
+
 fn check_future_value_parameters(rate: f64, _periods: u32, present_value: f64) {
     assert!(rate.is_finite(), "The rate must be finite (not NaN or infinity)");
     assert!(rate >= -1.0, "The rate must be greater than or equal to -1.0 because a rate lower than -100% would mean the investment loses more than its full value in a period.");

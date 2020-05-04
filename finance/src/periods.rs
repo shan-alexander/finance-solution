@@ -274,6 +274,20 @@ pub fn years_continuous<P, F>(apr: f64, present_value: P, future_value: F) -> f6
     fractional_periods
 }
 
+pub fn years_continuous_solution<P, F>(apr: f64, present_value: P, future_value: F) -> TvmSolution
+    where
+        P: Into<f64> + Copy,
+        F: Into<f64> + Copy
+{
+    let fractional_years = years_continuous(apr, present_value, future_value);
+    assert!(fractional_years >= 0.0);
+    let present_value = present_value.into();
+    let future_value = future_value.into();
+    let formula = format!("{:.2} = log({:.4} / {:.4}, base {:.6}) / {:.6}", fractional_years, future_value, present_value, std::f64::consts::E, apr);
+    let formula_symbolic = "t = log(fv / pv, base e) / r";
+    TvmSolution::new_fractional_periods(TvmVariable::Periods,true, apr, fractional_years, present_value, future_value, &formula, formula_symbolic)
+}
+
 fn check_period_parameters(rate: f64, present_value: f64, future_value: f64) {
     assert!(rate.is_finite(), "The rate must be finite (not NaN or infinity)");
     assert!(present_value.is_finite(), "The present value must be finite (not NaN or infinity)");

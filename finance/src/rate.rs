@@ -149,10 +149,13 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
 /// // The rate is 4.138% per year.
 /// finance::assert_rounded_6(0.041380, rate);
 ///
-/// // Examine the formula.
+/// // Examine the formulas.
 /// let formula = solution.formula();
-/// dbg!(formula);
-/// assert_eq!("((15000.0000 / 10000.0000) ^ (1 / 10)) - 1", formula);
+/// dbg!(&formula);
+/// assert_eq!("0.041380 = ((15000.0000 / 10000.0000) ^ (1 / 10)) - 1", formula);
+/// let formula_symbolic = solution.formula_symbolic();
+/// dbg!(&formula_symbolic);
+/// assert_eq!("r = ((fv / pv) ^ (1 / n)) - 1", formula_symbolic);
 ///
 /// // Calculate the period-by-period values.
 /// let series = solution.series();
@@ -199,6 +202,30 @@ pub fn apr_continuous<P, F>(periods: u32, present_value: P, future_value: F) -> 
     assert!(apr.is_finite());
     apr
 }
+
+pub fn apr_continuous_solution<P, F>(years: u32, present_value: P, future_value: F) -> TvmSolution
+    where
+        P: Into<f64> + Copy,
+        F: Into<f64> + Copy
+{
+    let present_value = present_value.into();
+    let future_value = future_value.into();
+    if present_value == 0.0 && future_value == 0.0 {
+        // This is a special case where any rate will work.
+        let formula = "{special case}";
+        let formula_symbolic = "***";
+        let apr = 0.0;
+        return TvmSolution::new(TvmVariable::Rate, true,apr, years, present_value, future_value, formula, formula_symbolic);
+    }
+
+    let apr = apr_continuous(years, present_value, future_value);
+    let formula = format!("{:.6} = log({:.4} / {:.4}, base {:.6}) / {}", apr, future_value, present_value, std::f64::consts::E, years);
+    let formula_symbolic = "r = log(fv / pv, base e) / t";
+    TvmSolution::new(TvmVariable::Rate, true, apr, years, present_value.into(), future_value, &formula, formula_symbolic)
+}
+
+// let formula = format!("{:.2} = log({:.4} / {:.4}, base {:.6})", fractional_periods, future_value, present_value, rate_multiplier);
+
 
 fn check_rate_parameters(periods: u32, present_value: f64, future_value: f64) {
     assert!(present_value.is_finite(), "The present value must be finite (not NaN or infinity)");
