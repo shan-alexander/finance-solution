@@ -1,4 +1,4 @@
-
+#![allow(dead_code)]
 
 pub fn main() {
     // try_doc_example();

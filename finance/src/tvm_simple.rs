@@ -446,7 +446,7 @@ impl TvmSchedule {
 pub struct TvmSeries(Vec<TvmPeriod>);
 
 impl TvmSeries {
-    pub fn new(series: Vec<TvmPeriod>) -> Self {
+    pub(crate) fn new(series: Vec<TvmPeriod>) -> Self {
         Self {
             0: series,
         }

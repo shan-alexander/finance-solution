@@ -208,7 +208,7 @@ impl Debug for TvmCashflowSolution {
 pub struct TvmCashflowSeries(Vec<TvmCashflowPeriod>);
 
 impl TvmCashflowSeries {
-    pub fn new(series: Vec<TvmCashflowPeriod>) -> Self {
+    pub(crate) fn new(series: Vec<TvmCashflowPeriod>) -> Self {
         Self {
             0: series,
         }
