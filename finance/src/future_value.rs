@@ -361,6 +361,8 @@ pub(crate) fn future_value_schedule_series(schedule: &TvmSchedule) -> TvmSeries 
 pub fn future_value_continuous<T>(apr: f64, years: u32, present_value: T) -> f64
     where T: Into<f64> + Copy
 {
+    // http://www.edmichaelreggie.com/TMVContent/APR.htm
+
     let present_value = present_value.into();
     check_future_value_parameters(apr, years, present_value);
 

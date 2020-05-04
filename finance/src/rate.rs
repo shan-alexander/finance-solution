@@ -77,7 +77,7 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
 {
     let present_value = present_value.into();
     let future_value = future_value.into();
-    if present_value == 0.0 {
+    if present_value == 0.0 && future_value == 0.0 {
         // This is a special case where any rate will work.
         return 0.0;
     }
@@ -176,6 +176,28 @@ pub fn rate_solution<P, F>(periods: u32, present_value: P, future_value: F) -> T
     let formula = format!("{:.6} = (({:.4} / {:.4}) ^ (1 / {})) - 1", rate, future_value, present_value, periods);
     let formula_symbolic = "r = ((fv / pv) ^ (1 / n)) - 1";
     TvmSolution::new(TvmVariable::Rate,rate, periods, present_value.into(), future_value, &formula, formula_symbolic)
+}
+
+pub fn apr_continuous<P, F>(periods: u32, present_value: P, future_value: F) -> f64
+    where
+        P: Into<f64> + Copy,
+        F: Into<f64> + Copy
+{
+    let present_value = present_value.into();
+    let future_value = future_value.into();
+    if present_value == 0.0 && future_value == 0.0 {
+        // This is a special case where any rate will work.
+        return 0.0;
+    }
+    if future_value == 0.0 {
+        // This is a special case where the rate must be -100% because present value is nonzero.
+        return -1.0;
+    }
+    check_rate_parameters(periods, present_value, future_value);
+
+    let apr = (future_value / present_value).log(std::f64::consts::E) / periods as f64;
+    assert!(apr.is_finite());
+    apr
 }
 
 fn check_rate_parameters(periods: u32, present_value: f64, future_value: f64) {

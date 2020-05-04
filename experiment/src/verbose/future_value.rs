@@ -294,6 +294,11 @@ fn try_continuous() {
     let years = 5;
     let present_value = 1_000;
 
-    dbg!(finance::future_value(apr, years, present_value));
+    for periods_per_year in [1, 2, 4, 6, 12, 52, 365].iter() {
+        let rate = apr / *periods_per_year as f64;
+        let periods = periods_per_year * years;
+        println!("{}", finance::future_value(rate, periods, present_value));
+    }
+    // Continuous.
+    println!("{}", finance::future_value_continuous(apr, years, present_value));
 }
-

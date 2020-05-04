@@ -170,7 +170,7 @@ mod tests {
 
     }
 
-    fn check_series_internal(label: String, calculated_field: TvmVariable, series: &[TvmPeriod], rate_in: f64, periods_in: u32, present_value_in: f64, future_value_calc: f64, rate_calc: f64, periods_calc: u32) {
+    fn check_series_internal(_label: String, calculated_field: TvmVariable, series: &[TvmPeriod], rate_in: f64, periods_in: u32, present_value_in: f64, future_value_calc: f64, rate_calc: f64, periods_calc: u32) {
         //bg!(label);
         //bg!(&series);
         if calculated_field.is_periods() {

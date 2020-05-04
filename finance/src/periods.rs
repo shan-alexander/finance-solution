@@ -245,6 +245,35 @@ pub fn periods_solution<P, F>(rate: f64, present_value: P, future_value: F) -> T
     TvmSolution::new_fractional_periods(TvmVariable::Periods,rate, fractional_periods, present_value, future_value, &formula, formula_symbolic)
 }
 
+pub fn periods_continuous<P, F>(apr: f64, present_value: P, future_value: F) -> f64
+    where
+        P: Into<f64> + Copy,
+        F: Into<f64> + Copy
+{
+    let present_value = present_value.into();
+    let future_value = future_value.into();
+    if present_value == future_value {
+        // This is a special case that doesn't require us to check the parameters and which covers
+        // the case where both are zero.
+        return 0.0;
+    }
+    if future_value == 0.0 && apr == -1.0 {
+        // This is a special case that we can't run through the log function. Since the rate is
+        // -100%, given any present value the future value will be zero and it will take only one
+        // period to get there.
+        // We already know that the present value is nonzero because that case would have been
+        // caught above.
+        assert!(present_value != 0.0);
+        return 1.0;
+    }
+
+    check_period_parameters(apr, present_value, future_value);
+
+    let fractional_periods= (future_value / present_value).log(std::f64::consts::E) / apr;
+    assert!(fractional_periods >= 0.0);
+    fractional_periods
+}
+
 fn check_period_parameters(rate: f64, present_value: f64, future_value: f64) {
     assert!(rate.is_finite(), "The rate must be finite (not NaN or infinity)");
     assert!(present_value.is_finite(), "The present value must be finite (not NaN or infinity)");
