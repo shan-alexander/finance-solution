@@ -362,10 +362,17 @@ pub(crate) fn present_value_series(solution: &TvmSolution) -> TvmSeries {
             // the value at the end of the last period. Here we're working with some period other
             // than the last period so we calculate this period's value based on the period after
             // it.
-            let value = next_value.unwrap() / rate_multiplier;
-            let formula = format!("{:.4} = {:.4} / {:.6}", value, next_value.unwrap(), rate_multiplier);
-            let formula_symbolic = "value = {next period value} / (1 + r)";
-            (value, formula, formula_symbolic)
+            let (value, formula, formula_symbolic) = if solution.{
+                let value = next_value.unwrap() / rate_multiplier;
+                let formula = format!("{:.4} = {:.4} / {:.6}", value, next_value.unwrap(), rate_multiplier);
+                let formula_symbolic = "value = {next period value} / (1 + r)";
+                (value, formula, formula_symbolic)
+            } else {
+                let value = next_value.unwrap() / rate_multiplier;
+                let formula = format!("{:.4} = {:.4} / {:.6}", value, next_value.unwrap(), rate_multiplier);
+                let formula_symbolic = "value = {next period value} / (1 + r)";
+                (value, formula, formula_symbolic)
+            }
         };
         assert!(value.is_finite());
         next_value = Some(value);

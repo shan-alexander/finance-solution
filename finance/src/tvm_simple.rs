@@ -307,6 +307,11 @@ impl TvmSolution {
         &self.calculated_field
     }
 
+    /// Returns true if the value is compounded continuously rather than period-by-period.
+    pub fn continuous_compounding(&self) -> bool {
+        self.continuous_compounding
+    }
+
     /// Returns the periodic rate which is a calculated value if this `TvmSolution` struct is the
     /// result of a call to [`rate_solution`] and otherwise is one of the input values.
     pub fn rate(&self) -> f64 {
