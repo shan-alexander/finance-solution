@@ -1,5 +1,5 @@
 //! **Future value calculations.** Given an initial investment amount, a number of periods such as
-//! years, and fixed or varying interest rates, what is the value of the investment at the end?
+//! periods, and fixed or varying interest rates, what is the value of the investment at the end?
 //!
 //! If you need to calculate the present value given a future value, a number of periods, and one
 //! or more rates use [`present_value`] or related functions.
@@ -45,7 +45,7 @@ use crate::{present_value::present_value, rate::rate, periods::periods};
 /// * `rate` - The rate at which the investment grows or shrinks per period, expressed as a
 /// floating point number. For instance 0.05 would mean 5% growth. Often appears as `r` or `i` in
 /// formulas.
-/// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
+/// * `periods` - The number of periods such as quarters or periods. Often appears as `n` or `t`.
 /// * `present_value` - The starting value of the investment. May appear as `pv` in formulas, or `C`
 /// for cash flow or `P` for principal.
 ///
@@ -75,7 +75,7 @@ use crate::{present_value::present_value, rate::rate, periods::periods};
 /// // The investment loses 5% per year.
 /// let rate = -0.05;
 ///
-/// // The investment will shrink for 6 years.
+/// // The investment will shrink for 6 periods.
 /// let periods = 6;
 ///
 /// // The initial investment is $10,000.75.
@@ -124,7 +124,7 @@ pub fn future_value<T>(rate: f64, periods: u32, present_value: T) -> f64
 /// * `rate` - The rate at which the investment grows or shrinks per period, expressed as a
 /// floating point number. For instance 0.05 would mean 5% growth. Often appears as `r` or `i` in
 /// formulas.
-/// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
+/// * `periods` - The number of periods such as quarters or periods. Often appears as `n` or `t`.
 /// * `present_value` - The starting value of the investment. May appear as `pv` in formulas, or `C`
 /// for cash flow or `P` for principal.
 ///
@@ -167,7 +167,7 @@ pub fn future_value<T>(rate: f64, periods: u32, present_value: T) -> f64
 /// // The initial investment is $100,000.
 /// let present_value = 100_000;
 ///
-/// // The investment will grow for 12 years.
+/// // The investment will grow for 12 periods.
 /// let periods = 12;
 ///
 /// // We'll keep a collection of the calculated future values along with their inputs.
@@ -349,26 +349,26 @@ pub(crate) fn future_value_schedule_series(schedule: &TvmSchedule) -> TvmSeries 
     TvmSeries::new(series)
 }
 
-pub fn future_value_continuous<T>(apr: f64, years: u32, present_value: T) -> f64
+pub fn future_value_continuous<T>(rate: f64, periods: u32, present_value: T) -> f64
     where T: Into<f64> + Copy
 {
-    // http://www.edmichaelreggie.com/TMVContent/APR.htm
+    // http://www.edmichaelreggie.com/TMVContent/rate.htm
 
     let present_value = present_value.into();
-    check_future_value_parameters(apr, years, present_value);
+    check_future_value_parameters(rate, periods, present_value);
 
-    let future_value = present_value * std::f64::consts::E.powf(apr * years as f64);
+    let future_value = present_value * std::f64::consts::E.powf(rate * periods as f64);
     assert!(future_value.is_finite());
     future_value
 }
 
-pub fn future_value_continuous_solution<T>(apr: f64, years: u32, present_value: T) -> TvmSolution
+pub fn future_value_continuous_solution<T>(rate: f64, periods: u32, present_value: T) -> TvmSolution
     where T: Into<f64> + Copy
 {
-    let future_value = future_value_continuous(apr, years, present_value);
-    let formula = format!("{:.4} = {:.4} * {:.6}^({:.6} * {})", future_value, present_value.into(), std::f64::consts::E, apr, years);
+    let future_value = future_value_continuous(rate, periods, present_value);
+    let formula = format!("{:.4} = {:.4} * {:.6}^({:.6} * {})", future_value, present_value.into(), std::f64::consts::E, rate, periods);
     let formula_symbolic = "fv = pv * e^(rt)";
-    TvmSolution::new(TvmVariable::FutureValue, true, apr, years, present_value.into(), future_value, &formula, formula_symbolic)
+    TvmSolution::new(TvmVariable::FutureValue, true, rate, periods, present_value.into(), future_value, &formula, formula_symbolic)
 }
 
 fn check_future_value_parameters(rate: f64, _periods: u32, present_value: f64) {

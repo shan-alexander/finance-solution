@@ -1,5 +1,5 @@
 //! Periodic rate calculations. Given an initial investment amount, a final amount, and a a number
-//! of periods such as years, what does the rate per period need to be?
+//! of periods such as periods, what does the rate per period need to be?
 //!
 //! If you need to calculate the future value given a starting value, a number of periods, and one
 //! or more rates use [`future_value`] or related functions.
@@ -40,7 +40,7 @@ use crate::{future_value::future_value, present_value::present_value, periods::p
 /// > r = (fv / pv)<sup>1 / n</sup> - 1
 ///
 /// # Arguments
-/// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
+/// * `periods` - The number of periods such as quarters or periods. Often appears as `n` or `t`.
 /// * `present_value` - The starting value of the investment. May appear as `pv` in formulas, or `C`
 /// for cash flow or `P` for principal.
 /// * `future_value` - The final value of the investment.
@@ -113,7 +113,7 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
 /// > r = (fv / pv)<sup>1 / n</sup> - 1
 ///
 /// # Arguments
-/// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
+/// * `periods` - The number of periods such as quarters or periods. Often appears as `n` or `t`.
 /// * `present_value` - The starting value of the investment. May appear as `pv` in formulas, or `C`
 /// for cash flow or `P` for principal.
 /// * `future_value` - The final value of the investment.
@@ -129,7 +129,7 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
 /// # Examples
 /// Calculate a periodic rate and examine the period-by-period values.
 /// ```
-/// // The interest will compound for ten years.
+/// // The interest will compound for ten periods.
 /// let periods = 10;
 ///
 /// // The starting value is $10,000.
@@ -146,7 +146,7 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
 ///
 /// let rate = solution.rate();
 /// dbg!(&rate);
-/// // The rate is 4.138% per year.
+/// // The rate is 4.138% per period.
 /// finance::assert_rounded_6(0.041380, rate);
 ///
 /// // Examine the formulas.
@@ -181,7 +181,7 @@ pub fn rate_solution<P, F>(periods: u32, present_value: P, future_value: F) -> T
     TvmSolution::new(TvmVariable::Rate,false, rate, periods, present_value.into(), future_value, &formula, formula_symbolic)
 }
 
-pub fn apr_continuous<P, F>(periods: u32, present_value: P, future_value: F) -> f64
+pub fn rate_continuous<P, F>(periods: u32, present_value: P, future_value: F) -> f64
     where
         P: Into<f64> + Copy,
         F: Into<f64> + Copy
@@ -198,12 +198,12 @@ pub fn apr_continuous<P, F>(periods: u32, present_value: P, future_value: F) -> 
     }
     check_rate_parameters(periods, present_value, future_value);
 
-    let apr = (future_value / present_value).log(std::f64::consts::E) / periods as f64;
-    assert!(apr.is_finite());
-    apr
+    let rate = (future_value / present_value).log(std::f64::consts::E) / periods as f64;
+    assert!(rate.is_finite());
+    rate
 }
 
-pub fn apr_continuous_solution<P, F>(years: u32, present_value: P, future_value: F) -> TvmSolution
+pub fn rate_continuous_solution<P, F>(periods: u32, present_value: P, future_value: F) -> TvmSolution
     where
         P: Into<f64> + Copy,
         F: Into<f64> + Copy
@@ -214,18 +214,15 @@ pub fn apr_continuous_solution<P, F>(years: u32, present_value: P, future_value:
         // This is a special case where any rate will work.
         let formula = "{special case}";
         let formula_symbolic = "***";
-        let apr = 0.0;
-        return TvmSolution::new(TvmVariable::Rate, true,apr, years, present_value, future_value, formula, formula_symbolic);
+        let rate = 0.0;
+        return TvmSolution::new(TvmVariable::Rate, true,rate, periods, present_value, future_value, formula, formula_symbolic);
     }
 
-    let apr = apr_continuous(years, present_value, future_value);
-    let formula = format!("{:.6} = log({:.4} / {:.4}, base {:.6}) / {}", apr, future_value, present_value, std::f64::consts::E, years);
+    let rate = rate_continuous(periods, present_value, future_value);
+    let formula = format!("{:.6} = log({:.4} / {:.4}, base {:.6}) / {}", rate, future_value, present_value, std::f64::consts::E, periods);
     let formula_symbolic = "r = log(fv / pv, base e) / t";
-    TvmSolution::new(TvmVariable::Rate, true, apr, years, present_value.into(), future_value, &formula, formula_symbolic)
+    TvmSolution::new(TvmVariable::Rate, true, rate, periods, present_value.into(), future_value, &formula, formula_symbolic)
 }
-
-// let formula = format!("{:.2} = log({:.4} / {:.4}, base {:.6})", fractional_periods, future_value, present_value, rate_multiplier);
-
 
 fn check_rate_parameters(periods: u32, present_value: f64, future_value: f64) {
     assert!(present_value.is_finite(), "The present value must be finite (not NaN or infinity)");

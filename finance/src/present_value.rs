@@ -362,10 +362,10 @@ pub(crate) fn present_value_series(solution: &TvmSolution) -> TvmSeries {
             // the value at the end of the last period. Here we're working with some period other
             // than the last period so we calculate this period's value based on the period after
             // it.
-            let (value, formula, formula_symbolic) = if solution.{
-                let value = next_value.unwrap() / rate_multiplier;
-                let formula = format!("{:.4} = {:.4} / {:.6}", value, next_value.unwrap(), rate_multiplier);
-                let formula_symbolic = "value = {next period value} / (1 + r)";
+            if solution.continuous_compounding() {
+                let value = next_value.unwrap() / std::f64::consts::E.powf(rate);
+                let formula = format!("{:.4} = {:.4} / ({:.6} ^ {:.6})", value, next_value.unwrap(), std::f64::consts::E, rate);
+                let formula_symbolic = "pv = fv / e^r";
                 (value, formula, formula_symbolic)
             } else {
                 let value = next_value.unwrap() / rate_multiplier;
@@ -442,26 +442,26 @@ pub(crate) fn present_value_schedule_series(schedule: &TvmSchedule) -> TvmSeries
     TvmSeries::new(series)
 }
 
-pub fn present_value_continuous<T>(apr: f64, years: u32, future_value: T) -> f64
+pub fn present_value_continuous<T>(rate: f64, periods: u32, future_value: T) -> f64
     where T: Into<f64> + Copy
 {
-    // http://www.edmichaelreggie.com/TMVContent/APR.htm
+    // http://www.edmichaelreggie.com/TMVContent/rate.htm
 
     let future_value = future_value.into();
-    check_present_value_parameters(apr, years, future_value);
+    check_present_value_parameters(rate, periods, future_value);
 
-    let present_value = future_value / std::f64::consts::E.powf(apr * years as f64);
+    let present_value = future_value / std::f64::consts::E.powf(rate * periods as f64);
     assert!(present_value.is_finite());
     present_value
 }
 
-pub fn present_value_continuous_solution<T>(apr: f64, years: u32, future_value: T) -> TvmSolution
+pub fn present_value_continuous_solution<T>(rate: f64, periods: u32, future_value: T) -> TvmSolution
     where T: Into<f64> + Copy
 {
-    let present_value = present_value_continuous(apr, years, future_value);
-    let formula = format!("{:.4} = {:.4} / {:.6}^({:.6} * {})", present_value, future_value.into(), std::f64::consts::E, apr, years);
+    let present_value = present_value_continuous(rate, periods, future_value);
+    let formula = format!("{:.4} = {:.4} / {:.6}^({:.6} * {})", present_value, future_value.into(), std::f64::consts::E, rate, periods);
     let formula_symbolic = "pv = fv / e^(rt)";
-    TvmSolution::new(TvmVariable::PresentValue, true, apr, years, present_value, future_value.into(), &formula, formula_symbolic)
+    TvmSolution::new(TvmVariable::PresentValue, true, rate, periods, present_value, future_value.into(), &formula, formula_symbolic)
 }
 
 #[cfg(test)]

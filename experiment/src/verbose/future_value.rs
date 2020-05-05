@@ -291,7 +291,7 @@ fn check_formulas() {
 
 fn try_continuous() {
     let apr = 0.05;
-    let years = 5;
+    let years= 5;
     let present_value = 1_000;
 
     for periods_per_year in [1, 2, 4, 6, 12, 52, 365].iter() {

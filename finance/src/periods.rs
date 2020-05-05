@@ -84,7 +84,7 @@ use crate::{future_value::future_value, present_value::present_value, rate::rate
 /// dbg!(&fractional_periods);
 /// finance::assert_rounded_2(4.37, fractional_periods);
 ///
-/// // Round up to get a whole number of years.
+/// // Round up to get a whole number of yearss.
 /// let periods = fractional_periods.ceil() as u32;
 /// dbg!(&periods);
 /// assert_eq!(5, periods);
@@ -183,17 +183,17 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
 ///
 /// // Calculate the number of quarters required and build a struct with the
 /// // input values, an explanation of the formula, and an option to calculate
-/// // the period-by-period values.
+/// // the quarter-by-quarter values.
 /// let solution = finance::periods_solution(rate, present_value, future_value);
 ///
-/// let fractional_periods = solution.fractional_periods();
-/// dbg!(&fractional_periods);
-/// finance::assert_rounded_2(20.15, fractional_periods);
+/// let fractional_quarters = solution.fractional_periods();
+/// dbg!(&fractional_quarters);
+/// finance::assert_rounded_2(20.15, fractional_quarters);
 ///
-/// // Get the whole number of periods.
-/// let periods = solution.periods();
-/// dbg!(&periods);
-/// assert_eq!(21, periods);
+/// // Get the whole number of quarters.
+/// let quarters = solution.periods();
+/// dbg!(&quarters);
+/// assert_eq!(21, quarters);
 ///
 /// // Examine the formulas.
 /// let formula = solution.formula();
@@ -245,7 +245,7 @@ pub fn periods_solution<P, F>(rate: f64, present_value: P, future_value: F) -> T
     TvmSolution::new_fractional_periods(TvmVariable::Periods,false, rate, fractional_periods, present_value, future_value, &formula, formula_symbolic)
 }
 
-pub fn years_continuous<P, F>(apr: f64, present_value: P, future_value: F) -> f64
+pub fn periods_continuous<P, F>(rate: f64, present_value: P, future_value: F) -> f64
     where
         P: Into<f64> + Copy,
         F: Into<f64> + Copy
@@ -257,7 +257,7 @@ pub fn years_continuous<P, F>(apr: f64, present_value: P, future_value: F) -> f6
         // the case where both are zero.
         return 0.0;
     }
-    if future_value == 0.0 && apr == -1.0 {
+    if future_value == 0.0 && rate == -1.0 {
         // This is a special case that we can't run through the log function. Since the rate is
         // -100%, given any present value the future value will be zero and it will take only one
         // period to get there.
@@ -267,25 +267,25 @@ pub fn years_continuous<P, F>(apr: f64, present_value: P, future_value: F) -> f6
         return 1.0;
     }
 
-    check_period_parameters(apr, present_value, future_value);
+    check_period_parameters(rate, present_value, future_value);
 
-    let fractional_periods= (future_value / present_value).log(std::f64::consts::E) / apr;
+    let fractional_periods= (future_value / present_value).log(std::f64::consts::E) / rate;
     assert!(fractional_periods >= 0.0);
     fractional_periods
 }
 
-pub fn years_continuous_solution<P, F>(apr: f64, present_value: P, future_value: F) -> TvmSolution
+pub fn periods_continuous_solution<P, F>(rate: f64, present_value: P, future_value: F) -> TvmSolution
     where
         P: Into<f64> + Copy,
         F: Into<f64> + Copy
 {
-    let fractional_years = years_continuous(apr, present_value, future_value);
-    assert!(fractional_years >= 0.0);
+    let fractional_periods = periods_continuous(rate, present_value, future_value);
+    assert!(fractional_periods >= 0.0);
     let present_value = present_value.into();
     let future_value = future_value.into();
-    let formula = format!("{:.2} = log({:.4} / {:.4}, base {:.6}) / {:.6}", fractional_years, future_value, present_value, std::f64::consts::E, apr);
+    let formula = format!("{:.2} = log({:.4} / {:.4}, base {:.6}) / {:.6}", fractional_periods, future_value, present_value, std::f64::consts::E, rate);
     let formula_symbolic = "t = log(fv / pv, base e) / r";
-    TvmSolution::new_fractional_periods(TvmVariable::Periods,true, apr, fractional_years, present_value, future_value, &formula, formula_symbolic)
+    TvmSolution::new_fractional_periods(TvmVariable::Periods,true, rate, fractional_periods, present_value, future_value, &formula, formula_symbolic)
 }
 
 fn check_period_parameters(rate: f64, present_value: f64, future_value: f64) {
