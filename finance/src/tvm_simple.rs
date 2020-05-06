@@ -5,11 +5,12 @@
 #[allow(unused_imports)]
 use crate::*;
 use std::ops::Deref;
+use std::fmt::{Display, Formatter, Error};
 
 /// Enumeration used for the `calculated_field` field in [`TvmSolution`] and [`TvmSchedule`] to keep
 /// track of what was calculated, either the periodic rate, the number of periods, the present
 /// value, or the future value.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Hash, PartialEq)]
 pub enum TvmVariable {
     Rate,
     Periods,
@@ -55,11 +56,24 @@ impl TvmVariable {
     }
 }
 
+impl Display for TvmVariable {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        match self {
+            TvmVariable::Rate => write!(f, "Rate"),
+            TvmVariable::Periods => write!(f, "Periods"),
+            TvmVariable::PresentValue => write!(f, "Present Value"),
+            TvmVariable::FutureValue => write!(f, "Future Value"),
+        }
+    }
+}
+
+impl Eq for TvmVariable {}
+
 /// A record of a Time Value of Money calculation where the rate is the same for every period.
 /// 
 /// It's the result of calling [`rate_solution`], [`periods_solution`], [`present_value_solution`],
 /// or [`future_value_solution`].
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TvmSolution {
     calculated_field: TvmVariable,
     continuous_compounding: bool,
@@ -273,10 +287,17 @@ impl TvmSolution {
                         (value, formula, formula_symbolic)
                     } else {
                         // The usual case.
-                        let value = prev_value.unwrap() * rate_multiplier;
-                        let formula = format!("{:.4} = {:.4} * {:.6}", value, prev_value.unwrap(), rate_multiplier);
-                        let formula_symbolic = "value = {previous period value} * (1 + r)";
-                        (value, formula, formula_symbolic)
+                        if self.continuous_compounding() {
+                            let value = prev_value.unwrap() * std::f64::consts::E.powf(one_rate);
+                            let formula = format!("{:.4} = {:.4} * ({:.6} ^ {:.6})", value, prev_value.unwrap(), std::f64::consts::E, one_rate);
+                            let formula_symbolic = "fv = pv * e^r";
+                            (value, formula, formula_symbolic)
+                        } else {
+                            let value = prev_value.unwrap() * rate_multiplier;
+                            let formula = format!("{:.4} = {:.4} * {:.6}", value, prev_value.unwrap(), rate_multiplier);
+                            let formula_symbolic = "value = {previous period value} * (1 + r)";
+                            (value, formula, formula_symbolic)
+                        }
                     }
                 };
                 assert!(value.is_finite());
@@ -359,6 +380,75 @@ impl TvmSolution {
     /// with the actual values rather than variables call `formula`.
     pub fn formula_symbolic(&self) -> &str {
         &self.formula_symbolic
+    }
+
+    pub fn with_simple_compounding(&self, calculated_field: &TvmVariable) -> Self {
+        match calculated_field {
+            TvmVariable::Rate => rate_solution(self.periods, self.present_value, self.future_value),
+            TvmVariable::Periods => periods_solution(self.rate, self.present_value, self.future_value),
+            TvmVariable::PresentValue => present_value_solution(self.rate, self.periods, self.future_value),
+            TvmVariable::FutureValue => future_value_solution(self.rate, self.periods, self.present_value),
+        }
+    }
+
+    pub fn with_continuous_compounding(&self, calculated_field: &TvmVariable) -> Self {
+        match calculated_field {
+            TvmVariable::Rate => rate_continuous_solution(self.periods, self.present_value, self.future_value),
+            TvmVariable::Periods => periods_continuous_solution(self.rate, self.present_value, self.future_value),
+            TvmVariable::PresentValue => present_value_continuous_solution(self.rate, self.periods, self.future_value),
+            TvmVariable::FutureValue => future_value_continuous_solution(self.rate, self.periods, self.present_value),
+        }
+    }
+
+    pub fn with_compounding_periods(&self, periods: u32, continuous_compounding: bool, calculated_field: &TvmVariable) -> Self {
+        let rate = (self.rate * self.fractional_periods) / periods as f64;
+        if continuous_compounding {
+            match calculated_field {
+                TvmVariable::Rate => rate_continuous_solution(periods, self.present_value, self.future_value),
+                TvmVariable::Periods => panic!("This method may not be called with a calculated_field of TvmVariable::Periods since the periods must be supplied in the call."),
+                TvmVariable::PresentValue => present_value_continuous_solution(rate, periods, self.future_value),
+                TvmVariable::FutureValue => future_value_continuous_solution(rate, periods, self.present_value),
+            }
+        } else {
+            match calculated_field {
+                TvmVariable::Rate => rate_solution(periods, self.present_value, self.future_value),
+                TvmVariable::Periods => panic!("This method may not be called with a calculated_field of TvmVariable::Periods since the periods must be supplied in the call."),
+                TvmVariable::PresentValue => present_value_solution(rate, periods, self.future_value),
+                TvmVariable::FutureValue => future_value_solution(rate, periods, self.present_value),
+            }
+        }
+    }
+
+    pub fn present_value_vary_compounding_periods(&self, compounding_periods: &[u32]) -> Vec<(u32, f64)> {
+        compounding_periods.iter()
+            .map(|periods| {
+                let rate = (self.rate * self.fractional_periods) / *periods as f64;
+                (*periods, present_value(rate, *periods, self.future_value))
+            })
+            .collect()
+    }
+
+    pub fn future_value_vary_compounding_periods(&self, compounding_periods: &[u32]) -> Vec<(u32, f64)> {
+        compounding_periods.iter()
+            .map(|periods| {
+                let rate = (self.rate * self.fractional_periods) / *periods as f64;
+                (*periods, future_value(rate, *periods, self.present_value))
+            })
+            .collect()
+    }
+}
+
+impl PartialEq for TvmSolution {
+    fn eq(&self, other: &Self) -> bool {
+        self.calculated_field == other.calculated_field
+            && self.continuous_compounding == other.continuous_compounding
+            && is_approx_equal!(self.rate, other.rate)
+            && self.periods == other.periods
+            && is_approx_equal!(self.fractional_periods, other.fractional_periods)
+            && is_approx_equal!(self.present_value, other.present_value)
+            && is_approx_equal!(self.future_value, other.future_value)
+            && self.formula == other.formula
+            && self.formula_symbolic == other.formula_symbolic
     }
 }
 

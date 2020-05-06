@@ -186,6 +186,8 @@ pub fn rate_continuous<P, F>(periods: u32, present_value: P, future_value: F) ->
         P: Into<f64> + Copy,
         F: Into<f64> + Copy
 {
+    // http://www.edmichaelreggie.com/TMVContent/rate.htm
+
     let present_value = present_value.into();
     let future_value = future_value.into();
     if present_value == 0.0 && future_value == 0.0 {

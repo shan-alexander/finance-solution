@@ -153,11 +153,10 @@ mod tests {
         }
 
         // Confirm that all of the series have the same values for all periods regardless of how we
-        // did the calculation.
-        // For the reference solution take the result of future_value_solution(). It would also work
-        // to use the result of rate_solution() and present_value_solution() but not
-        // periods_solution() since there are some special cases in which this will create fewer
-        // periods than the other functions.
+        // did the calculation. For the reference solution take the result of
+        // future_value_solution(). It would also work to use the result of rate_solution() and
+        // present_value_solution() but not periods_solution() since there are some special cases in
+        // which this will create fewer periods than the other functions.
         let reference_solution = solutions.iter().find(|x| x.calculated_field().is_future_value()).unwrap();
         for solution in solutions.iter().filter(|x| !x.calculated_field().is_future_value()) {
             let label = format!("Solution for {:?}", solution.calculated_field());
@@ -275,8 +274,8 @@ mod tests {
                 } else {
                     assert_approx_equal_symmetry_test!(reference_entry.rate(), entry.rate());
                 }
-                //bg!(reference_entry.value, round_2(reference_entry.value), entry.value, round_2(entry.value));
-                // assert_approx_equal_symmetry_test!(reference_entry.value, entry.value);
+                dbg!(reference_entry.value, round_2(reference_entry.value), entry.value, round_2(entry.value));
+                assert_approx_equal_symmetry_test!(reference_entry.value, entry.value);
                 // assert_eq!(reference_entry.value.round(), entry.value.round());
             }
         }
@@ -398,39 +397,20 @@ mod tests {
             assert_approx_equal_symmetry_test!(future_value_calc, solution.future_value());
         }
 
-        /*
-        let mut schedules = vec![
-            future_value_schedule_solution(&rates_in, present_value_in),
-        ];
-        if future_value_calc.is_normal() {
-            schedules.push(present_value_schedule_solution(&rates_in, future_value_calc));
-        }
-        for schedule in schedules.iter() {
-            //bg!(schedule);
-            assert_eq!(periods_in, schedule.rates().len() as u32);
-            assert_eq!(periods_in, schedule.periods());
-            assert_approx_equal_symmetry_test!(present_value_in, schedule.present_value());
-            assert_approx_equal_symmetry_test!(future_value_calc, schedule.future_value());
-        }
-
         // Check each series in isolation.
+        /*
         for solution in solutions.iter() {
             let label = format!("Solution for {:?}", solution.calculated_field());
             //bg!(&label);
             check_series_internal(label, solution.calculated_field().clone(), &solution.series(), rate_in, periods_in, present_value_in, future_value_calc, rate_calc, periods_calc);
         }
-        for schedule in schedules.iter() {
-            let label = format!("Schedule for {:?}", schedule.calculated_field());
-            //bg!(&label);
-            check_series_internal(label, schedule.calculated_field().clone(), &schedule.series(), rate_in, periods_in, present_value_in, future_value_calc, rate_calc, periods_calc);
-        }
+        */
 
         // Confirm that all of the series have the same values for all periods regardless of how we
-        // did the calculation.
-        // For the reference solution take the result of future_value_solution(). It would also work
-        // to use the result of rate_solution() and present_value_solution() but not
-        // periods_solution() since there are some special cases in which this will create fewer
-        // periods than the other functions.
+        // did the calculation. For the reference solution take the result of
+        // future_value_solution(). It would also work to use the result of rate_solution() and
+        // present_value_solution() but not periods_solution() since there are some special cases in
+        // which this will create fewer periods than the other functions.
         let reference_solution = solutions.iter().find(|x| x.calculated_field().is_future_value()).unwrap();
         for solution in solutions.iter().filter(|x| !x.calculated_field().is_future_value()) {
             let label = format!("Solution for {:?}", solution.calculated_field());

@@ -15,7 +15,8 @@ pub fn main() {
     // try_series_print_table();
     // check_formulas();
     // dbg!(finance::future_value_solution(0.012, 8, 200_000));
-    try_continuous();
+    // try_continuous();
+    try_vary_compounding_periods();
 }
 
 fn try_future_value() {
@@ -289,16 +290,33 @@ fn check_formulas() {
     dbg!(&schedule, &schedule.series());
 }
 
+fn solution_for_transformations() -> finance::TvmSolution {
+    let rate = 0.10;
+    let periods = 4;
+    let present_value = 5_000.00;
+    finance::future_value_solution(rate, periods, present_value)
+}
+
+fn compounding_periods() -> Vec<u32> {
+    vec![1, 2, 4, 6, 12, 24, 52, 365]
+}
+
 fn try_continuous() {
     let apr = 0.05;
     let years= 5;
     let present_value = 1_000;
 
-    for periods_per_year in [1, 2, 4, 6, 12, 52, 365].iter() {
+    for periods_per_year in compounding_periods().iter() {
         let rate = apr / *periods_per_year as f64;
         let periods = periods_per_year * years;
         println!("{}", finance::future_value(rate, periods, present_value));
     }
     // Continuous.
     println!("{}", finance::future_value_continuous(apr, years, present_value));
+}
+
+fn try_vary_compounding_periods() {
+    let solution = solution_for_transformations();
+    dbg!(&solution, solution.future_value_vary_compounding_periods(&compounding_periods()));
+    dbg!(&solution, solution.present_value_vary_compounding_periods(&compounding_periods()));
 }

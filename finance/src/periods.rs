@@ -250,6 +250,8 @@ pub fn periods_continuous<P, F>(rate: f64, present_value: P, future_value: F) ->
         P: Into<f64> + Copy,
         F: Into<f64> + Copy
 {
+    // http://www.edmichaelreggie.com/TMVContent/rate.htm
+
     let present_value = present_value.into();
     let future_value = future_value.into();
     if present_value == future_value {
