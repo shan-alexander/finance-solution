@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 pub fn main() {
-    try_payment_debug();
+    // try_payment_debug();
     // try_payment_due_debug();
     // try_formulas();
     // try_payment_series();
@@ -9,7 +9,8 @@ pub fn main() {
     // try_test_combination_examples();
     // try_test_against_excel_ipmt_month_1();
     // try_test_against_excel_ipmt_month_2();
-    try_doc_example_1();
+    // try_payment_doc_example_1();
+    try_payment_due_doc_example_1();
     // generate_scenarios_for_excel();
     // find_numerator_failures();
     // find_calculation_failure_curve();
@@ -104,10 +105,6 @@ fn try_payment_due_debug() {
     let rate_negative = finance::payment_due_solution(-0.034, 10, 100.0, 200.0);
     dbg!(rate_negative);
     println!();
-
-    let periods_zero = finance::payment_due_solution(0.034, 0, 100.0, 100.0);
-    dbg!(periods_zero);
-    println!();
 }
 
 fn try_formulas() {
@@ -197,12 +194,17 @@ fn try_test_against_excel_ipmt_month_2() {
     finance::assert_approx_equal!(exp_payment, solution.payment());
 }
 
-fn try_doc_example_1() {
-    // The interest rate is 12% per year.
-    let rate = 0.12;
+fn try_payment_doc_example_1() {
+    // The loan will be paid off in five years.
+    let years = 5;
 
-    // The loan will be paid off in 5 years.
-    let periods = 5;
+    // The interest rate is 10% per year. Each period is one month so we need to divide the rate
+    // by the number of months in a year.
+    let rate = 0.10 / 12.0;
+
+    // Each period is one month so we need to multiply the
+    // years by the number of months in a year.
+    let periods = years * 12;
 
     // The principal is $10,000.
     let present_value = 10_000;
@@ -210,33 +212,49 @@ fn try_doc_example_1() {
     // The loan will be fully paid off by the end of the last period.
     let future_value = 0;
 
+    // Call payment() instead of payment_due() because the payment is due at the end of the month.
     let payment = finance::payment(rate, periods, present_value, future_value);
-    // The initial investment is $100,000.
-    let present_value = 100_000;
+    dbg!(payment);
 
-    // The investment will grow for 12 years.
-    let periods = 12;
+    // The payment is $212.47/month. Since the principal/present value was positive the payment is
+    // negative.
+    finance::assert_rounded_4(payment, -212.4704);
+}
 
-    // We'll keep a collection of the calculated future values along with their inputs.
-    let mut scenarios = vec![];
+fn try_payment_due_doc_example_1() {
+    // The loan will be paid off in ten years.
+    let years = 10;
 
-    for i in 2..=15 {
-        // The rate is between 2% and 15% per year.
-        let rate = i as f64 / 100.0;
-        // Calculate the future value for this periodic rate and add the details to the collection.
-        scenarios.push(finance::future_value_solution(rate, periods, present_value));
-    }
-    dbg!(&scenarios);
-    assert_eq!(14, scenarios.len());
+    // The interest rate is 8% per year. Each period is one month so we need to divide the rate
+    // by the number of months in a year.
+    let rate = 0.08 / 12.0;
 
-    // Keep only the scenarios where the future value was between $200,000 and $400,000.
-    scenarios.retain(|x| x.future_value() >= 200_000.00 && x.future_value() <= 400_000.00);
-    dbg!(&scenarios);
-    assert_eq!(7, scenarios.len());
+    // Each period is one month so we need to multiply the
+    // years by the number of months in a year.
+    let periods = years * 12;
 
-    // Check the formula for the first scenario.
-    dbg!(scenarios[0].formula());
-    assert_eq!("100000.0000 * (1.060000 ^ 12)", scenarios[0].formula());
+    // The principal is $25,000.
+    let present_value = 25_000;
+
+    // The loan will be fully paid off by the end of the last period.
+    let future_value = 0;
+
+    // Call payment_due() instead of payment() because the payment is due at the beginning of the
+    // month.
+    let payment_due_at_beginning = finance::payment_due(rate, periods, present_value, future_value);
+    dbg!(payment_due_at_beginning);
+
+    // The payment is $-301.31/month. Since the principal/present value was positive the payment is
+    // negative.
+    finance::assert_rounded_4(payment_due_at_beginning, -301.3103);
+
+    // Contrast this amount with the payment if it were due at the end of the month, the more usual
+    // case.
+    let payment_due_at_end = finance::payment(rate, periods, present_value, future_value);
+    dbg!(payment_due_at_end);
+
+    // The payment is slightly different if it's due at the end of the month.
+    finance::assert_rounded_4(payment_due_at_end, -303.3190);
 }
 
 fn generate_scenarios_for_excel() {

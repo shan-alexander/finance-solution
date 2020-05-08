@@ -15,65 +15,72 @@ pub fn main() {
 }
 
 /// Returns the payment needed at the end of every period for an amortized loan. If the payment is
-/// due at the beginning of the period call [`payment_due`].
+/// due at the beginning of each period call [`payment_due`].
 ///
-/// The formula is:
-/// > future_value = present_value * (1 + rate)<sup>periods</sup>
+/// In the typical case where there's a present value and the future value is zero, the formula is:
+/// > payment = ((present_value * (1 + rate)<sup>periods</sup>) * -rate) / ((1 + rate)<sup>periods</sup> - 1)
 ///
 /// or with the more commonly used variables:
-/// > fv = pv * (1 + r)<sup>n</sup>
+/// > pmt = ((pv * (1 + r)<sup>n</sup>) * -r) / ((1 + r)<sup>n</sup> - 1)
+///
+/// Often the payment is shown as `A` and the present value is `P` for principal.
+///
+/// If there's a future value and the present value is zero, the formula is:
+/// > payment = (future_value * -rate) / ((1 + rate)<sup>periods</sup> - 1)
+///
+/// or:
+/// > pmt = (fv * -r) / ((1 + r)<sup>n</sup> - 1)
+///
+/// If both present value and future value are nonzero the formula is:
+/// > payment = (((present_value * (1 + rate)<sup>periods</sup>) + future_value) * -rate) / ((1 + rate)<sup>periods</sup> - 1)
+///
+/// or:
+/// > pmt = (((pv * (1 + r)<sup>n</sup>) + fv) * -r) / ((1 + r)<sup>n</sup> - 1)
 ///
 /// # Arguments
-/// * `rate` - The rate at which the investment grows or shrinks per period, expressed as a
-/// floating point number. For instance 0.05 would mean 5% growth. Often appears as `r` or `i` in
-/// formulas.
-/// * `periods` - The number of periods such as quarters or periods. Often appears as `n` or `t`.
-/// * `present_value` - The starting value of the investment. May appear as `pv` in formulas, or `C`
-/// for cash flow or `P` for principal.
+/// * `rate` - The interest rate per period, expressed as a floating point number. For instance
+/// 0.01 would mean 1% interest per period. The rate must match the period type. For instance if the
+/// periods are months and we're starting with an annual interest rate, the rate must be divided by
+/// 12 when calling the function as shown in the example below. The rate often appears as `r` or `i`
+/// (interest) in formulas.
+/// * `periods` - The number of periods such as quarters or periods. Often appears as `n` or `t`
+/// where `t` typically implies years.
+/// * `present_value` - In the case of an amortized loan this is the the principal. It may appear as
+/// `pv` in formulas, or `C` for cash flow or `P` for principal. Assuming that the future value is
+/// zero, the payment will be negative if the present value is positive and vice versa.
+/// * `future_value` - The value at the end of the last period. For a typical amortized loan this
+/// will be zero. It appears as `fv` in formulas.
 ///
 /// # Panics
-/// The call will fail if `rate` is less than -1.0 as this would mean the investment is
-/// losing more than its full value every period.
+/// The call will fail if `rate` is less than -1.0.
 ///
 /// # Examples
-/// Investment that grows quarter by quarter.
+/// A simple amortized loan with the payment due at the end of the month.
 /// ```
-/// // The investment grows by 3.4% per quarter.
-/// let rate = 0.034;
+/// // The loan will be paid off in five years.
+/// let years = 5;
 ///
-/// // The investment will grow for 5 quarters.
-/// let periods = 5;
+/// // The interest rate is 10% per year. Each period is one month so we need to divide the rate
+/// // by the number of months in a year.
+/// let rate = 0.10 / 12.0;
 ///
-/// // The initial investment is $250,000.
-/// let present_value = 250_000;
+/// // Each period is one month so we need to multiply the
+/// // years by the number of months in a year.
+/// let periods = years * 12;
 ///
-/// let future_value = finance::future_value(rate, periods, present_value);
-/// // Confirm that the future value is correct to four decimal places (one
-/// // hundredth of a cent).
-/// finance::assert_rounded_4(295_489.9418, future_value);
-/// ```
-/// Investment that loses money each year.
-/// ```
-/// // The investment loses 5% per year.
-/// let rate = -0.05;
+/// // The principal is $10,000.
+/// let present_value = 10_000;
 ///
-/// // The investment will shrink for 6 periods.
-/// let periods = 6;
+/// // The loan will be fully paid off by the end of the last period.
+/// let future_value = 0;
 ///
-/// // The initial investment is $10,000.75.
-/// let present_value = 10_000.75;
+/// Call payment() instead of payment_due() because the payment is due at the end of the month.
+/// let payment = finance::payment(rate, periods, present_value, future_value);
+/// dbg!(payment);
 ///
-/// let future_value = finance::future_value(rate, periods, present_value);
-/// // Confirm that the future value is correct to the penny.
-/// finance::assert_rounded_2(7351.47, future_value);
-/// ```
-/// Error case: The investment loses 105% per year. There's no way to work out
-/// what this means so the call will panic.
-/// ```should_panic
-/// let rate = -1.05;
-/// let periods = 6;
-/// let present_value = 10_000.75;
-/// let future_value = finance::future_value(rate, periods, present_value);
+/// // The payment is $212.47/month. Since the principal/present value was positive the payment is
+/// // negative.
+/// finance::assert_rounded_4(payment, -212.4704);
 /// ```
 pub fn payment<P, F>(rate: f64, periods: u32, present_value: P, future_value: F) -> f64
     where
@@ -83,6 +90,90 @@ pub fn payment<P, F>(rate: f64, periods: u32, present_value: P, future_value: F)
     payment_internal(rate, periods, present_value.into(), future_value.into(), false)
 }
 
+/// Returns the payment needed at the start of every period for an amortized loan. If the payment is
+/// due at the end of each period call [`payment`].
+///
+/// In the typical case where there's a present value and the future value is zero, the formula is:
+/// > payment = ((present_value * (1 + rate)<sup>periods</sup>) * -rate) / (((1 + rate)<sup>periods</sup> - 1) * (1 + rate))
+///
+/// or with the more commonly used variables:
+/// > pmt = ((pv * (1 + r)<sup>n</sup>) * -r) / (((1 + r)<sup>n</sup> - 1) * (1 + r))",
+///
+/// Often the payment is shown as `A` and the present value is `P` for principal.
+///
+/// This is nearly the same formula as the one for payments due at the end of the month. The
+/// relationship between the two formulas is that:
+/// > payment_due(x) = payment(x) / (1 + rate)
+///
+/// Thus the payment is slightly smaller if it's due at the beginning of the month since the
+/// principal is paid down a bit faster.
+///
+/// If there's a future value and the present value is zero, the formula is:
+/// > payment = (future_value * -rate) / (((1 + rate)<sup>periods</sup> - 1) * (1 + rate))
+///
+/// or:
+/// > pmt = (fv * -r) / (((1 + r)<sup>n</sup> - 1) * (1 + r))
+///
+/// If both present value and future value are nonzero the formula is:
+/// > payment = (((present_value * (1 + rate)<sup>periods</sup>) + future_value) * -rate) / (((1 + rate)<sup>periods</sup> - 1) * (1 + rate))
+///
+/// or:
+/// > pmt = (((pv * (1 + r)<sup>n</sup>) + fv) * -r) / (((1 + r)<sup>n</sup> - 1) * (1 + r))
+///
+/// # Arguments
+/// * `rate` - The interest rate per period, expressed as a floating point number. For instance
+/// 0.01 would mean 1% interest per period. The rate must match the period type. For instance if the
+/// periods are months and we're starting with an annual interest rate, the rate must be divided by
+/// 12 when calling the function as shown in the example below. The rate often appears as `r` or `i`
+/// (interest) in formulas.
+/// * `periods` - The number of periods such as quarters or periods. Often appears as `n` or `t`
+/// where `t` typically implies years.
+/// * `present_value` - In the case of an amortized loan this is the the principal. It may appear as
+/// `pv` in formulas, or `C` for cash flow or `P` for principal. Assuming that the future value is
+/// zero, the payment will be negative if the present value is positive and vice versa.
+/// * `future_value` - The value at the end of the last period. For a typical amortized loan this
+/// will be zero. It appears as `fv` in formulas.
+///
+/// # Panics
+/// The call will fail if `rate` is less than -1.0.
+///
+/// # Examples
+/// A simple amortized loan with the payment due at the beginning of the month.
+/// ```
+/// // The loan will be paid off in five years.
+/// let years = 5;
+///
+/// // The interest rate is 10% per year. Each period is one month so we need to divide the rate
+/// // by the number of months in a year.
+/// let rate = 0.10 / 12.0;
+///
+/// // Each period is one month so we need to multiply the
+/// // years by the number of months in a year.
+/// let periods = years * 12;
+///
+/// // The principal is $10,000.
+/// let present_value = 10_000;
+///
+/// // The loan will be fully paid off by the end of the last period.
+/// let future_value = 0;
+///
+/// // Call payment_due() instead of payment() because the payment is due at the beginning of the
+/// // month.
+/// let payment_due_at_beginning = finance::payment_due(rate, periods, present_value, future_value);
+/// dbg!(payment_due_at_beginning);
+///
+/// // The payment is $210.71/month. Since the principal/present value was positive the payment is
+/// // negative.
+/// finance::assert_rounded_4(payment_due_at_beginning, -210.7145);
+///
+/// // Contrast this amount with the payment if it were due at the end of the month, the more usual
+/// // case.
+/// let payment_due_at_end = finance::payment(rate, periods, present_value, future_value);
+/// dbg!(payment_due_at_end);
+///
+/// // The payment is slightly different if it's due at the end of the month.
+/// finance::assert_rounded_4(payment_due_at_end, -212.4704);
+/// ```
 pub fn payment_due<P, F>(rate: f64, periods: u32, present_value: P, future_value: F) -> f64
     where
         P: Into<f64> + Copy,
@@ -103,7 +194,7 @@ fn payment_internal(rate: f64, periods: u32, present_value: f64, future_value: f
     assert!(!(periods == 0 && present_value + future_value != 0.0), "There are no periods and the present value + future value is not zero so there is no way to calculate payments.");
 
     if periods == 0 {
-        assert_approx_equal!(present_value, future_value);
+        assert_approx_equal!(present_value, -future_value);
         return 0.0;
     }
 
@@ -133,6 +224,74 @@ fn payment_internal(rate: f64, periods: u32, present_value: f64, future_value: f
     payment
 }
 
+/// Returns the payment needed at the end of every period for an amortized loan. If the payment is
+/// due at the beginning of each period call [`payment_due`].
+///
+/// In the typical case where there's a present value and the future value is zero, the formula is:
+/// > payment = ((present_value * (1 + rate)<sup>periods</sup>) * -rate) / ((1 + rate)<sup>periods</sup> - 1)
+///
+/// or with the more commonly used variables:
+/// > pmt = ((pv * (1 + r)<sup>n</sup>) * -r) / ((1 + r)<sup>n</sup> - 1)
+///
+/// Often the payment is shown as `A` and the present value is `P` for principal.
+///
+/// If there's a future value and the present value is zero, the formula is:
+/// > payment = (future_value * -rate) / ((1 + rate)<sup>periods</sup> - 1)
+///
+/// or:
+/// > pmt = (fv * -r) / ((1 + r)<sup>n</sup> - 1)
+///
+/// If both present value and future value are nonzero the formula is:
+/// > payment = (((present_value * (1 + rate)<sup>periods</sup>) + future_value) * -rate) / ((1 + rate)<sup>periods</sup> - 1)
+///
+/// or:
+/// > pmt = (((pv * (1 + r)<sup>n</sup>) + fv) * -r) / ((1 + r)<sup>n</sup> - 1)
+///
+/// # Arguments
+/// * `rate` - The interest rate per period, expressed as a floating point number. For instance
+/// 0.01 would mean 1% interest per period. The rate must match the period type. For instance if the
+/// periods are months and we're starting with an annual interest rate, the rate must be divided by
+/// 12 when calling the function as shown in the example below. The rate often appears as `r` or `i`
+/// (interest) in formulas.
+/// * `periods` - The number of periods such as quarters or periods. Often appears as `n` or `t`
+/// where `t` typically implies years.
+/// * `present_value` - In the case of an amortized loan this is the the principal. It may appear as
+/// `pv` in formulas, or `C` for cash flow or `P` for principal. Assuming that the future value is
+/// zero, the payment will be negative if the present value is positive and vice versa.
+/// * `future_value` - The value at the end of the last period. For a typical amortized loan this
+/// will be zero. It appears as `fv` in formulas.
+///
+/// # Panics
+/// The call will fail if `rate` is less than -1.0.
+///
+/// # Examples
+/// A simple amortized loan with the payment due at the end of the month.
+/// ```
+/// // The loan will be paid off in five years.
+/// let years = 5;
+///
+/// // The interest rate is 10% per year. Each period is one month so we need to divide the rate
+/// // by the number of months in a year.
+/// let rate = 0.10 / 12.0;
+///
+/// // Each period is one month so we need to multiply the
+/// // years by the number of months in a year.
+/// let periods = years * 12;
+///
+/// // The principal is $10,000.
+/// let present_value = 10_000;
+///
+/// // The loan will be fully paid off by the end of the last period.
+/// let future_value = 0;
+///
+// Call payment() instead of payment_due() because the payment is due at the end of the month.
+/// let payment = finance::payment(rate, periods, present_value, future_value);
+/// dbg!(payment);
+///
+/// // The payment is $212.47/month. Since the principal/present value was positive the payment is
+/// // negative.
+/// finance::assert_rounded_4(payment, -212.4704);
+/// ```
 pub fn payment_solution<P, F>(rate: f64, periods: u32, present_value: P, future_value: F) -> TvmCashflowSolution
     where
         P: Into<f64> + Copy,

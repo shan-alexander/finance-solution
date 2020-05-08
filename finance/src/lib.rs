@@ -111,7 +111,7 @@ macro_rules! assert_same_sign_or_zero {
 #[macro_export]
 macro_rules! assert_approx_equal_symmetry_test {
     ( $x1:expr, $x2:expr ) => {
-        if ($x1 > 0.000001 && $x1 < 1_000_000.0 && $x2 > 0.000001 && $x2 < 1_000_000.0) {
+        if (($x1 > 0.000001 && $x1 < 1_000_000.0) || ($x1 < -0.000001 && $x1 > -1_000_000.0)) && (($x2 > 0.000001 && $x2 < 1_000_000.0) || ($x2 < -0.000001 && $x2 > -1_000_000.0)) {
             assert!(float_cmp::approx_eq!(f64, $x1, $x2, epsilon = 0.00000001, ulps = 2));
         }
     };
@@ -226,10 +226,14 @@ pub(crate) fn format_float_locale<T>(val: T, locale: &Locale, precision: usize) 
     let val = val.into();
     if val.is_finite() {
         // let locale = SystemLocale::default().unwrap();
-        let left = format_int_locale(val.trunc().abs() as i128, locale);
-        let right = &format!("{:.*}", precision, val.fract().abs())[2..];
-        let minus_sign = if val.is_sign_negative() { locale.minus_sign() } else { "" };
-        format!("{}{}{}{}", minus_sign, left, locale.decimal(), right)
+        if precision == 0 {
+            format_int_locale(val.round() as i128, locale)
+        } else {
+            let left = format_int_locale(val.trunc().abs() as i128, locale);
+            let right = &format!("{:.*}", precision, val.fract().abs())[2..];
+            let minus_sign = if val.is_sign_negative() { locale.minus_sign() } else { "" };
+            format!("{}{}{}{}", minus_sign, left, locale.decimal(), right)
+        }
     } else {
         format!("{:?}", val)
     }
