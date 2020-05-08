@@ -1,5 +1,8 @@
 #![allow(dead_code)]
 
+//! **Payment calculations.** What is the periodic payment needed for an amortized loan and how much
+//! of that is interest or principal?
+
 use log::{warn};
 
 // Import needed for the function references in the Rustdoc comments.
@@ -11,6 +14,67 @@ const RUN_PAYMENT_INVARIANTS: bool = false;
 pub fn main() {
 }
 
+/// Returns the payment needed at the end of every period for an amortized loan. If the payment is
+/// due at the beginning of the period call [`payment_due`].
+///
+/// The formula is:
+/// > future_value = present_value * (1 + rate)<sup>periods</sup>
+///
+/// or with the more commonly used variables:
+/// > fv = pv * (1 + r)<sup>n</sup>
+///
+/// # Arguments
+/// * `rate` - The rate at which the investment grows or shrinks per period, expressed as a
+/// floating point number. For instance 0.05 would mean 5% growth. Often appears as `r` or `i` in
+/// formulas.
+/// * `periods` - The number of periods such as quarters or periods. Often appears as `n` or `t`.
+/// * `present_value` - The starting value of the investment. May appear as `pv` in formulas, or `C`
+/// for cash flow or `P` for principal.
+///
+/// # Panics
+/// The call will fail if `rate` is less than -1.0 as this would mean the investment is
+/// losing more than its full value every period.
+///
+/// # Examples
+/// Investment that grows quarter by quarter.
+/// ```
+/// // The investment grows by 3.4% per quarter.
+/// let rate = 0.034;
+///
+/// // The investment will grow for 5 quarters.
+/// let periods = 5;
+///
+/// // The initial investment is $250,000.
+/// let present_value = 250_000;
+///
+/// let future_value = finance::future_value(rate, periods, present_value);
+/// // Confirm that the future value is correct to four decimal places (one
+/// // hundredth of a cent).
+/// finance::assert_rounded_4(295_489.9418, future_value);
+/// ```
+/// Investment that loses money each year.
+/// ```
+/// // The investment loses 5% per year.
+/// let rate = -0.05;
+///
+/// // The investment will shrink for 6 periods.
+/// let periods = 6;
+///
+/// // The initial investment is $10,000.75.
+/// let present_value = 10_000.75;
+///
+/// let future_value = finance::future_value(rate, periods, present_value);
+/// // Confirm that the future value is correct to the penny.
+/// finance::assert_rounded_2(7351.47, future_value);
+/// ```
+/// Error case: The investment loses 105% per year. There's no way to work out
+/// what this means so the call will panic.
+/// ```should_panic
+/// let rate = -1.05;
+/// let periods = 6;
+/// let present_value = 10_000.75;
+/// let future_value = finance::future_value(rate, periods, present_value);
+/// ```
 pub fn payment<P, F>(rate: f64, periods: u32, present_value: P, future_value: F) -> f64
     where
         P: Into<f64> + Copy,
@@ -24,25 +88,7 @@ pub fn payment_due<P, F>(rate: f64, periods: u32, present_value: P, future_value
         P: Into<f64> + Copy,
         F: Into<f64> + Copy
 {
-    /*
-    let pv = present_value.into();
-    let fv = future_value.into();
-    let payment_original = ((pv * (1.0 + rate).powf(periods as f64)) + fv) * (-1.0 * rate) / ((1.0 + rate).powf(periods as f64) -1.0) / (1.0 + rate);
-    let payment_grouped = (((pv * (1.0 + rate).powf(periods as f64)) + fv) * -rate) / (((1.0 + rate).powf(periods as f64) -1.0) * (1.0 + rate));
-    dbg!(payment_original, payment_grouped);
-    assert_approx_equal!(payment_original, payment_grouped);
-    */
-
-    let payment = payment_internal(rate, periods, present_value.into(), future_value.into(), true);
-
-    /*
-    dbg!(payment_original, payment_grouped, payment);
-    if payment_original.is_finite() {
-        assert_approx_equal!(payment_original, payment);
-    }
-    */
-
-    payment
+    payment_internal(rate, periods, present_value.into(), future_value.into(), true)
 }
 
 fn payment_internal(rate: f64, periods: u32, present_value: f64, future_value: f64, due_at_beginning: bool) -> f64 {

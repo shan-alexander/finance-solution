@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 pub fn main() {
-    // try_payment_debug();
+    try_payment_debug();
     // try_payment_due_debug();
     // try_formulas();
     // try_payment_series();
@@ -9,12 +9,13 @@ pub fn main() {
     // try_test_combination_examples();
     // try_test_against_excel_ipmt_month_1();
     // try_test_against_excel_ipmt_month_2();
+    try_doc_example_1();
     // generate_scenarios_for_excel();
     // find_numerator_failures();
     // find_calculation_failure_curve();
     // dbg!(finance::payment(0.23, 3000, -123_456.7, -12_345.67));
     // try_specify_type_1();
-    show_payment_series_rounding_issue();
+    // show_payment_series_rounding_issue();
 }
 
 fn try_payment_debug() {
@@ -58,7 +59,7 @@ fn try_payment_debug() {
     dbg!(rate_negative);
     println!();
 
-    let periods_zero = finance::payment_solution(0.034, 0, 100.0, 100.0);
+    let periods_zero = finance::payment_solution(0.034, 0, 100.0, -100.0);
     dbg!(periods_zero);
     println!();
 }
@@ -194,6 +195,48 @@ fn try_test_against_excel_ipmt_month_2() {
     let solution = finance::payment_due_solution(rate, periods, present_value, future_value);
     dbg!(&solution);
     finance::assert_approx_equal!(exp_payment, solution.payment());
+}
+
+fn try_doc_example_1() {
+    // The interest rate is 12% per year.
+    let rate = 0.12;
+
+    // The loan will be paid off in 5 years.
+    let periods = 5;
+
+    // The principal is $10,000.
+    let present_value = 10_000;
+
+    // The loan will be fully paid off by the end of the last period.
+    let future_value = 0;
+
+    let payment = finance::payment(rate, periods, present_value, future_value);
+    // The initial investment is $100,000.
+    let present_value = 100_000;
+
+    // The investment will grow for 12 years.
+    let periods = 12;
+
+    // We'll keep a collection of the calculated future values along with their inputs.
+    let mut scenarios = vec![];
+
+    for i in 2..=15 {
+        // The rate is between 2% and 15% per year.
+        let rate = i as f64 / 100.0;
+        // Calculate the future value for this periodic rate and add the details to the collection.
+        scenarios.push(finance::future_value_solution(rate, periods, present_value));
+    }
+    dbg!(&scenarios);
+    assert_eq!(14, scenarios.len());
+
+    // Keep only the scenarios where the future value was between $200,000 and $400,000.
+    scenarios.retain(|x| x.future_value() >= 200_000.00 && x.future_value() <= 400_000.00);
+    dbg!(&scenarios);
+    assert_eq!(7, scenarios.len());
+
+    // Check the formula for the first scenario.
+    dbg!(scenarios[0].formula());
+    assert_eq!("100000.0000 * (1.060000 ^ 12)", scenarios[0].formula());
 }
 
 fn generate_scenarios_for_excel() {
