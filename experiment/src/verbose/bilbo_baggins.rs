@@ -131,7 +131,7 @@ fn calculate_bilbo_solution(b: BilboBagginsInputs) -> BilboBagginsSolution {
     fn payment(r: f64, n: u32, fv: f64) -> f64 {
         // C = FV / [ ((1 + i)^n -1) / i ]
         fv / (((1. + r).powi(n as i32) -1.) / r)
-    }git 
+    }
     // let monthly_savings_needed_after_cabin = payment(epr_before_retire, months_between_cabin_and_retirement, net_amount_needed_at_retirement);
     let monthly_savings_needed_after_cabin = finance::payment(epr_before_retire, months_between_cabin_and_retirement, 0.0, net_amount_needed_at_retirement);
     // dbg!(&monthly_savings_needed_after_cabin);
