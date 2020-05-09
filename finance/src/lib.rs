@@ -325,12 +325,49 @@ pub(crate) fn print_table_locale(columns: &Vec<(&str, &str, bool)>, data: &mut V
     }
 }
 
-pub(crate) fn print_ab_comparison_values(field_name: &str, value_a: &str, value_b: &str) {
+pub(crate) fn print_ab_comparison_values_string(field_name: &str, value_a: &str, value_b: &str) {
+    print_ab_comparison_values_internal(field_name, value_a, value_b, false);
+}
+
+pub(crate) fn print_ab_comparison_values_int(field_name: &str, value_a: i128, value_b: i128, locale: &num_format::Locale) {
+    print_ab_comparison_values_internal(
+        field_name,
+        &format_int_locale(value_a, locale),
+        &format_int_locale(value_b, locale),
+        true
+    );
+}
+
+pub(crate) fn print_ab_comparison_values_float(field_name: &str, value_a: f64, value_b: f64, locale: &num_format::Locale, precision: usize) {
+    print_ab_comparison_values_internal(
+        field_name,
+        &format_float_locale(value_a, locale, precision),
+        &format_float_locale(value_b, locale, precision),
+        true
+    );
+}
+
+pub(crate) fn print_ab_comparison_values_bool(field_name: &str, value_a: bool, value_b: bool) {
+    print_ab_comparison_values_internal(
+        field_name,
+        &format!("{:?}", value_a),
+        &format!("{:?}", value_b),
+        false
+    );
+}
+
+fn print_ab_comparison_values_internal(field_name: &str, value_a: &str, value_b: &str, right_align: bool) {
     if value_a == value_b {
         println!("{}: {}", field_name, value_a);
     } else {
-        println!("{} a: {}", field_name, value_a);
-        println!("{} b: {}", field_name, value_b);
+        if right_align {
+            let width = max(value_a.len(), value_b.len());
+            println!("{} a: {:>width$}", field_name, value_a, width = width);
+            println!("{} b: {:>width$}", field_name, value_b, width = width);
+        } else {
+            println!("{} a: {}", field_name, value_a);
+            println!("{} b: {}", field_name, value_b);
+        }
     }
 }
 

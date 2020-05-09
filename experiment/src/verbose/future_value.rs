@@ -17,11 +17,13 @@ pub fn main() {
     // check_formulas();
     // dbg!(finance::future_value_solution(0.012, 8, 200_000));
     // try_continuous();
+    /*
     try_vary_compounding_periods();
     try_simple_to_continuous(&finance::TvmVariable::Rate);
     try_simple_to_continuous(&finance::TvmVariable::Periods);
     try_simple_to_continuous(&finance::TvmVariable::PresentValue);
     try_simple_to_continuous(&finance::TvmVariable::FutureValue);
+    */
 }
 
 fn try_future_value() {
@@ -288,22 +290,25 @@ fn try_series_print_table() {
 }
 
 fn try_ab_comparison() {
-    fn try_ab_comparison_field_diffs() {
-        let locale = finance::num_format::Locale::en;
-        let precision = 2;
+    let locale = finance::num_format::Locale::en;
+    let precision = 4;
 
-        let years = 1;
-        let rate = 0.11 / 12.0;
-        let periods = years * 12;
-        let present_value = -10_000.0;
-        let future_value = 0.0;
-        let solution_a = finance::payment_solution(rate, periods, present_value + 1_000.0, future_value);
-        let solution_b = finance::payment_solution(rate, periods -3, present_value, future_value);
+    let years = 1;
+    let rate = 0.20 / 12.0;
+    let periods = years * 12;
+    let present_value = 5_000.0;
 
-        solution_a.print_ab_comparison(&solution_b, true, true, &locale, precision);
-    }
+    let solution_a = finance::future_value_solution(rate, periods, present_value -500.0);
+    let solution_b = finance::future_value_solution(rate, periods -3, present_value);
+    solution_a.print_ab_comparison(&solution_b, &locale, precision);
 
+    let solution_a = finance::future_value_solution(rate, periods, present_value);
+    let solution_b = solution_a.with_continuous_compounding(&finance::TvmVariable::Rate);
+    solution_a.print_ab_comparison(&solution_b, &locale, precision);
 
+    let solution_a = finance::future_value_solution(rate, periods, present_value);
+    let solution_b = finance::future_value_solution(rate + 0.001, periods, present_value);
+    solution_a.print_ab_comparison(&solution_b, &locale, precision);
 }
 
 fn check_formulas() {
