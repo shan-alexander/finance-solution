@@ -20,7 +20,7 @@ pub fn main() {
 
     pv_problem_2();
     fv_problem_2();
-    nper_problem_2();
+    periods_problem_2();
     rate_problem_2();
 
     pv_annuity_problem_1();
@@ -31,7 +31,7 @@ pub fn main() {
     let present_value = 13_000;
     let periods = 5;
     let rate = 0.08;
-    let answer = payment_solution(rate, periods, present_value, 0);
+    let answer = payment_solution(rate, periods, present_value, 0, false);
     dbg!(answer.series().print_table(true, true, &Locale::en, 4));
 
 }
@@ -109,23 +109,56 @@ fn fv_problem_2() {
 //  How many years will it take for $197,000 to grow to be $554,000 
 // if it is invested in an account with a quoted annual interest rate of 8% with monthly compounding of interest? 
 // Expect 12.97 years
-fn nper_problem_2() {
-    let pv = 197_000;
-    let fv = 554_000;
-    // finish here
-}
+fn periods_problem_2() {
+    let present_value = 197_000;
+    let future_value = 554_000;
 
+    // The annual interest rate is 8%.
+    let apr = 0.08;
+
+    // The interest is compounded monthly, so we need to convert the APR into the effective
+    // periodic rate per month.
+    let rate = convert_apr_to_epr(apr, 12);
+
+    let months = periods(rate, present_value, future_value);
+    dbg!(months);
+
+    // We know the number of months, which may contain a fractional amount. Convert to years.
+    let years = months / 12.0;
+    dbg!(years);
+}
 
 // At what quoted annual interest rate must $134,000 be invested 
 // so that it will grow to be $459,000 in 15 years 
-// if interest is compounded weekly? 
+// if interest is compounded weekly? For simplicity assume there are exactly 52 weeks per year.
 // Expect 8.21%
 fn rate_problem_2() {
-    let pv = 134_000;
-    let fv = 459_000;
-    // finish here
-}
+    let present_value = 134_000.0;
+    let future_value = 459_000.0;
+    let years = 15;
+    let periods_per_year = 52;
+    let periods = years * periods_per_year;
 
+    let weekly_rate = rate(periods, present_value, future_value);
+    dbg!(weekly_rate);
+
+    let apr = convert_epr_to_apr(weekly_rate, periods_per_year);
+    dbg!(apr);
+
+    // Check the answer by calculating a future value as if the interest is compounded once per
+    // year.
+
+    // First calculate the effective annual rate (EAR). Calculating the future value with this EAR
+    // and compounding once per year should be the same as using the weekly rate and compounding
+    // once per week.
+    let ear = convert_apr_to_ear(apr, periods_per_year);
+
+    // Starting with the same present value and compounding once per year using the EAR should give
+    // us the future value we started with. If so this means we correctly calculated the rate above.
+    let check_future_value = finance::future_value(ear, years, present_value);
+    dbg!(check_future_value);
+    assert_rounded_4(check_future_value, future_value as f64);
+}
 
 // You are offered an investment with a quoted annual interest rate 
 // of 13% with quarterly compounding of interest. 
@@ -146,7 +179,7 @@ fn pv_annuity_problem_1() {
     let annuity = 24_000;
     let periods = 11;
     let rate = 0.13;
-    let pv_annuity_problem_1 = present_value_annuity_solution(rate, periods, annuity);
+    let pv_annuity_problem_1 = present_value_annuity_solution(rate, periods, annuity, false);
     dbg!(pv_annuity_problem_1); 
 }
 
@@ -159,7 +192,7 @@ fn fv_annuity_problem_1() {
     let rate= 0.14;
     let periods = 12;
     let payment = 16_000;
-    let fv_annuity_problem_1 = future_value_annuity_solution(rate, periods, payment);
+    let fv_annuity_problem_1 = future_value_annuity_solution(rate, periods, payment, false);
     dbg!(fv_annuity_problem_1);
 }
 
@@ -288,12 +321,12 @@ fn retirement_problem_1() {
     let rate_before_retire = 0.12;
     let rate_after_retire = 0.06;
 
-    let pv_income = present_value_annuity_due(rate_after_retire, live_how_many_years_after_retirement, retirement_income);
+    let pv_income = present_value_annuity(rate_after_retire, live_how_many_years_after_retirement, retirement_income, false);
     let pv_inheretance = present_value(rate_after_retire, live_how_many_years_after_retirement, total_inheretance);
     let total_at_retirement = pv_income + pv_inheretance;
-    let retirement_problem_1 = payment_solution(rate_before_retire, retire_in, 0, total_at_retirement);
+    let retirement_problem_1 = payment_solution(rate_before_retire, retire_in, 0, total_at_retirement, false);
     dbg!(&retirement_problem_1);
     let pv_total_at_retirement = present_value(rate_before_retire, retire_in, total_at_retirement);
-    let retirement_problem_1 = payment_solution(rate_before_retire, retire_in, pv_total_at_retirement, 0);
+    let retirement_problem_1 = payment_solution(rate_before_retire, retire_in, pv_total_at_retirement, 0, false);
     dbg!(&retirement_problem_1);
 }

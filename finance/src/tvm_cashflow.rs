@@ -14,11 +14,10 @@ use std::ops::Deref;
 #[derive(Debug, Clone)]
 pub enum TvmCashflowVariable {
     PresentValueAnnuity,
+    PresentValueAnnuityDue,
     FutureValueAnnuity,
     Payment,
-    PresentValueAnnuityDue,
     FutureValueAnnuityDue,
-    PaymentDue,
     NetPresentValue,
 }
 
@@ -53,12 +52,6 @@ impl TvmCashflowVariable {
             _ => false,
         }
     }
-    pub fn is_payment_due(&self) -> bool {
-        match self {
-            TvmCashflowVariable::PaymentDue => true,
-            _ => false,
-        }
-    }
     pub fn is_net_present_value(&self) -> bool {
         match self {
             TvmCashflowVariable::NetPresentValue => true,
@@ -75,7 +68,6 @@ impl fmt::Display for TvmCashflowVariable {
             TvmCashflowVariable::Payment => write!(f, "Payment"),
             TvmCashflowVariable::PresentValueAnnuityDue => write!(f, "Present Value Annuity Due"),
             TvmCashflowVariable::FutureValueAnnuityDue => write!(f, "Future Value Annuity Due"),
-            TvmCashflowVariable::PaymentDue => write!(f, "Payment Due"),
             TvmCashflowVariable::NetPresentValue => write!(f, "Net Present Value"),
         }
     }
@@ -128,7 +120,7 @@ impl TvmCashflowSolution {
     }
 
     pub fn series(&self) -> TvmCashflowSeries {
-        if self.calculated_field.is_payment() || self.calculated_field.is_payment_due() {
+        if self.calculated_field.is_payment() {
             payment_series(self)
         } else {
             unimplemented!()

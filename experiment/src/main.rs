@@ -11,13 +11,13 @@ fn main() {
     // format::main();
     // verbose::present_value::main();
     // verbose::present_value_annuity::main();
-    // verbose::future_value::main();
+    verbose::future_value::main();
     // verbose::future_value_annuity::main();
     // verbose::rate::main();
     // verbose::periods::main();
     // verbose::payment_solution::main();
     // verbose::net_present_value::main();
-    verbose::payment::main();
+    // verbose::payment::main();
     // verbose::nper::main();
     // verbose::convert_rates::main();
     // verbose::convert_rate::main();

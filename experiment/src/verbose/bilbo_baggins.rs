@@ -133,12 +133,11 @@ fn calculate_bilbo_solution(b: BilboBagginsInputs) -> BilboBagginsSolution {
         fv / (((1. + r).powi(n as i32) -1.) / r)
     }
     // let monthly_savings_needed_after_cabin = payment(epr_before_retire, months_between_cabin_and_retirement, net_amount_needed_at_retirement);
-    let monthly_savings_needed_after_cabin = finance::payment(epr_before_retire, months_between_cabin_and_retirement, 0.0, net_amount_needed_at_retirement);
+    let monthly_savings_needed_after_cabin = finance::payment(epr_before_retire, months_between_cabin_and_retirement, 0.0, net_amount_needed_at_retirement, false);
     // dbg!(&monthly_savings_needed_after_cabin);
 
-
     // let monthly_savings_needed_after_cabin: PaymentSolution = super::payment::payment(epr_before_retire, months_between_cabin_and_retirement, 0., net_amount_needed_at_retirement);
-    let monthly_savings_needed_after_cabin: finance::TvmCashflowSolution = finance::payment_solution(epr_before_retire, months_between_cabin_and_retirement, 0., net_amount_needed_at_retirement);
+    let monthly_savings_needed_after_cabin: finance::TvmCashflowSolution = finance::payment_solution(epr_before_retire, months_between_cabin_and_retirement, 0., net_amount_needed_at_retirement, false);
     // dbg!(&monthly_savings_needed_after_cabin);
 
     BilboBagginsSolution::new(

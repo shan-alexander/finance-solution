@@ -34,6 +34,8 @@ fn check_future_value_annuity_parameters(rate:f64, periods:u32, cashflow:f64) {
 /// `r` or `i` in formulas.
 /// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
 /// * `cashflow` - The value of the constant cashflow (aka payment).
+/// * `due_at_beginning` - True if the payment is due at the beginning of the period. Typically the
+/// payment will be due at the end of the period so this will be false.
 ///
 /// # Panics
 /// The call will fail if `rate` is less than -1.0 as this would mean the investment is
@@ -43,16 +45,16 @@ fn check_future_value_annuity_parameters(rate:f64, periods:u32, cashflow:f64) {
 /// Quick Glance, how to use:
 /// ```
 /// use finance::*;
-/// let (rate, periods, payment) = (0.034, 5, 500);
-/// let my_annuity = future_value_annuity(rate, periods, payment);
+/// let (rate, periods, payment, due_at_beginning) = (0.034, 5, 500, false);
+/// let my_annuity = future_value_annuity(rate, periods, payment, due_at_beginning);
 /// assert_approx_equal!(my_annuity, 2_675.8789282); 
 /// ```
 /// 
 /// Or use the solution struct (recommended, more helpful to debugging and for student-learning)
 /// ```
 /// use finance::*;
-/// let (rate, periods, pmt) = (0.034, 5, 500);
-/// let my_annuity = future_value_annuity_solution(rate, periods, pmt);
+/// let (rate, periods, pmt, due_at_beginning) = (0.034, 5, 500, false);
+/// let my_annuity = future_value_annuity_solution(rate, periods, pmt, due_at_beginning);
 /// dbg!(&my_annuity);
 /// // PRINTS TO TERMINAL:
 /// // &my_annuity = TvmCashflowSolution {
@@ -85,14 +87,16 @@ fn check_future_value_annuity_parameters(rate:f64, periods:u32, cashflow:f64) {
 /// // The cashflow will be $2,000.
 /// let cashflow = 2_000;
 ///
+/// let due_at_beginning = false;
+///
 /// // Find the future value.
-/// let future_value_ann = future_value_annuity(rate, periods, cashflow);
+/// let future_value_ann = future_value_annuity(rate, periods, cashflow, due_at_beginning);
 /// dbg!(&future_value_ann);
 ///
 /// // Confirm that the future value is correct to four decimal places (one hundredth of a cent).
 /// // assert_approx_equal!( , future_value_ann);
 /// ```
-pub fn future_value_annuity<T>(rate: f64, periods: u32, annuity: T) -> f64
+pub fn future_value_annuity<T>(rate: f64, periods: u32, annuity: T, due_at_beginning: bool) -> f64
     where T: Into<f64> + Copy
 {
     let pmt = annuity.into();
@@ -105,65 +109,18 @@ pub fn future_value_annuity<T>(rate: f64, periods: u32, annuity: T) -> f64
     // fv_accumulator
 
     // FV_ann = Constant_Cashflow * [ ( (1+periodic_rate)^n -1 )/ periodic_rate ]
-    let fv_ann = pmt * ((1. + rate).powf(periods as f64) - 1.) / rate;
+    let fv_ann= if due_at_beginning {
+        let mut fv_accumulator = (1. + rate) * pmt;
+        for i in 0..periods {
+            let future_value = future_value(rate, i as u32, pmt);
+            fv_accumulator = fv_accumulator + future_value;
+        }
+        fv_accumulator
+    } else {
+        pmt * ((1. + rate).powf(periods as f64) - 1.) / rate
+    };
     fv_ann
 }
-
-/// Returns the **future value of an annuity due** (a future series of constant cashflows) with constant rate, where the payment is at the beginning of the period. Returns f64.
-///
-/// The future value annuity due formula is:
-///
-/// future value ann due = sum( (cashflow * (1 + rate)<sup>period</sup>) + (cashflow * (1 + periodic_rate)) )
-/// 
-/// or
-/// 
-/// future value ann due = annuity * ((1+periodic_rate)^n -1) / periodic_rate + (annuity * (1+periodic_rate))
-/// 
-/// or 
-/// 
-/// future value ann due = annuity * ((1+periodic_rate)^n -1) * (1+periodic_rate) / periodic_rate
-///
-/// # Arguments
-/// * `rate` - The rate at which the investment grows or shrinks per period,
-/// expressed as a floating point number. For instance 0.05 would mean 5%. Often appears as
-/// `r` or `i` in formulas.
-/// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
-/// * `cashflow` - The value of the constant cashflow (aka payment).
-///
-/// # Panics
-/// The call will fail if `rate` is less than -1.0 as this would mean the investment is
-/// losing more than its full value every period.
-///
-/// # Examples
-/// Future value annuity due of a series of $2000 cashflows.
-/// ```
-/// use finance::*;
-/// // The rate is 2.1% per month.
-/// let rate = 0.021;
-///
-/// // The investment will grow for 12 months.
-/// let periods = 12;
-///
-/// // The cashflow will be $2,000.
-/// let cashflow = 2_000;
-///
-/// // Find the future value of the annuity.
-/// let my_annuity_due_fv = future_value_annuity_due(rate, periods, cashflow);
-/// dbg!(&my_annuity_due_fv);
-/// ```
-pub fn future_value_annuity_due<T>(rate: f64, periods: u32, annuity: T) -> f64
-    where T: Into<f64> + Copy
-{
-    let pmt = annuity.into();
-    check_future_value_annuity_parameters(rate, periods, pmt);
-    let mut fv_accumulator = (1. +  rate) * pmt;
-    for i in 0..periods { 
-        let future_value = future_value(rate, i as u32, pmt);
-        fv_accumulator = fv_accumulator + future_value;
-    }
-    fv_accumulator
-}
-
 
 /// Returns the **future value of annuity** (a series of constant cashflows) at a constant rate. Returns custom **solution struct** with additional information and functionality.
 ///
@@ -183,6 +140,8 @@ pub fn future_value_annuity_due<T>(rate: f64, periods: u32, annuity: T) -> f64
 /// `r` or `i` in formulas.
 /// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
 /// * `cashflow` - The value of the constant cashflow (aka payment).
+/// * `due_at_beginning` - True if the payment is due at the beginning of the period. Typically the
+/// payment will be due at the end of the period so this will be false.
 ///
 // / # Panics
 // / The call will fail if `rate` is less than -1.0 as this would mean the investment is
@@ -192,80 +151,27 @@ pub fn future_value_annuity_due<T>(rate: f64, periods: u32, annuity: T) -> f64
 /// Future value of a $500 annuity (a series of $500 cashflows) at 3.4% for 10 years.
 /// ```
 /// use finance::*;
-/// let (rate, periods, cashflow) = (0.034, 10, 500);
-/// let my_annuity = future_value_annuity_solution(rate, periods, cashflow);
+/// let (rate, periods, cashflow, due_at_beginning) = (0.034, 10, 500, false);
+/// let my_annuity = future_value_annuity_solution(rate, periods, cashflow, due_at_beginning);
 /// dbg!(&my_annuity);
 /// ```
-pub fn future_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T) -> TvmCashflowSolution
+pub fn future_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T, due_at_beginning: bool) -> TvmCashflowSolution
     where T: Into<f64> + Copy
 {
     let annuity = cashflow.into();
-    future_value_annuity_internal(rate, periods, annuity, false)
-}
-
-
-/// Returns the **future value of annuity due** (a future series of constant cashflows) with a constant rate and the payments made at the beginning of the period. Returns custom **solution struct** with additional information and functionality.
-///
-/// Related functions:
-/// * To calculate a future value returning an f64, use [`present_value_annuity`].
-// / * To calculate a future value with a varying rate or varying cashflow or both, use [`present_value_annuity_schedule`].
-/// * To calculate a future value due returning an f64, use [`present_value_annuity_due`].
-///
-/// The future value annuity due formula is:
-///
-/// future value ann due = sum( (cashflow * (1 + rate)<sup>period</sup>) + (cashflow * (1 + rate)) )
-/// or
-/// future value ann due = annuity * ((1+periodic_rate)^n -1) / periodic_rate + (annuity * (1+rate))
-/// 
-/// # Arguments
-/// * `rate` - The rate at which the investment grows or shrinks per period,
-/// expressed as a floating point number. For instance 0.05 would mean 5%. Often appears as
-/// `r` or `i` in formulas.
-/// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
-/// * `cashflow` - The value of the constant cashflow (aka payment).
-///
-/// # Examples
-/// Future value of a $500 annuity (a series of $500 cashflows).
-/// ```
-/// // The rate is 3.4% per month.
-/// let rate = 0.034;
-///
-/// // The annuity will provide yearly payments for 10 years.
-/// let periods = 10;
-///
-/// // The cashflow will be $500.
-/// let cashflow = 500;
-///
-/// // Find the future value.
-/// let future_value_ann_due = finance::future_value_annuity_due_solution(rate, periods, cashflow);
-/// dbg!(&future_value_ann_due);
-/// ```
-/// 
-pub fn future_value_annuity_due_solution<T>(rate: f64, periods: u32, cashflow: T) -> TvmCashflowSolution
-    where T: Into<f64> + Copy {
-    let annuity = cashflow.into();
-    future_value_annuity_internal(rate, periods, annuity, true)
-}
-
-fn future_value_annuity_internal(rate:f64, periods:u32, annuity:f64, due: bool) -> TvmCashflowSolution {
-    let fv:f64;
-    let fvann_type: TvmCashflowVariable;
-    if due == true {
-        fv = future_value_annuity_due(rate, periods, annuity);
-        fvann_type = TvmCashflowVariable::FutureValueAnnuityDue;
+    let fv = future_value_annuity(rate, periods, annuity, due_at_beginning);
+    let fvann_type= if due_at_beginning {
+        TvmCashflowVariable::FutureValueAnnuityDue
     } else {
-        fv = future_value_annuity(rate, periods, annuity);
-        fvann_type = TvmCashflowVariable::FutureValueAnnuity;
-    }
+        TvmCashflowVariable::FutureValueAnnuity
+    };
     // check_present_value__annuity_varying_parameters(rate, periods, cashflow);
     let formula = format!("{} * ((1. - (1. / (1. + {})).powf({})) / {});", annuity, rate, periods, rate);
     let formula_symbolic = format!("annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate);");
     // let fv = future_value_annuity(rate, periods, cashflow);
     let pv = present_value(rate, periods, fv);
-    TvmCashflowSolution::new(fvann_type, rate, periods, pv, fv, due, annuity, &formula, &formula_symbolic)
-
+    TvmCashflowSolution::new(fvann_type, rate, periods, pv, fv, due_at_beginning, annuity, &formula, &formula_symbolic)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -277,7 +183,7 @@ mod tests {
         let rate = 0.034;
         let periods = 10;
         let annuity = 500;
-        let fv = future_value_annuity(rate, periods, annuity);
+        let fv = future_value_annuity(rate, periods, annuity, false);
         // assert_approx_equal!(5838.66016, fv);
         assert_eq!(5838.66016, (fv * 100000.).round() / 100000.);
     }
@@ -287,7 +193,7 @@ mod tests {
         let rate = 0.034;
         let periods = 1;
         let annuity = 500;
-        let fv = future_value_annuity(rate, periods, annuity);
+        let fv = future_value_annuity(rate, periods, annuity, false);
         // assert_approx_equal!(5838.66016, fv);
         assert_eq!(500.0000, (fv * 100000.).round() / 100000.);
     }
@@ -296,7 +202,7 @@ mod tests {
         let rate = 0.034;
         let periods = 400;
         let annuity = 500;
-        let fv = future_value_annuity(rate, periods, annuity);
+        let fv = future_value_annuity(rate, periods, annuity, false);
         // assert_approx_equal!(9455966284.4844600, fv);
         assert_eq!(9455966284.4844600, (fv * 100000.).round() / 100000.);
     }
@@ -307,7 +213,7 @@ mod tests {
         let rate = 0.989;
         let periods = 8;
         let annuity = 120_000;
-        let fv = future_value_annuity(rate, periods, annuity);
+        let fv = future_value_annuity(rate, periods, annuity, false);
         assert_eq!(29_599_651.75013, (fv * 100000.).round() / 100000.);
     }
 
@@ -316,7 +222,7 @@ mod tests {
         let rate = 0.00009;
         let periods = 780;
         let annuity = 120_000;
-        let fv = future_value_annuity(rate, periods, annuity);
+        let fv = future_value_annuity(rate, periods, annuity, false);
         assert_eq!(96_959_087.75951, (fv * 100000.).round() / 100000.);
     }
 
@@ -326,7 +232,7 @@ mod tests {
         let rate = -0.0314;
         let periods = 10;
         let annuity = 13_000;
-        let fv = future_value_annuity(rate, periods, annuity);
+        let fv = future_value_annuity(rate, periods, annuity, false);
         assert_eq!(113_087.68194, (fv * 100000.).round() / 100000.);
     }
 
@@ -336,7 +242,7 @@ mod tests {
         let rate = -0.999;
         let periods = 10;
         let annuity = 13_000;
-        let fv = future_value_annuity(rate, periods, annuity);
+        let fv = future_value_annuity(rate, periods, annuity, false);
         assert_eq!(13_013.01301, (fv * 100000.).round() / 100000.);
     }
 
@@ -347,7 +253,7 @@ mod tests {
         let rate = -0.999;
         let periods = 780;
         let annuity = 13_000;
-        let fv = future_value_annuity(rate, periods, annuity);
+        let fv = future_value_annuity(rate, periods, annuity, false);
         assert_eq!(13_013.01301, (fv * 100000.).round() / 100000.);
     }
 
