@@ -32,7 +32,7 @@ pub fn main() {
     let periods = 5;
     let rate = 0.08;
     let answer = payment_solution(rate, periods, present_value, 0);
-    dbg!(answer.series().print_table(&Locale::en, 4));
+    dbg!(answer.series().print_table(true, true, &Locale::en, 4));
 
 }
 

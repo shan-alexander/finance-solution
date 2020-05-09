@@ -81,7 +81,7 @@ impl fmt::Display for TvmCashflowVariable {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TvmCashflowSolution {
     calculated_field: TvmCashflowVariable,
     rate: f64,
@@ -222,10 +222,16 @@ impl TvmCashflowSeries {
         }
     }
 
-    pub fn print_table(&self, locale: &num_format::Locale, precision: usize) {
-        let columns = vec![("period", "i"), ("payments_to_date", "f"), ("payments_remaining", "f"),
-                           ("principal", "f"), ("principal_to_date", "f"), ("principal_remaining", "f"),
-                           ("interest", "f"), ("interest_to_date", "f"), ("interest_remaining", "f")];
+    pub fn print_table(
+            &self,
+            include_running_totals: bool,
+            include_remaining_amounts: bool,
+            locale: &num_format::Locale,
+            precision: usize) {
+        let columns = vec![("period", "i", true),
+                           ("payments_to_date", "f", include_running_totals), ("payments_remaining", "f", include_remaining_amounts),
+                           ("principal", "f", true), ("principal_to_date", "f", include_running_totals), ("principal_remaining", "f", include_remaining_amounts),
+                           ("interest", "f", true), ("interest_to_date", "f", include_running_totals), ("interest_remaining", "f", include_remaining_amounts)];
         let mut data = self.iter()
             .map(|entry| vec![entry.period.to_string(), entry.payments_to_date.to_string(), entry.payments_remaining.to_string(),
                               entry.principal.to_string(), entry.principal_to_date.to_string(), entry.principal_remaining.to_string(),
@@ -233,6 +239,52 @@ impl TvmCashflowSeries {
             .collect::<Vec<_>>();
         print_table_locale(&columns, &mut data, locale, precision);
     }
+
+    pub fn print_table_ab_comparison(
+            &self,
+            other: &TvmCashflowSeries,
+            include_running_totals: bool,
+            include_remaining_amounts: bool,
+            locale: &num_format::Locale,
+            precision: usize) {
+        let columns = vec![("period", "i", true),
+                           ("payment_a", "f", include_running_totals), ("payment_b", "f", include_running_totals),
+                           ("pmt_to_date_a", "f", include_running_totals), ("pmt_to_date_b", "f", include_running_totals),
+                           ("pmt_remaining_a", "f", include_remaining_amounts), ("pmt_remaining_b", "f", include_remaining_amounts),
+                           ("principal_a", "f", true), ("principal_b", "f", true),
+                           ("princ_to_date_a", "f", include_running_totals), ("princ_to_date_b", "f", include_running_totals),
+                           ("princ_remaining_a", "f", include_remaining_amounts), ("princ_remaining_b", "f", include_remaining_amounts),
+                           ("interest_a", "f", true), ("interest_b", "f", true),
+                           ("int_to_date_a", "f", include_running_totals), ("int_to_date_b", "f", include_running_totals),
+                           ("int_remaining_a", "f", include_remaining_amounts), ("int_remaining_b", "f", include_remaining_amounts)];
+        let mut data = vec![];
+        let rows = max(self.len(), other.len());
+        for row_index in 0..rows {
+            data.push(vec![
+                (row_index + 1).to_string(),
+                self.get(row_index).map_or("".to_string(), |x| x.payment.to_string()),
+                other.get(row_index).map_or("".to_string(), |x| x.payment.to_string()),
+                self.get(row_index).map_or("".to_string(), |x| x.payments_to_date.to_string()),
+                other.get(row_index).map_or("".to_string(), |x| x.payments_to_date.to_string()),
+                self.get(row_index).map_or("".to_string(), |x| x.payments_remaining.to_string()),
+                other.get(row_index).map_or("".to_string(), |x| x.payments_remaining.to_string()),
+                self.get(row_index).map_or("".to_string(), |x| x.principal.to_string()),
+                other.get(row_index).map_or("".to_string(), |x| x.principal.to_string()),
+                self.get(row_index).map_or("".to_string(), |x| x.principal_to_date.to_string()),
+                other.get(row_index).map_or("".to_string(), |x| x.principal_to_date.to_string()),
+                self.get(row_index).map_or("".to_string(), |x| x.principal_remaining.to_string()),
+                other.get(row_index).map_or("".to_string(), |x| x.principal_remaining.to_string()),
+                self.get(row_index).map_or("".to_string(), |x| x.interest.to_string()),
+                other.get(row_index).map_or("".to_string(), |x| x.interest.to_string()),
+                self.get(row_index).map_or("".to_string(), |x| x.interest_to_date.to_string()),
+                other.get(row_index).map_or("".to_string(), |x| x.interest_to_date.to_string()),
+                self.get(row_index).map_or("".to_string(), |x| x.interest_remaining.to_string()),
+                other.get(row_index).map_or("".to_string(), |x| x.interest_remaining.to_string()),
+            ]);
+        }
+        print_table_locale(&columns, &mut data, locale, precision);
+    }
+
 }
 
 impl Deref for TvmCashflowSeries {

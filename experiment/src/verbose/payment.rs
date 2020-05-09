@@ -9,8 +9,10 @@ pub fn main() {
     // try_test_combination_examples();
     // try_test_against_excel_ipmt_month_1();
     // try_test_against_excel_ipmt_month_2();
+    try_ab_comparison();
     // try_payment_doc_example_1();
-    try_payment_due_doc_example_1();
+    // try_payment_due_doc_example_1();
+    // try_payment_solution_doc_example_1();
     // generate_scenarios_for_excel();
     // find_numerator_failures();
     // find_calculation_failure_curve();
@@ -194,6 +196,21 @@ fn try_test_against_excel_ipmt_month_2() {
     finance::assert_approx_equal!(exp_payment, solution.payment());
 }
 
+fn try_ab_comparison() {
+    let years = 1;
+    let rate = 0.11 / 12.0;
+    let periods = years * 12;
+    let present_value = 100_000.0;
+    let future_value = 0.0;
+    let solution = finance::finance::payment_solution(rate, periods, present_value, future_value);
+    dbg!(&solution);
+    let series = solution.series();
+    dbg!(&series);
+    for entry in series.iter().filter(|x| x.period() % 3 == 0) {
+        dbg!(entry);
+    }
+}
+
 fn try_payment_doc_example_1() {
     // The loan will be paid off in five years.
     let years = 5;
@@ -255,6 +272,78 @@ fn try_payment_due_doc_example_1() {
 
     // The payment is slightly different if it's due at the end of the month.
     finance::assert_rounded_4(payment_due_at_end, -303.3190);
+}
+
+fn try_payment_solution_doc_example_1() {
+    // The interest rate is 11.75% per year. Each period is one month so we need to divide the rate
+    // by the number of months in a year.
+    let rate = 0.1175 / 12.0;
+
+    // The loan will be paid off in 48 months.
+    let periods = 48;
+
+    // The principal is $12,500.50. Here we'll express it as a negative number so that the payment,
+    // interest, and principal are all positive numbers for simplicity.
+    let present_value = -12_500.5;
+
+    // The loan will be fully paid off by the end of the last period.
+    let future_value = 0.0;
+
+    // Call payment_solution() instead of payment_due_solution() because the payment is due at the
+    // end of each month.
+    let solution = finance::payment_solution(rate, periods, present_value, future_value);
+    // Display the inputs, payment amount, formulas, sum of interest, etc.
+    dbg!(&solution);
+
+    // The payment is $327.65/month. Since the principal/present value was negative the payment is
+    // positive.
+    finance::assert_rounded_4(solution.payment(), 327.6538);
+
+    // The sum of payments is simply the monthly payment times the number of months.
+    finance::assert_rounded_4(solution.sum_of_payments(), 15_727.3820);
+
+    // The sum of interest is the portion of the sum of payments that is over and above the original
+    // loan amount. Here we add the present value since it has the opposite sign of the payments.
+    finance::assert_rounded_4(solution.sum_of_interest(), solution.sum_of_payments() + solution.present_value());
+    finance::assert_rounded_4(solution.sum_of_interest(), 3_226.8820);
+
+    // Examine the formulas. Since the future value is zero we expect to see a slightly simplified
+    // formula.
+    let formula = solution.formula();
+    println!();
+    dbg!(&formula);
+    assert_eq!(formula, "327.6538 = ((-12500.5000 * 1.009792^48) * -0.009792) / (1.009792^48 - 1)");
+    let symbolic_formula = solution.formula_symbolic();
+    println!();
+    dbg!(&symbolic_formula);
+    assert_eq!(symbolic_formula, "pmt = ((pv * (1 + r)^n) * -r) / ((1 + r)^n - 1)");
+
+    // Calculate the period-by-period values including the amount of the payment that goes toward
+    // interest and principle as well as the running tally of the remaining amounts.
+    let series = solution.series();
+    // Note that all of the period-by-period values are shown as of the end of the period after that
+    // period's payment has been made.
+    println!();
+    dbg!(&series);
+
+    // Print the period-by-period values in a table with two decimal places and the numbers aligned.
+    println!();
+    series.print_table(&finance::num_format::Locale::en, 2);
+
+    // Print a table with only the last period of each year, that is all of the periods that can be
+    // divided by 12.
+    println!();
+    series
+        .filter(|entry| entry.period() % 12 == 0)
+        .print_table(&finance::num_format::Locale::en, 2);
+
+    // Print a table starting at the first period where at least 95% of the interest has been paid
+    // off, and round all dollar amounts to whole numbers by passing zero as the second argument to
+    // print_table().
+    println!();
+    series
+        .filter(|entry| entry.interest_to_date() >= solution.sum_of_interest() * 0.95)
+        .print_table(&finance::num_format::Locale::en, 0);
 }
 
 fn generate_scenarios_for_excel() {
