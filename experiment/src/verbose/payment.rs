@@ -9,7 +9,8 @@ pub fn main() {
     // try_test_combination_examples();
     // try_test_against_excel_ipmt_month_1();
     // try_test_against_excel_ipmt_month_2();
-    try_ab_comparison();
+    // try_ab_comparison_table_formatting();
+    try_ab_comparison_field_diffs();
     // try_payment_doc_example_1();
     // try_payment_due_doc_example_1();
     // try_payment_solution_doc_example_1();
@@ -196,7 +197,7 @@ fn try_test_against_excel_ipmt_month_2() {
     finance::assert_approx_equal!(exp_payment, solution.payment());
 }
 
-fn try_ab_comparison() {
+fn try_ab_comparison_table_formatting() {
     let locale = finance::num_format::Locale::en;
     let _precision = 2;
 
@@ -208,14 +209,25 @@ fn try_ab_comparison() {
     let solution_due_at_start = finance::payment_due_solution(rate, periods, present_value, future_value);
     let solution_due_at_end = finance::payment_solution(rate, periods, present_value, future_value);
 
-    println!();
-    solution_due_at_start.print_series_table_ab_comparison(&solution_due_at_end, true, true, &locale, 0);
-    println!();
-    solution_due_at_start.print_series_table_ab_comparison(&solution_due_at_end, true, false, &locale, 2);
-    println!();
-    solution_due_at_start.print_series_table_ab_comparison(&solution_due_at_end, false, true, &locale, 4);
-    println!();
-    solution_due_at_start.print_series_table_ab_comparison(&solution_due_at_end, false, false, &locale, 6);
+    solution_due_at_start.print_table_ab_comparison(&solution_due_at_end, true, true, &locale, 0);
+    solution_due_at_start.print_table_ab_comparison(&solution_due_at_end, true, false, &locale, 2);
+    solution_due_at_start.print_table_ab_comparison(&solution_due_at_end, false, true, &locale, 4);
+    solution_due_at_start.print_table_ab_comparison(&solution_due_at_end, false, false, &locale, 6);
+}
+
+fn try_ab_comparison_field_diffs() {
+    let locale = finance::num_format::Locale::en;
+    let precision = 2;
+
+    let years = 1;
+    let rate = 0.11 / 12.0;
+    let periods = years * 12;
+    let present_value = -10_000.0;
+    let future_value = 0.0;
+    let solution_a = finance::payment_solution(rate, periods, present_value - 1_000.0, future_value);
+    let solution_b = finance::payment_solution(rate, periods -2, present_value, future_value);
+
+    solution_a.print_table_ab_comparison(&solution_b, true, true, &locale, precision);
 }
 
 fn try_payment_doc_example_1() {

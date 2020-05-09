@@ -239,7 +239,7 @@ pub(crate) fn format_float_locale<T>(val: T, locale: &Locale, precision: usize) 
     }
 }
 
-pub fn print_table_locale(columns: &Vec<(&str, &str, bool)>, data: &mut Vec<Vec<String>>, locale: &num_format::Locale, precision: usize) {
+pub(crate) fn print_table_locale(columns: &Vec<(&str, &str, bool)>, data: &mut Vec<Vec<String>>, locale: &num_format::Locale, precision: usize) {
     if columns.len() == 0 || data.len() == 0 {
         return;
     }
@@ -322,6 +322,15 @@ pub fn print_table_locale(columns: &Vec<(&str, &str, bool)>, data: &mut Vec<Vec<
                 }
             }).join("");
         println!("{}", value_line.trim_end());
+    }
+}
+
+pub(crate) fn print_ab_comparison_values(field_name: &str, value_a: &str, value_b: &str) {
+    if value_a == value_b {
+        println!("{}: {}", field_name, value_a);
+    } else {
+        println!("{} a: {}", field_name, value_a);
+        println!("{} b: {}", field_name, value_b);
     }
 }
 

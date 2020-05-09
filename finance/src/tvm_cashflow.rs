@@ -178,6 +178,17 @@ impl TvmCashflowSolution {
     pub fn formula_symbolic(&self) -> &str {
         &self.formula_symbolic
     }
+
+    pub fn print_table_ab_comparison(
+        &self,
+        other: &TvmCashflowSolution,
+        include_running_totals: bool,
+        include_remaining_amounts: bool,
+        locale: &num_format::Locale,
+        precision: usize)
+    {
+        self.series().print_table_ab_comparison(&other.series(), include_running_totals, include_remaining_amounts, locale, precision);
+    }
 }
 
 /*
@@ -248,7 +259,7 @@ impl TvmCashflowSeries {
             locale: &num_format::Locale,
             precision: usize) {
         let columns = vec![("period", "i", true),
-                           ("payment_a", "f", include_running_totals), ("payment_b", "f", include_running_totals),
+                           ("payment_a", "f", true), ("payment_b", "f", true),
                            ("pmt_to_date_a", "f", include_running_totals), ("pmt_to_date_b", "f", include_running_totals),
                            ("pmt_remaining_a", "f", include_remaining_amounts), ("pmt_remaining_b", "f", include_remaining_amounts),
                            ("principal_a", "f", true), ("principal_b", "f", true),
