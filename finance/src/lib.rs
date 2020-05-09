@@ -239,7 +239,7 @@ pub(crate) fn format_float_locale<T>(val: T, locale: &Locale, precision: usize) 
     }
 }
 
-pub fn print_table_locale(columns: &Vec<(&str, &str)>, data: &mut Vec<Vec<String>>, locale: &num_format::Locale, precision: usize) {
+pub fn print_table_locale(columns: &Vec<(&str, &str, bool)>, data: &mut Vec<Vec<String>>, locale: &num_format::Locale, precision: usize) {
     if columns.len() == 0 || data.len() == 0 {
         return;
     }
@@ -250,15 +250,22 @@ pub fn print_table_locale(columns: &Vec<(&str, &str)>, data: &mut Vec<Vec<String
 
     for row_index in 0..data.len() {
         for col_index in 0..column_count {
-            let col_type = columns[col_index].1.to_lowercase();
-            //bg!(&col_type, &data[row_index][col_index]);
-            if col_type != "s" {
-                data[row_index][col_index] = if col_type == "f" {
-                    format_float_locale(data[row_index][col_index].parse::<f64>().unwrap(), locale, precision)
-                } else if col_type == "i" {
-                    format_int_locale(data[row_index][col_index].parse::<i128>().unwrap(), locale)
-                } else {
-                    panic!("Unexpected column type = \"{}\"", col_type)
+            let visible = columns[col_index].2;
+            if visible {
+                // If the data in this cell is an empty string we're going to leave it with that
+                // value regardless of the type.
+                if data[row_index][col_index].len() > 0 {
+                    let col_type = columns[col_index].1.to_lowercase();
+                    //bg!(&col_type, &data[row_index][col_index]);
+                    if col_type != "s" {
+                        data[row_index][col_index] = if col_type == "f" {
+                            format_float_locale(data[row_index][col_index].parse::<f64>().unwrap(), locale, precision)
+                        } else if col_type == "i" {
+                            format_int_locale(data[row_index][col_index].parse::<i128>().unwrap(), locale)
+                        } else {
+                            panic!("Unexpected column type = \"{}\"", col_type)
+                        }
+                    }
                 }
             }
         }
@@ -266,20 +273,55 @@ pub fn print_table_locale(columns: &Vec<(&str, &str)>, data: &mut Vec<Vec<String
 
     let mut column_widths = vec![];
     for col_index in 0..column_count {
-        let mut width = columns[col_index].0.len();
-        for row_index in 0..data.len() {
-            width = max(width, data[row_index][col_index].len());
-        }
+        let visible = columns[col_index].2;
+        let width = if visible {
+            let mut width = columns[col_index].0.len();
+            for row_index in 0..data.len() {
+                width = max(width, data[row_index][col_index].len());
+            }
+            width
+        } else {
+            0
+        };
         column_widths.push(width);
     }
 
-    let header_line = columns.iter().enumerate().map(|(col_index, column)| format!("{:>width$}", column.0, width = column_widths[col_index])).join(column_separator);
-    println!("{}", header_line);
-    let dash_line = columns.iter().enumerate().map(|(col_index, _column)| "-".repeat(column_widths[col_index])).join(column_separator);
-    println!("{}", dash_line);
+    let header_line = columns.iter()
+        .enumerate()
+        .map(|(col_index, (header, _type, visible))|
+            if *visible {
+                format!("{:>width$}{}", header, column_separator, width = column_widths[col_index])
+            } else {
+                "".to_string()
+            }
+        )
+        .join("");
+    println!("\n{}", header_line.trim_end());
+
+    let dash_line = columns.iter()
+        .enumerate()
+        .map(|(col_index, (_header, _type, visible))|
+            if *visible {
+                format!("{}{}", "-".repeat(column_widths[col_index]), column_separator)
+            } else {
+                "".to_string()
+            }
+        )
+        .join("");
+    println!("{}", dash_line.trim_end());
+
     for row in data.iter() {
-        let value_line = row.iter().enumerate().map(|(col_index, value)| format!("{:>width$}", value, width = column_widths[col_index])).join(column_separator);
-        println!("{}", value_line);
+        let value_line = row.iter()
+            .enumerate()
+            .map(|(col_index, value)| {
+                let visible = columns[col_index].2;
+                if visible {
+                    format!("{:>width$}{}", value, column_separator, width = column_widths[col_index])
+                } else {
+                    "".to_string()
+                }
+            }).join("");
+        println!("{}", value_line.trim_end());
     }
 }
 
