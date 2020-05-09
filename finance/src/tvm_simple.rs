@@ -436,6 +436,46 @@ impl TvmSolution {
             })
             .collect()
     }
+
+    pub fn print_ab_comparison(
+        &self,
+        other: &TvmSolution,
+        locale: &num_format::Locale,
+        precision: usize)
+    {
+        println!();
+        print_ab_comparison_values_string("calculated_field", &self.calculated_field.to_string(), &other.calculated_field.to_string());
+        print_ab_comparison_values_float("continuous_compounding", self.continuous_compounding, other.continuous_compounding, locale, 6);
+        print_ab_comparison_values_float("rate", self.rate, other.rate, locale, 6);
+        print_ab_comparison_values_int("periods", self.periods as i128, other.periods as i128, locale);
+        print_ab_comparison_values_float("present_value", self.present_value, other.present_value, locale, precision);
+        print_ab_comparison_values_float("future_value", self.future_value, other.future_value, locale, precision);
+        print_ab_comparison_values_string("due_at_beginning", &format!("{:?}", self.due_at_beginning), &format!("{:?}", other.due_at_beginning));
+        print_ab_comparison_values_float("payment", self.payment, other.payment, locale, precision);
+        print_ab_comparison_values_float("sum_of_payments", self.sum_of_payments, other.sum_of_payments, locale, precision);
+        print_ab_comparison_values_float("sum_of_interest", self.sum_of_interest, other.sum_of_interest, locale, precision);
+        print_ab_comparison_values_string("formula", &self.formula, &other.formula);
+        print_ab_comparison_values_string("formula_symbolic", &self.formula_symbolic, &other.formula_symbolic);
+
+        self.series().print_ab_comparison(&other.series(), locale, precision);
+    }
+
+
+    /*
+        calculated_field: TvmVariable,
+    continuous_compounding: bool,
+    rate: f64,
+    periods: u32,
+    fractional_periods: f64,
+    present_value: f64,
+    future_value: f64,
+    formula: String,
+    formula_symbolic: String,
+
+    */
+
+
+
 }
 
 impl PartialEq for TvmSolution {
@@ -558,12 +598,35 @@ impl TvmSeries {
     }
 
     pub fn print_table(&self, locale: &num_format::Locale, precision: usize) {
-        let columns = vec![("period", "i"), ("rate", "f"), ("value", "f")];
+        let columns = vec![("period", "i", true), ("rate", "f", true), ("value", "f", true)];
         let mut data = self.iter()
             .map(|entry| vec![entry.period.to_string(), entry.rate.to_string(), entry.value.to_string()])
             .collect::<Vec<_>>();
         print_table_locale(&columns, &mut data, locale, precision);
     }
+
+    pub fn print_ab_comparison(
+        &self,
+        other: &TvmSeries,
+        locale: &num_format::Locale,
+        precision: usize) {
+        let columns = vec![("period", "i", true),
+                           ("rate_a", "f", true), ("rate_b", "f", true),
+                           ("value_a", "f", true), ("value_b", "f", true)];
+        let mut data = vec![];
+        let rows = max(self.len(), other.len());
+        for row_index in 0..rows {
+            data.push(vec![
+                (row_index + 1).to_string(),
+                self.get(row_index).map_or("".to_string(), |x| x.rate.to_string()),
+                other.get(row_index).map_or("".to_string(), |x| x.rate.to_string()),
+                self.get(row_index).map_or("".to_string(), |x| x.value.to_string()),
+                other.get(row_index).map_or("".to_string(), |x| x.value.to_string()),
+            ]);
+        }
+        print_table_locale(&columns, &mut data, locale, precision);
+    }
+
 }
 
 impl Deref for TvmSeries {

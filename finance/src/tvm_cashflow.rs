@@ -179,7 +179,7 @@ impl TvmCashflowSolution {
         &self.formula_symbolic
     }
 
-    pub fn print_table_ab_comparison(
+    pub fn print_ab_comparison(
         &self,
         other: &TvmCashflowSolution,
         include_running_totals: bool,
@@ -187,6 +187,19 @@ impl TvmCashflowSolution {
         locale: &num_format::Locale,
         precision: usize)
     {
+        println!();
+        print_ab_comparison_values_string("calculated_field", &self.calculated_field.to_string(), &other.calculated_field.to_string());
+        print_ab_comparison_values_float("rate", self.rate, other.rate, locale, 6);
+        print_ab_comparison_values_int("periods", self.periods as i128, other.periods as i128, locale);
+        print_ab_comparison_values_float("present_value", self.present_value, other.present_value, locale, precision);
+        print_ab_comparison_values_float("future_value", self.future_value, other.future_value, locale, precision);
+        print_ab_comparison_values_string("due_at_beginning", &format!("{:?}", self.due_at_beginning), &format!("{:?}", other.due_at_beginning));
+        print_ab_comparison_values_float("payment", self.payment, other.payment, locale, precision);
+        print_ab_comparison_values_float("sum_of_payments", self.sum_of_payments, other.sum_of_payments, locale, precision);
+        print_ab_comparison_values_float("sum_of_interest", self.sum_of_interest, other.sum_of_interest, locale, precision);
+        print_ab_comparison_values_string("formula", &self.formula, &other.formula);
+        print_ab_comparison_values_string("formula_symbolic", &self.formula_symbolic, &other.formula_symbolic);
+
         self.series().print_table_ab_comparison(&other.series(), include_running_totals, include_remaining_amounts, locale, precision);
     }
 }

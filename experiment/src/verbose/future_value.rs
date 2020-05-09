@@ -13,10 +13,15 @@ pub fn main() {
     // try_doc_example_schedule_series();
     // try_find_rate();
     // try_series_print_table();
+    try_ab_comparison();
     // check_formulas();
     // dbg!(finance::future_value_solution(0.012, 8, 200_000));
     // try_continuous();
     try_vary_compounding_periods();
+    try_simple_to_continuous(&finance::TvmVariable::Rate);
+    try_simple_to_continuous(&finance::TvmVariable::Periods);
+    try_simple_to_continuous(&finance::TvmVariable::PresentValue);
+    try_simple_to_continuous(&finance::TvmVariable::FutureValue);
 }
 
 fn try_future_value() {
@@ -282,6 +287,25 @@ fn try_series_print_table() {
         .print_series_table(&locale, precision);
 }
 
+fn try_ab_comparison() {
+    fn try_ab_comparison_field_diffs() {
+        let locale = finance::num_format::Locale::en;
+        let precision = 2;
+
+        let years = 1;
+        let rate = 0.11 / 12.0;
+        let periods = years * 12;
+        let present_value = -10_000.0;
+        let future_value = 0.0;
+        let solution_a = finance::payment_solution(rate, periods, present_value + 1_000.0, future_value);
+        let solution_b = finance::payment_solution(rate, periods -3, present_value, future_value);
+
+        solution_a.print_ab_comparison(&solution_b, true, true, &locale, precision);
+    }
+
+
+}
+
 fn check_formulas() {
     let solution = finance::future_value_solution(0.11, 5, 100);
     dbg!(&solution, &solution.series());
@@ -315,8 +339,34 @@ fn try_continuous() {
     println!("{}", finance::future_value_continuous(apr, years, present_value));
 }
 
-fn try_vary_compounding_periods() {
-    let solution = solution_for_transformations();
-    dbg!(&solution, solution.future_value_vary_compounding_periods(&compounding_periods()));
-    dbg!(&solution, solution.present_value_vary_compounding_periods(&compounding_periods()));
+fn print_header_for_try(header: &str) {
+    println!("\n{}\n\n{}\n", "=".repeat(120), header);
 }
+
+fn try_vary_compounding_periods() {
+    print_header_for_try("try_vary_compounding_periods()");
+    let solution = solution_for_transformations();
+    dbg!(&solution);
+
+    println!("\nFuture values for a variety of compounding periods.\n");
+    dbg!(solution.future_value_vary_compounding_periods(&compounding_periods()));
+
+    println!("\nPresent values for a variety of compounding periods.\n");
+    dbg!(solution.present_value_vary_compounding_periods(&compounding_periods()));
+}
+
+fn try_simple_to_continuous(vary_field: &finance::TvmVariable) {
+    print_header_for_try(&format!("try_simple_to_continuous() varying {} and keeping the other three values constant.", vary_field.to_string().to_lowercase()));
+
+    let simple_solution = solution_for_transformations();
+    dbg!(&simple_solution);
+
+    let continuous_solution = simple_solution.with_continuous_compounding(vary_field);
+    println!("\nChanged to continuous compounding, varying {} to keep the other three values constant.\n", vary_field.to_string().to_lowercase());
+    dbg!(&continuous_solution);
+
+    let simple_solution_round_trip = continuous_solution.with_simple_compounding(vary_field);
+    println!("\nBack to simple compounding, varying {} to keep the other three values constant.\n", vary_field.to_string().to_lowercase());
+    dbg!(&simple_solution_round_trip);
+}
+
