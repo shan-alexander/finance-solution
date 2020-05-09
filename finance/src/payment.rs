@@ -8,49 +8,13 @@ use log::{warn};
 // Import needed for the function references in the Rustdoc comments.
 #[allow(unused_imports)]
 use crate::*;
-use std::ops::Deref;
 
 const RUN_PAYMENT_INVARIANTS: bool = false;
-
-#[derive(Clone, Debug)]
-pub struct PaymentSolution(TvmCashflowSolution);
-
-impl PaymentSolution {
-    pub(crate) fn new(solution: TvmCashflowSolution) -> Self {
-        Self {
-            0: solution,
-        }
-    }
-
-}
-
-impl Deref for PaymentSolution {
-    type Target = TvmCashflowSolution;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct PaymentABComparison {
-    solution_a: PaymentSolution,
-    solution_b: PaymentSolution,
-}
-
-impl PaymentABComparison {
-    pub(crate) fn new(solution_a: PaymentSolution, solution_b: PaymentSolution) -> Self {
-        Self {
-            solution_a,
-            solution_b,
-        }
-    }
-}
 
 /// Returns the payment needed at the end of every period for an amortized loan.
 ///
 /// Related functions:
-/// * For the case where the payment is due at the beginning of each period use [`payment_due'].
+/// * For the case where the payment is due at the beginning of each period use [`payment_due`].
 /// * To calculate the payment needed at the end of each period and return a struct that shows the
 /// interest, the formula, and optionally the period-by-period values use [`payment_solution`].
 /// * To produce that struct when the payment is due at the beginning of the period use
@@ -279,7 +243,7 @@ fn payment_internal(rate: f64, periods: u32, present_value: f64, future_value: f
 /// * To calculate the payment as a simple number instead of a struct when the payment is due at the
 /// end of each period use [`payment`].
 /// * For a simple number when the payment is due at the beginning of each period use
-/// ['payment_due`].
+/// [`payment_due`].
 ///
 /// In the typical case where there's a present value and the future value is zero, the formula is:
 /// > payment = ((present_value * (1 + rate)<sup>periods</sup>) * -rate) / ((1 + rate)<sup>periods</sup> - 1)
@@ -375,23 +339,30 @@ fn payment_internal(rate: f64, periods: u32, present_value: f64, future_value: f
 /// dbg!(&series);
 ///
 /// // Print the period-by-period values in a table with two decimal places and the numbers aligned.
+/// // Show all columns including running totals and remaining amounts.
+/// let include_running_totals = true;
+/// let include_remaining_amounts = true;
 /// println!();
-/// series.print_table(&finance::num_format::Locale::en, 2);
+/// series.print_table(include_running_totals, include_remaining_amounts, &finance::num_format::Locale::en, 2);
 ///
 /// // Print a table with only the last period of each year, that is all of the periods that can be
-/// // divided by 12.
+/// // divided by 12. Include the running totals columns but not remaining amounts.
+/// let include_running_totals = true;
+/// let include_remaining_amounts = false;
 /// println!();
 /// series
 ///     .filter(|entry| entry.period() % 12 == 0)
-///     .print_table(&finance::num_format::Locale::en, 2);
+///     .print_table(include_running_totals, include_remaining_amounts, &finance::num_format::Locale::en, 2);
 ///
 /// // Print a table starting at the first period where at least 95% of the interest has been paid
 /// // off, and round all dollar amounts to whole numbers by passing zero as the second argument to
-/// // print_table().
+/// // print_table(). Include the remanining amounts columns but not the running totals.
+/// let include_running_totals = false;
+/// let include_remaining_amounts = true;
 /// println!();
 /// series
 ///     .filter(|entry| entry.interest_to_date() >= solution.sum_of_interest() * 0.95)
-///     .print_table(&finance::num_format::Locale::en, 0);
+///     .print_table(include_running_totals, include_remaining_amounts, &finance::num_format::Locale::en, 0);
 /// ```
 pub fn payment_solution<P, F>(rate: f64, periods: u32, present_value: P, future_value: F) -> TvmCashflowSolution
     where
@@ -406,10 +377,10 @@ pub fn payment_solution<P, F>(rate: f64, periods: u32, present_value: P, future_
 /// a struct showing the interest, the formula, and optionally the period-by-period values.
 ///
 /// Related functions:
-/// * For the case where the payment is due at the end of each period use [`payment_solution'].
+/// * For the case where the payment is due at the end of each period use [`payment_solution`].
 /// * To calculate the payment as a simple number instead of a struct when the payment is due at the
 /// beginning of each period use [`payment_due`].
-/// * For a simple number when the payment is due at the end of each period use ['payment'].
+/// * For a simple number when the payment is due at the end of each period use [`payment`].
 ///
 /// In the typical case where there's a present value and the future value is zero, the formula is:
 /// > payment = ((present_value * (1 + rate)<sup>periods</sup>) * -rate) / (((1 + rate)<sup>periods</sup> - 1) * (1 + rate))
