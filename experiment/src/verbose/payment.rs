@@ -9,11 +9,12 @@ pub fn main() {
     // try_test_combination_examples();
     // try_test_against_excel_ipmt_month_1();
     // try_test_against_excel_ipmt_month_2();
-    try_ab_comparison_table_formatting();
-    try_ab_comparison_field_diffs();
+    // try_ab_comparison_table_formatting();
+    // try_ab_comparison_field_diffs();
     // try_payment_doc_example_1();
     // try_payment_due_doc_example_1();
     // try_payment_solution_doc_example_1();
+    try_payment_series_doc_example_1();
     // generate_scenarios_for_excel();
     // find_numerator_failures();
     // find_calculation_failure_curve();
@@ -331,6 +332,49 @@ fn try_payment_solution_doc_example_1() {
     series
         .filter(|entry| entry.interest_to_date() >= solution.sum_of_interest() * 0.95)
         .print_table(include_running_totals, include_remaining_amounts, &finance::num_format::Locale::en, 0);
+}
+
+fn try_payment_series_doc_example_1() {
+    let years = 5;
+
+    // The annual percentage rate 15% and the interest will compound monthly.
+    let rate = finance::convert_apr_to_epr(0.15, 12);
+
+    // Each period will be one month.
+    let periods = years * 12;
+
+    // The amount of the loan is $20,000.
+    let present_value = 20_000;
+
+    // The loan will be fully paid off ot the end of the last period.
+    let future_value = 0;
+
+    // Payments are due at the end of the month.
+    let due_at_beginning = false;
+
+    // Calculate the payment, creating a struct that contains additional information and the option
+    // to generate period-by-period details.
+    let solution = finance::payment_solution(rate, periods, present_value, future_value, due_at_beginning);
+    dbg!(&solution);
+
+
+    
+
+    /// // Calculate the value at the end of each period.
+    /// let series = solution.series();
+    /// dbg!(&series);
+    ///
+    /// // Confirm that we have one entry for the initial value and one entry for each period.
+    /// assert_eq!(25, series.len());
+    ///
+    /// // Create a reduced vector with every fourth period.
+    /// let filtered_series = series
+    ///     .iter()
+    ///     .filter(|x| x.period() % 4 == 0)
+    ///     .collect::<Vec<_>>();
+    /// dbg!(&filtered_series);
+    /// assert_eq!(7, filtered_series.len());
+
 }
 
 fn generate_scenarios_for_excel() {

@@ -22,36 +22,57 @@ pub enum TvmCashflowVariable {
 }
 
 impl TvmCashflowVariable {
+    /// Returns true if the variant is TvmCashflowVariable::PresentValueAnnuity indicating that the
+    /// solution was created by calculating the present value of an annuity with the payment due at
+    /// the end of the month.
     pub fn is_present_value_annuity(&self) -> bool {
         match self {
             TvmCashflowVariable::PresentValueAnnuity => true,
             _ => false,
         }
     }
+
+    /// Returns true if the variant is TvmCashflowVariable::FutureValueAnnuity indicating that the
+    /// solution was created by calculating the future value of an annuity with the payment due at
+    /// the end of the month.
     pub fn is_future_value_annuity(&self) -> bool {
         match self {
             TvmCashflowVariable::FutureValueAnnuity => true,
             _ => false,
         }
     }
+
+    /// Returns true if the variant is TvmCashflowVariable::Payment indicating that the solution
+    /// was created in a call to [`payment_solution`].
     pub fn is_payment(&self) -> bool {
         match self {
             TvmCashflowVariable::Payment => true,
             _ => false,
         }
     }
+
+    /// Returns true if the variant is TvmCashflowVariable::PresentValueAnnuityDue indicating that
+    /// the solution was created by calculating the present value of an annuity with the payment due
+    /// at the beginning of the month.
     pub fn is_present_value_annuity_due(&self) -> bool {
         match self {
             TvmCashflowVariable::PresentValueAnnuityDue => true,
             _ => false,
         }
     }
+
+    /// Returns true if the variant is TvmCashflowVariable::FutureValueAnnuityDue indicating that
+    /// the solution was created by calculating the future value of an annuity with the payment due
+    /// at the beginning of the month.
     pub fn is_future_value_annuity_due(&self) -> bool {
         match self {
             TvmCashflowVariable::FutureValueAnnuityDue => true,
             _ => false,
         }
     }
+
+    /// Returns true if the variant is TvmCashflowVariable::NetPresentValue indicating that the
+    /// solution was created by calculating a net present value.
     pub fn is_net_present_value(&self) -> bool {
         match self {
             TvmCashflowVariable::NetPresentValue => true,
