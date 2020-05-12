@@ -49,7 +49,7 @@ where I: Into<f64> + Copy, C: Into<f64> + Copy
 {
     let annuity = cashflow.into();
     let ii = initial_investment.into();
-    let pv_cashflow = present_value_annuity(rate, periods, annuity, false);
+    let pv_cashflow = annuity * ((1. - (1. / (1. + rate)).powf(periods as f64)) / rate);
     let npv = ii + pv_cashflow;
     npv
 }

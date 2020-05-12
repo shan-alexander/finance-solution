@@ -47,7 +47,7 @@ fn check_future_value_annuity_parameters(rate:f64, periods:u32, cashflow:f64) {
 /// use finance::*;
 /// let (rate, periods, payment, due_at_beginning) = (0.034, 5, 500, false);
 /// let my_annuity = future_value_annuity(rate, periods, payment, due_at_beginning);
-/// assert_approx_equal!(my_annuity, 2_675.8789282); 
+/// assert_approx_equal!(my_annuity, -2_675.8789282); 
 /// ```
 /// 
 /// Or use the solution struct (recommended, more helpful to debugging and for student-learning)
@@ -122,7 +122,7 @@ pub fn future_value_annuity<T>(rate: f64, periods: u32, annuity: T, due_at_begin
     // };
     // fv_ann
 
-    let fv_ann = (1. + (rate * due_at_beginning as u32 as f64)) * pmt * ((1. + rate).powf(periods as f64) - 1.) / rate;
+    let fv_ann = -(1. + (rate * due_at_beginning as u32 as f64)) * pmt * ((1. + rate).powf(periods as f64) - 1.) / rate;
     fv_ann
 }
 
@@ -170,8 +170,10 @@ pub fn future_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T, du
         TvmCashflowVariable::FutureValueAnnuity
     };
     // check_future_value__annuity_varying_parameters(rate, periods, cashflow);
-    let formula = format!("{} * ((1. - (1. / (1. + {})).powf({})) / {});", annuity, rate, periods, rate);
-    let formula_symbolic = format!("annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate);");
+
+    // add due to formulas
+    let formula = format!("-{} * ((1. - (1. / (1. + {})).powf({})) / {});", annuity, rate, periods, rate);
+    let formula_symbolic = format!("-annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate);");
     // let fv = future_value_annuity(rate, periods, cashflow);
     let pv = present_value(rate, periods, fv);
     TvmCashflowSolution::new(fvann_type, rate, periods, pv, fv, due_at_beginning, annuity, &formula, &formula_symbolic)
@@ -189,7 +191,7 @@ mod tests {
         let annuity = 500;
         let fv = future_value_annuity(rate, periods, annuity, false);
         // assert_approx_equal!(5838.66016, fv);
-        assert_eq!(5838.66016, (fv * 100000.).round() / 100000.);
+        assert_eq!(-5838.66016, (fv * 100000.).round() / 100000.);
     }
 
     #[test]
@@ -199,7 +201,7 @@ mod tests {
         let annuity = 500;
         let fv = future_value_annuity(rate, periods, annuity, false);
         // assert_approx_equal!(5838.66016, fv);
-        assert_eq!(500.0000, (fv * 100000.).round() / 100000.);
+        assert_eq!(-500.0000, (fv * 100000.).round() / 100000.);
     }
     #[test]
     fn test_future_value_annuity_2() {
@@ -208,7 +210,7 @@ mod tests {
         let annuity = 500;
         let fv = future_value_annuity(rate, periods, annuity, false);
         // assert_approx_equal!(9455966284.4844600, fv);
-        assert_eq!(9455966284.4844600, (fv * 100000.).round() / 100000.);
+        assert_eq!(-9455966284.4844600, (fv * 100000.).round() / 100000.);
     }
 
     #[test]
@@ -218,7 +220,7 @@ mod tests {
         let periods = 8;
         let annuity = 120_000;
         let fv = future_value_annuity(rate, periods, annuity, false);
-        assert_eq!(29_599_651.75013, (fv * 100000.).round() / 100000.);
+        assert_eq!(-29_599_651.75013, (fv * 100000.).round() / 100000.);
     }
 
     #[test]
@@ -227,7 +229,7 @@ mod tests {
         let periods = 780;
         let annuity = 120_000;
         let fv = future_value_annuity(rate, periods, annuity, false);
-        assert_eq!(96_959_087.75951, (fv * 100000.).round() / 100000.);
+        assert_eq!(-96_959_087.75951, (fv * 100000.).round() / 100000.);
     }
 
     #[test]
@@ -237,7 +239,7 @@ mod tests {
         let periods = 10;
         let annuity = 13_000;
         let fv = future_value_annuity(rate, periods, annuity, false);
-        assert_eq!(113_087.68194, (fv * 100000.).round() / 100000.);
+        assert_eq!(-113_087.68194, (fv * 100000.).round() / 100000.);
     }
 
     #[test]
@@ -247,7 +249,7 @@ mod tests {
         let periods = 10;
         let annuity = 13_000;
         let fv = future_value_annuity(rate, periods, annuity, false);
-        assert_eq!(13_013.01301, (fv * 100000.).round() / 100000.);
+        assert_eq!(-13_013.01301, (fv * 100000.).round() / 100000.);
     }
 
     #[test]
@@ -258,7 +260,7 @@ mod tests {
         let periods = 780;
         let annuity = 13_000;
         let fv = future_value_annuity(rate, periods, annuity, false);
-        assert_eq!(13_013.01301, (fv * 100000.).round() / 100000.);
+        assert_eq!(-13_013.01301, (fv * 100000.).round() / 100000.);
     }
 
 }
