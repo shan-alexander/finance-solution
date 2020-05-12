@@ -109,16 +109,20 @@ pub fn future_value_annuity<T>(rate: f64, periods: u32, annuity: T, due_at_begin
     // fv_accumulator
 
     // FV_ann = Constant_Cashflow * [ ( (1+periodic_rate)^n -1 )/ periodic_rate ]
-    let fv_ann= if due_at_beginning {
-        let mut fv_accumulator = (1. + rate) * pmt;
-        for i in 0..periods {
-            let future_value = future_value(rate, i as u32, pmt);
-            fv_accumulator = fv_accumulator + future_value;
-        }
-        fv_accumulator
-    } else {
-        pmt * ((1. + rate).powf(periods as f64) - 1.) / rate
-    };
+    
+    // let fv_ann= if due_at_beginning {
+    //     let mut fv_accumulator = (1. + rate) * pmt;
+    //     for i in 0..periods {
+    //         let future_value = future_value(rate, i as u32, pmt);
+    //         fv_accumulator = fv_accumulator + future_value;
+    //     }
+    //     fv_accumulator
+    // } else {
+    //     pmt * ((1. + rate).powf(periods as f64) - 1.) / rate
+    // };
+    // fv_ann
+
+    let fv_ann = (1. + (rate * due_at_beginning as u32 as f64)) * pmt * ((1. + rate).powf(periods as f64) - 1.) / rate;
     fv_ann
 }
 
@@ -165,7 +169,7 @@ pub fn future_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T, du
     } else {
         TvmCashflowVariable::FutureValueAnnuity
     };
-    // check_present_value__annuity_varying_parameters(rate, periods, cashflow);
+    // check_future_value__annuity_varying_parameters(rate, periods, cashflow);
     let formula = format!("{} * ((1. - (1. / (1. + {})).powf({})) / {});", annuity, rate, periods, rate);
     let formula_symbolic = format!("annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate);");
     // let fv = future_value_annuity(rate, periods, cashflow);

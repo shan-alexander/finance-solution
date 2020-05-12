@@ -69,6 +69,16 @@ pub fn present_value_annuity<T>(rate: f64, periods: u32, annuity: T, due_at_begi
 {
     let pmt = annuity.into();
     // check_present_value__annuity_parameters(rate, periods, cashflow);
+    let pv_ann = (1. + (rate * due_at_beginning as u32 as f64)) * pmt * ((1. - (1. / (1. + rate)).powf(periods as f64)) / rate);
+    pv_ann
+
+}
+
+pub fn present_value_annuity_accumulator<T>(rate: f64, periods: u32, annuity: T, due_at_beginning: bool) -> f64
+    where T: Into<f64> + Copy
+{
+    let pmt = annuity.into();
+    // check_present_value__annuity_parameters(rate, periods, cashflow);
 
     let mut pv_accumulator = if due_at_beginning {
         (1. + rate) * pmt
@@ -211,8 +221,8 @@ pub fn present_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T, d
         TvmCashflowVariable::PresentValueAnnuity
     };
     // check_present_value__annuity_varying_parameters(rate, periods, cashflow);
-    let formula = format!("{} * ((1. - (1. / (1. + {})).powf({})) / {});", annuity, rate, periods, rate);
-    let formula_symbolic = format!("annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate);");
+    let formula = format!("{} * ((1. - (1. / (1. + {})).powf({})) / {}) * (1 + ({} * {}));", annuity, rate, periods, rate, rate, due_at_beginning as u32 as f64);
+    let formula_symbolic = format!("annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate) * (1. + (rate * due));");
     // let fv = future_value_annuity(rate, periods, cashflow);
     let fv = future_value(rate, periods, pv);
     TvmCashflowSolution::new(pvann_type, rate, periods, pv, fv, due_at_beginning, annuity, &formula, &formula_symbolic)
@@ -225,6 +235,7 @@ mod tests {
 
 #[test]
     fn test_present_value_annuity_1() {
+        // one period
         let (rate, periods, annuity) = (0.034, 1, 500);
         let pv = present_value_annuity(rate, periods, annuity, false);
         assert_eq!(483.55899, (pv * 100000.).round() / 100000.);
@@ -235,6 +246,13 @@ mod tests {
         let (rate, periods, annuity) = (0.034, 400, 500);
         let pv = present_value_annuity(rate, periods, annuity, false);
         assert_eq!(14705.85948, (pv * 100000.).round() / 100000.);
+    }
+    #[test]
+    fn test_present_value_annuity_due_2() {
+        // big periods, due
+        let (rate, periods, annuity) = (0.034, 400, 500);
+        let pv = present_value_annuity(rate, periods, annuity, true);
+        assert_eq!(15205.8587, (pv * 100000.).round() / 100000.);
     }
 
     #[test]
@@ -250,7 +268,15 @@ mod tests {
         // big negative rate
         let (rate, periods, annuity) = (-0.999, 3, 500);
         let pv = present_value_annuity(rate, periods, annuity, false);
-        assert_eq!(500_500_499_999.99854, (pv * 100000.).round() / 100000.);
+        assert_eq!(500_500_499_999.999, (pv * 1000.).round() / 1000.);
+    }
+
+    #[test]
+    fn test_present_value_annuity_due_4() {
+        // big negative rate, due
+        let (rate, periods, annuity) = (-0.999, 3, 500);
+        let pv = present_value_annuity(rate, periods, annuity, true);
+        assert_eq!(500_500_499.999999, (pv * 1000000.).round() / 1000000.);
     }
 
     #[test]
@@ -258,7 +284,7 @@ mod tests {
         // big precision
         let (rate, periods, annuity) = (0.00034, 2_800, 5_000_000);
         let pv = present_value_annuity(rate, periods, annuity, false);
-        assert_eq!(9028959259.062, (pv * 1000.).round() / 1000.);
+        assert_eq!(9028959259.06, (pv * 100.).round() / 100.);
     }
 
 }
