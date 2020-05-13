@@ -181,6 +181,15 @@ where C: Into<f64> + Copy
     (periods, r.to_vec(), c.to_vec(), initial_investment)
 }
 
+
+/// Returns the **net present value of a schedule** of rates and cashflows (can be varying), subtracting the initial investment cost. 
+/// Returns a custom solution struct with detailed information and additional functionality (recommended).
+/// 
+/// For example...
+/// ```
+/// // example here
+/// ```
+/// 
 pub fn net_present_value_schedule_solution<C>(rates: &[f64], cashflows: &[C]) -> NetPresentValueSolution 
 where C: Into<f64> + Copy
 {
@@ -201,48 +210,11 @@ where C: Into<f64> + Copy
 }
 
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    //use crate::*;
 
-    #[test]
-    fn test_net_present_value_1() {
-        let rate = 0.034;
-        let periods = 10;
-        let ii = -1000;
-        let cf = 500;
-        let npv = net_present_value(rate, periods, ii, cf);
-        assert_approx_equal!(3179.3410288, npv);
-    }
 
-    #[test]
-    fn test_net_present_value_2() {
-        let rate = 0.034;
-        let periods = 400;
-        let ii = -1000;
-        let cf = 500;
-        let npv = net_present_value(rate, periods, ii, cf);
-        assert_eq!(13_705.85948, (100_000. * npv).round() / 100_000.);
-    }
 
-    #[test]
-    fn test_net_present_value_3() {
-        let rates = vec![0.034,0.089,0.055];
-        let cashflows = vec![-1000,200,300,500];
-        let npv = net_present_value_schedule(&rates, &cashflows);
-        assert_eq!(-127.80162, (100_000. * npv).round() / 100_000.);
-    }
-
-    #[test]
-    fn test_net_present_value_4() {
-        let rates = vec![0.034,0.089,0.055];
-        let cashflows = vec![-1000,200,300,500];
-        let npv = net_present_value_schedule_solution(&rates, &cashflows);
-        assert_eq!(-127.80162, (100_000. * npv.npv()).round() / 100_000.);
-    }
-}
-
+/// The custom solution information of a NPV scenario. 
+/// The struct values are immutable by the user of the library.
 #[derive(Debug)]
 pub struct NetPresentValueSolution {
     rates: Vec<f64>,
@@ -254,6 +226,7 @@ pub struct NetPresentValueSolution {
     net_present_value: f64,
 }
 impl NetPresentValueSolution {
+    /// Create a new instance of the struct
     pub fn new(
         rates: Vec<f64>, 
         periods: u32, 
@@ -315,4 +288,46 @@ impl NetPresentValueSolution {
         self.net_present_value
     }
 
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    //use crate::*;
+
+    #[test]
+    fn test_net_present_value_1() {
+        let rate = 0.034;
+        let periods = 10;
+        let ii = -1000;
+        let cf = 500;
+        let npv = net_present_value(rate, periods, ii, cf);
+        assert_approx_equal!(3179.3410288, npv);
+    }
+
+    #[test]
+    fn test_net_present_value_2() {
+        let rate = 0.034;
+        let periods = 400;
+        let ii = -1000;
+        let cf = 500;
+        let npv = net_present_value(rate, periods, ii, cf);
+        assert_eq!(13_705.85948, (100_000. * npv).round() / 100_000.);
+    }
+
+    #[test]
+    fn test_net_present_value_3() {
+        let rates = vec![0.034,0.089,0.055];
+        let cashflows = vec![-1000,200,300,500];
+        let npv = net_present_value_schedule(&rates, &cashflows);
+        assert_eq!(-127.80162, (100_000. * npv).round() / 100_000.);
+    }
+
+    #[test]
+    fn test_net_present_value_4() {
+        let rates = vec![0.034,0.089,0.055];
+        let cashflows = vec![-1000,200,300,500];
+        let npv = net_present_value_schedule_solution(&rates, &cashflows);
+        assert_eq!(-127.80162, (100_000. * npv.npv()).round() / 100_000.);
+    }
 }
