@@ -8,6 +8,8 @@
 use crate::present_value_annuity::present_value_annuity;
 use crate::*;
 
+use std::ops::Deref;
+
 /// Returns the **net present value** of a future series of constant cashflows and constant rate, subtracting the initial investment cost. Returns f64.
 ///
 /// Related functions:
@@ -190,7 +192,7 @@ where C: Into<f64> + Copy
 /// // example here
 /// ```
 /// 
-pub fn net_present_value_schedule_solution<C>(rates: &[f64], cashflows: &[C]) -> NetPresentValueSolution 
+pub fn net_present_value_schedule_solution<C>(rates: &[f64], cashflows: &[C]) -> NpvSolution 
 where C: Into<f64> + Copy
 {
     let (periods, rates, cashflows, initial_investment) = check_schedule(rates, cashflows);
@@ -206,7 +208,7 @@ where C: Into<f64> + Copy
     let sum_of_discounted_cashflows = pv_accumulator;
     let net_present_value = initial_investment + pv_accumulator;
 
-    NetPresentValueSolution::new(rates, periods, initial_investment, cashflows, sum_of_cashflows, sum_of_discounted_cashflows, net_present_value)
+    NpvSolution::new(rates, periods, initial_investment, cashflows, sum_of_cashflows, sum_of_discounted_cashflows, net_present_value)
 }
 
 
@@ -216,7 +218,7 @@ where C: Into<f64> + Copy
 /// The custom solution information of a NPV scenario. 
 /// The struct values are immutable by the user of the library.
 #[derive(Debug)]
-pub struct NetPresentValueSolution {
+pub struct NpvSolution {
     rates: Vec<f64>,
     periods: u32,
     cashflows: Vec<f64>,
@@ -225,7 +227,7 @@ pub struct NetPresentValueSolution {
     sum_of_discounted_cashflows: f64,
     net_present_value: f64,
 }
-impl NetPresentValueSolution {
+impl NpvSolution {
     /// Create a new instance of the struct
     pub fn new(
         rates: Vec<f64>, 
@@ -246,7 +248,11 @@ impl NetPresentValueSolution {
             }
     }
 
-    /// Call `rate_avg` on a NetPresentValueSolution to get the simple average rate of a schedule;
+    pub fn series(&self) -> NpvSeries {
+         net_present_value_schedule_series(self)
+    }
+
+    /// Call `rate_avg` on a NpvSolution to get the simple average rate of a schedule;
     pub fn rate_avg(&self) -> f64 {
         let mut rate_accumulator = 0_f64;
         for r in &self.rates {
@@ -288,6 +294,131 @@ impl NetPresentValueSolution {
         self.net_present_value
     }
 
+}
+
+#[derive(Debug)]
+pub struct NpvSeries(Vec<NpvPeriod>);
+impl NpvSeries {
+    pub(crate) fn new(series: Vec<NpvPeriod>) -> Self {
+        Self {
+            0: series,
+        }
+    }
+    pub fn filter<P>(&self, predicate: P) -> Self
+        where P: Fn(&&NpvPeriod) -> bool
+    {
+        Self {
+            0: self.iter().filter(|x| predicate(x)).map(|x| x.clone()).collect()
+        }
+    }
+}
+impl Deref for NpvSeries {
+    type Target = Vec<NpvPeriod>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct NpvPeriod {
+    period: u32,
+    rate: f64,
+    present_value: f64,
+    future_value: f64,
+    formula: String,
+    formula_symbolic: String,
+}
+impl NpvPeriod {
+    pub fn new(
+        period: u32,
+        rate: f64,
+        present_value: f64,
+        future_value: f64,
+        formula: String,
+        formula_symbolic: String,
+    ) -> Self {
+        Self {
+            period,
+            rate,
+            present_value,
+            future_value,
+            formula,
+            formula_symbolic,
+        }
+    }
+    /// Returns the period number. The first real period is 1 but there's also a period 0 which
+    /// which shows the starting conditions.
+    pub fn period(&self) -> u32 {
+        self.period
+    }
+
+    /// Returns the periodic rate for the current period. If the containing struct is a
+    /// [`TvmSolution`] every period will have the same rate. If it's a [`TvmSchedule`] each period
+    /// may have a different rate.
+    pub fn rate(&self) -> f64 {
+        self.rate
+    }
+
+    /// Returns the present value of the cashflow.
+    pub fn present_value(&self) -> f64 {
+        self.present_value
+    }
+
+    /// Returns the future value of the cashflow.
+    pub fn future_value(&self) -> f64 {
+        self.future_value
+    }
+
+    /// Returns a text version of the formula used to calculate the value for the current period.
+    /// The formula includes the actual values rather than variable names. For the formula with
+    /// variables such as pv for present value call `formula_symbolic`.
+    pub fn formula(&self) -> &str {
+        &self.formula
+    }
+
+    /// Returns a text version of the formula used to calculate the value for the current period.
+    /// The formula includes variables such as r for the rate. For the formula with actual values
+    /// rather than variables call `formula`.
+    pub fn formula_symbolic(&self) -> &str {
+        &self.formula_symbolic
+    }
+}
+
+pub(crate) fn net_present_value_schedule_series(schedule: &NpvSolution) -> NpvSeries {
+    let mut series = vec![];
+    if schedule.periods() == 0 {
+        // Special case.
+        let present_value = schedule.initial_investment();
+        let future_value = present_value;
+        let formula = format!("{:.4}", future_value);
+        let formula_symbolic = "value = initial_investment".to_string();
+        series.push(NpvPeriod::new(0, 0.0, present_value, future_value, formula, formula_symbolic));
+    } else {
+
+        let periods = schedule.periods();
+        // let sum_of_discounted_cashflows = schedule.sum_of_discounted_cashflows();
+
+        // Add the values at each period starting with the last one and working backwards to period
+        // zero which represents the starting conditions.
+        for period in (0..=periods).rev() {  
+            
+            let rate = if period == 0 {
+                0.0
+            } else {
+                schedule.rates()[(period-1) as usize]
+            };
+            let future_value = schedule.cashflows[period as usize];
+            let present_value = schedule.cashflows[period as usize] / (1. + rate).powf(period as f64);
+            let formula = format!("{:.4}", present_value);
+            let formula_symbolic = "present_value = fv / (1 + rate)^periods".to_string();
+            assert!(present_value.is_finite());
+            // We want to end up with the periods in order starting with period 0, so each time
+            // through the loop we insert the new NpvPeriod object at the beginning of the vector.
+            series.insert(0, NpvPeriod::new(period, rate, present_value, future_value, formula, formula_symbolic))
+        };
+    }
+    NpvSeries::new(series)
 }
 
 #[cfg(test)]

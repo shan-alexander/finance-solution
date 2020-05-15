@@ -13,26 +13,32 @@ use finance::*;
 use num_format::{Locale};
 
 pub fn main() {
-    pv_problem_1();
-    fv_problem_1();
-    nper_problem_1();
-    rate_problem_1();
+    // pv_problem_1();
+    // fv_problem_1();
+    // nper_problem_1();
+    // rate_problem_1();
 
-    pv_problem_2();
-    fv_problem_2();
-    periods_problem_2();
-    rate_problem_2();
+    // pv_problem_2();
+    // fv_problem_2();
+    // periods_problem_2();
+    // rate_problem_2();
 
     pv_annuity_problem_1();
     fv_annuity_problem_1();
 
     // retirement_problem_1();
 
-    let present_value = 13_000;
-    let periods = 5;
-    let rate = 0.08;
-    let answer = payment_solution(rate, periods, present_value, 0, false);
-    dbg!(answer.series().print_table(true, true, &Locale::en, 4));
+    // let (rate, periods, present_value) = (0.08, 5, 13_000);
+    // let answer = payment_solution(rate, periods, present_value, 0, false);
+    // dbg!(answer.series().print_table(true, true, &Locale::en, 4));
+
+    let rates = vec![0.034, 0.058, 0.047, 0.023];
+    let cashflows = vec![-1000, 3000, 2000, 3700, 4000];
+    let npv = net_present_value_schedule_solution(&rates, &cashflows);
+    dbg!(&npv);
+    dbg!(&npv.series());
+    // assert_approx_equal!(&npv.sum_of_discounted_cashflows, &npv.series().iter().present_value().sum());
+
 
 }
 
@@ -176,7 +182,7 @@ fn rate_conversion_problem_1() {
 // what is the annuity worth to you today? 
 // Expect $136_486.59
 fn pv_annuity_problem_1() {
-    let annuity = 24_000;
+    let annuity = -24_000; // payments/annuities are typically negative, to indicate cashflow direction
     let periods = 11;
     let rate = 0.13;
     let pv_annuity_problem_1 = present_value_annuity_solution(rate, periods, annuity, false);
@@ -191,9 +197,9 @@ fn pv_annuity_problem_1() {
 fn fv_annuity_problem_1() {
     let rate= 0.14;
     let periods = 12;
-    let payment = 16_000;
+    let payment = -16_000; // payments/annuities are typically negative, to indicate cashflow direction
     let fv_annuity_problem_1 = future_value_annuity_solution(rate, periods, payment, false);
-    dbg!(fv_annuity_problem_1);
+    dbg!(&fv_annuity_problem_1);
 }
 
 // You plan to borrow $389,000 now and repay it 
