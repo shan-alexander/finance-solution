@@ -109,6 +109,17 @@ macro_rules! assert_same_sign_or_zero {
 }
 
 #[macro_export]
+macro_rules! is_approx_equal_symmetry_test {
+    ( $x1:expr, $x2:expr ) => {
+        if (($x1 > 0.000001 && $x1 < 1_000_000.0) || ($x1 < -0.000001 && $x1 > -1_000_000.0)) && (($x2 > 0.000001 && $x2 < 1_000_000.0) || ($x2 < -0.000001 && $x2 > -1_000_000.0)) {
+            float_cmp::approx_eq!(f64, $x1, $x2, epsilon = 0.00000001, ulps = 2)
+        } else {
+            true
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! assert_approx_equal_symmetry_test {
     ( $x1:expr, $x2:expr ) => {
         if (($x1 > 0.000001 && $x1 < 1_000_000.0) || ($x1 < -0.000001 && $x1 > -1_000_000.0)) && (($x2 > 0.000001 && $x2 < 1_000_000.0) || ($x2 < -0.000001 && $x2 > -1_000_000.0)) {

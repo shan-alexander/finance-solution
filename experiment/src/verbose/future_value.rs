@@ -303,7 +303,7 @@ fn try_ab_comparison() {
     solution_a.print_ab_comparison(&solution_b, &locale, precision);
 
     let solution_a = finance::future_value_solution(rate, periods, present_value);
-    let solution_b = solution_a.with_continuous_compounding(&finance::TvmVariable::Rate);
+    let solution_b = solution_a.rate_solution(true, None);
     solution_a.print_ab_comparison(&solution_b, &locale, precision);
 
     let solution_a = finance::future_value_solution(rate, periods, present_value);
@@ -319,7 +319,7 @@ fn check_formulas() {
     dbg!(&schedule, &schedule.series());
 }
 
-fn solution_for_transformations() -> finance::TvmSolution {
+fn solution_for_transformations() -> finance::FutureValueSolution {
     let rate = 0.10;
     let periods = 4;
     let present_value = 5_000.00;
@@ -366,11 +366,32 @@ fn try_simple_to_continuous(vary_field: &finance::TvmVariable) {
     let simple_solution = solution_for_transformations();
     dbg!(&simple_solution);
 
-    let continuous_solution = simple_solution.with_continuous_compounding(vary_field);
+    let (continuous_solution, simple_solution_round_trip) = match vary_field {
+        finance::TvmVariable::Rate => {
+            let continuous = simple_solution.rate_solution(true, None).tvm_solution();
+            let round_trip = continuous.rate_solution(false, None).tvm_solution();
+            (continuous, round_trip)
+        },
+        finance::TvmVariable::Periods => {
+            let continuous = simple_solution.periods_solution(true).tvm_solution();
+            let round_trip = continuous.periods_solution(false).tvm_solution();
+            (continuous, round_trip)
+        },
+        finance::TvmVariable::PresentValue => {
+            let continuous = simple_solution.present_value_solution(true, None).tvm_solution();
+            let round_trip = continuous.present_value_solution(false, None).tvm_solution();
+            (continuous, round_trip)
+        },
+        finance::TvmVariable::FutureValue => {
+            let continuous = simple_solution.future_value_solution(true, None).tvm_solution();
+            let round_trip = continuous.future_value_solution(false, None).tvm_solution();
+            (continuous, round_trip)
+        },
+    };
+
     println!("\nChanged to continuous compounding, varying {} to keep the other three values constant.\n", vary_field.to_string().to_lowercase());
     dbg!(&continuous_solution);
 
-    let simple_solution_round_trip = continuous_solution.with_simple_compounding(vary_field);
     println!("\nBack to simple compounding, varying {} to keep the other three values constant.\n", vary_field.to_string().to_lowercase());
     dbg!(&simple_solution_round_trip);
 }

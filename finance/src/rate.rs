@@ -17,6 +17,76 @@ use crate::tvm_simple::*;
 // Needed for the Rustdoc comments.
 #[allow(unused_imports)]
 use crate::{future_value::future_value, present_value::present_value, periods::periods};
+use std::ops::Deref;
+
+/// A record of a call to [`rate_solution`]. The structure shows details such as the formula and
+/// can calculate the period-by-period details.
+#[derive(Clone, Debug)]
+pub struct RateSolution(TvmSolution);
+
+/// The period-by-period details of a Rate calculation. This is the result of a call to
+/// ['RateSolution::series`].
+#[derive(Clone, Debug)]
+pub struct RateSeries(TvmSeries);
+
+impl RateSolution {
+    fn new (solution: TvmSolution) -> Self {
+        Self {
+            0: solution,
+        }
+    }
+
+    pub fn series(&self) -> RateSeries {
+        // For a rate, periods, or future value calculation the the period-by-period values are
+        // calculated the same way
+        RateSeries::new(self.0.series())
+    }
+
+    pub fn print_series_table(&self, locale: &num_format::Locale, precision: usize) {
+        self.series().print_table(locale, precision);
+    }
+
+    pub fn tvm_solution_and_series(&self) -> (TvmSolution, TvmSeries) {
+        let series = self.series();
+        (self.clone().into(), series.into())
+    }
+}
+
+impl Deref for RateSolution {
+    type Target = TvmSolution;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Into<TvmSolution> for RateSolution {
+    fn into(self) -> TvmSolution {
+        self.0
+    }
+}
+
+impl RateSeries {
+    fn new (series: TvmSeries) -> Self {
+        Self {
+            0: series,
+        }
+    }
+}
+
+impl Deref for RateSeries {
+    type Target = TvmSeries;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Into<TvmSeries> for RateSeries {
+    fn into(self) -> TvmSeries {
+        self.0
+    }
+}
 
 /// Returns the periodic rate of an investment given the number of periods along with the present
 /// and future values.
@@ -75,21 +145,7 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
         P: Into<f64> + Copy,
         F: Into<f64> + Copy
 {
-    let present_value = present_value.into();
-    let future_value = future_value.into();
-    if present_value == 0.0 && future_value == 0.0 {
-        // This is a special case where any rate will work.
-        return 0.0;
-    }
-    if future_value == 0.0 {
-        // This is a special case where the rate must be -100% because present value is nonzero.
-        return -1.0;
-    }
-    check_rate_parameters(periods, present_value, future_value);
-
-    let rate = (future_value / present_value).powf(1.0 / periods as f64) - 1.0;
-    assert!(rate.is_finite());
-    rate
+    rate_internal(periods, present_value.into(), future_value.into(), false)
 }
 
 /// Returns the periodic rate of an investment given the number of periods along with the present
@@ -153,32 +209,20 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
 /// let formula = solution.formula();
 /// dbg!(&formula);
 /// assert_eq!("0.041380 = ((15000.0000 / 10000.0000) ^ (1 / 10)) - 1", formula);
-/// let formula_symbolic = solution.formula_symbolic();
-/// dbg!(&formula_symbolic);
-/// assert_eq!("r = ((fv / pv) ^ (1 / n)) - 1", formula_symbolic);
+/// let symbolic_formula = solution.symbolic_formula();
+/// dbg!(&symbolic_formula);
+/// assert_eq!("r = ((fv / pv) ^ (1 / n)) - 1", symbolic_formula);
 ///
 /// // Calculate the period-by-period values.
 /// let series = solution.series();
 /// dbg!(&series);
 /// ```
-pub fn rate_solution<P, F>(periods: u32, present_value: P, future_value: F) -> TvmSolution
+pub fn rate_solution<P, F>(periods: u32, present_value: P, future_value: F) -> RateSolution
     where
         P: Into<f64> + Copy,
         F: Into<f64> + Copy
 {
-    let present_value = present_value.into();
-    let future_value = future_value.into();
-    if present_value == 0.0 && future_value == 0.0 {
-        // This is a special case where any rate will work.
-        let formula = "{special case}";
-        let formula_symbolic = "***";
-        return TvmSolution::new(TvmVariable::Rate, false,0.0, periods, present_value, future_value, formula, formula_symbolic);
-    }
-
-    let rate = rate(periods, present_value, future_value);
-    let formula = format!("{:.6} = (({:.4} / {:.4}) ^ (1 / {})) - 1", rate, future_value, present_value, periods);
-    let formula_symbolic = "r = ((fv / pv) ^ (1 / n)) - 1";
-    TvmSolution::new(TvmVariable::Rate,false, rate, periods, present_value.into(), future_value, &formula, formula_symbolic)
+    rate_solution_internal(periods, present_value.into(), future_value.into(), false)
 }
 
 pub fn rate_continuous<P, F>(periods: u32, present_value: P, future_value: F) -> f64
@@ -186,11 +230,19 @@ pub fn rate_continuous<P, F>(periods: u32, present_value: P, future_value: F) ->
         P: Into<f64> + Copy,
         F: Into<f64> + Copy
 {
-    // http://www.edmichaelreggie.com/TMVContent/rate.htm
+    rate_internal(periods, present_value.into(), future_value.into(), true)
+}
 
-    let present_value = present_value.into();
-    let future_value = future_value.into();
-    if present_value == 0.0 && future_value == 0.0 {
+pub fn rate_continuous_solution<P, F>(periods: u32, present_value: P, future_value: F) -> RateSolution
+    where
+        P: Into<f64> + Copy,
+        F: Into<f64> + Copy
+{
+    rate_solution_internal(periods, present_value.into(), future_value.into(), true)
+}
+
+pub fn rate_internal(periods: u32, present_value: f64, future_value: f64, continuous_compounding: bool) -> f64 {
+    if present_value + future_value == 0.0 {
         // This is a special case where any rate will work.
         return 0.0;
     }
@@ -200,37 +252,48 @@ pub fn rate_continuous<P, F>(periods: u32, present_value: P, future_value: F) ->
     }
     check_rate_parameters(periods, present_value, future_value);
 
-    let rate = (future_value / present_value).log(std::f64::consts::E) / periods as f64;
+    let rate = if continuous_compounding {
+        // http://www.edmichaelreggie.com/TMVContent/rate.htm
+        (future_value / present_value).log(std::f64::consts::E) / periods as f64
+    } else {
+        (future_value / present_value).powf(1.0 / periods as f64) - 1.0
+    };
+
+    if !rate.is_finite() {
+        dbg!(periods, present_value, future_value, continuous_compounding, rate);
+    }
+
     assert!(rate.is_finite());
     rate
 }
 
-pub fn rate_continuous_solution<P, F>(periods: u32, present_value: P, future_value: F) -> TvmSolution
-    where
-        P: Into<f64> + Copy,
-        F: Into<f64> + Copy
-{
-    let present_value = present_value.into();
-    let future_value = future_value.into();
+pub fn rate_solution_internal(periods: u32, present_value: f64, future_value: f64, continuous_compounding: bool) -> RateSolution {
     if present_value == 0.0 && future_value == 0.0 {
         // This is a special case where any rate will work.
         let formula = "{special case}";
-        let formula_symbolic = "***";
+        let symbolic_formula = "***";
         let rate = 0.0;
-        return TvmSolution::new(TvmVariable::Rate, true,rate, periods, present_value, future_value, formula, formula_symbolic);
+        return RateSolution::new(TvmSolution::new(TvmVariable::Rate, continuous_compounding, rate, periods, present_value, future_value, formula, symbolic_formula));
     }
 
-    let rate = rate_continuous(periods, present_value, future_value);
-    let formula = format!("{:.6} = log({:.4} / {:.4}, base {:.6}) / {}", rate, future_value, present_value, std::f64::consts::E, periods);
-    let formula_symbolic = "r = log(fv / pv, base e) / t";
-    TvmSolution::new(TvmVariable::Rate, true, rate, periods, present_value.into(), future_value, &formula, formula_symbolic)
+    let rate = rate_internal(periods, present_value, future_value, continuous_compounding);
+    let (formula, symbolic_formula) = if continuous_compounding {
+        let formula = format!("{:.6} = log({:.4} / {:.4}, base {:.6}) / {}", rate, future_value, present_value, std::f64::consts::E, periods);
+        let symbolic_formula = "r = log(fv / pv, base e) / t";
+        (formula, symbolic_formula)
+    } else {
+        let formula = format!("{:.6} = (({:.4} / {:.4}) ^ (1 / {})) - 1", rate, future_value, present_value, periods);
+        let symbolic_formula = "r = ((fv / pv) ^ (1 / n)) - 1";
+        (formula, symbolic_formula)
+    };
+    return RateSolution::new(TvmSolution::new(TvmVariable::Rate, continuous_compounding, rate, periods, present_value.into(), future_value, &formula, symbolic_formula))
 }
 
 fn check_rate_parameters(periods: u32, present_value: f64, future_value: f64) {
     assert!(present_value.is_finite(), "The present value must be finite (not NaN or infinity)");
     assert!(future_value.is_finite(), "The future value must be finite (not NaN or infinity)");
     assert!(!(present_value == 0.0 && future_value != 0.0), "The present value is zero and the future value is nonzero so there's no way to solve for rate.");
-    assert!(!(periods == 0 && present_value != future_value), "The number of periods is zero and the future value is different from the present value so there's no way to solve for rate.");
+    assert!(!(periods == 0 && present_value + future_value != 0.0), "The number of periods is zero and the present value plus the future value is nonzero so there's no way to solve for rate.");
 }
 
 #[cfg(test)]
@@ -251,8 +314,8 @@ mod tests {
 
     #[test]
     fn test_rate_edge() {
-        // Zero periods, values the same.
-        assert_rounded_6(0.0, rate(0, 10_000.0, 10_000.0));
+        // Zero periods, values add up to zero.
+        assert_rounded_6(0.0, rate(0, 10_000.0, -10_000.0));
 
         // Nonzero periods, values the same.
         assert_rounded_6(0.0, rate(12, 10_000.0, 10_000.0));
@@ -261,31 +324,36 @@ mod tests {
     #[should_panic]
     #[test]
     fn test_rate_err_present_value_nan() {
+        // The present value is not a number.
         rate(12, std::f64::NAN, 1_000.0);
     }
 
     #[should_panic]
     #[test]
     fn test_rate_err_present_value_inf() {
+        // The present value is infinite.
         rate(12, std::f64::INFINITY, 1_000.0);
     }
 
     #[should_panic]
     #[test]
     fn test_rate_err_future_value_nan() {
+        // The future value is not a number.
         rate(12, 1_000.0, std::f64::NAN);
     }
 
     #[should_panic]
     #[test]
     fn test_rate_err_future_value_inf() {
+        // The future value is infinite.
         rate(12, 1_000.0, std::f64::NEG_INFINITY);
     }
 
     #[should_panic]
     #[test]
-    fn test_rate_err_periods_zero_values_diff() {
-        rate(0, 1_000.0, 2_000.0);
+    fn test_rate_err_zero_periods() {
+        // Zero periods, values don't add up to zero.
+        rate(0, 10_000.0, 10_000.0);
     }
 
 }

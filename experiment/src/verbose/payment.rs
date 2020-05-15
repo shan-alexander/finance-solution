@@ -297,7 +297,7 @@ fn try_payment_solution_doc_example_1() {
     println!();
     dbg!(&formula);
     assert_eq!(formula, "327.6538 = ((-12500.5000 * 1.009792^48) * -0.009792) / (1.009792^48 - 1)");
-    let symbolic_formula = solution.formula_symbolic();
+    let symbolic_formula = solution.symbolic_formula();
     println!();
     dbg!(&symbolic_formula);
     assert_eq!(symbolic_formula, "pmt = ((pv * (1 + r)^n) * -r) / ((1 + r)^n - 1)");
@@ -337,7 +337,7 @@ fn try_payment_solution_doc_example_1() {
 fn try_payment_series_doc_example_1() {
     let years = 5;
 
-    // The annual percentage rate 15% and the interest will compound monthly.
+    // The annual percentage rate is 15% and the interest will compound monthly.
     let rate = finance::convert_apr_to_epr(0.15, 12);
 
     // Each period will be one month.
@@ -357,24 +357,25 @@ fn try_payment_series_doc_example_1() {
     let solution = finance::payment_solution(rate, periods, present_value, future_value, due_at_beginning);
     dbg!(&solution);
 
+    // Calculate the month-by-month details including the principal and interest paid every month.
+    let series = solution.series();
+    dbg!(&series);
 
-    
+    // Confirm that we have one entry for each period.
+    assert_eq!(periods as usize, series.len());
 
-    /// // Calculate the value at the end of each period.
-    /// let series = solution.series();
-    /// dbg!(&series);
-    ///
-    /// // Confirm that we have one entry for the initial value and one entry for each period.
-    /// assert_eq!(25, series.len());
-    ///
-    /// // Create a reduced vector with every fourth period.
-    /// let filtered_series = series
-    ///     .iter()
-    ///     .filter(|x| x.period() % 4 == 0)
-    ///     .collect::<Vec<_>>();
-    /// dbg!(&filtered_series);
-    /// assert_eq!(7, filtered_series.len());
+    // Print the period detail numbers as a formatted table.
+    let include_running_totals = true;
+    let include_remaining_amounts = true;
+    let locale = finance::num_format::Locale::en;
+    let precision = 2; // Two decimal places.
+    series.print_table(include_running_totals, include_remaining_amounts, &locale, precision);
 
+    // As above but print only the last period for every yeor of the loan, that is periods 12, 24,
+    // 36, 48, and 60.
+    series
+        .filter(|x| x.period() % 12 == 0)
+        .print_table(include_running_totals, include_remaining_amounts, &locale, precision);
 }
 
 fn generate_scenarios_for_excel() {
@@ -547,4 +548,5 @@ fn show_payment_series_rounding_issue() {
     //finance::print_series_table_locale(&series_filtered[..], &locale, precision);
     */
 }
+
 

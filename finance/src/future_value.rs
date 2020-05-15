@@ -14,9 +14,170 @@ use log::warn;
 
 use crate::tvm_simple::*;
 
-// Needed for the Rustdoc comments.
 #[allow(unused_imports)]
-use crate::{present_value::present_value, rate::rate, periods::periods};
+use crate::{rate::*, periods::*, present_value::*};
+use std::ops::Deref;
+
+/// A record of a call to [`future_value_solution`], a Future Value calculation where the rate is
+/// fixed. The structure shows details such as the formula and can calculate the period-by-period
+/// details.
+#[derive(Clone, Debug)]
+pub struct FutureValueSolution(TvmSolution);
+
+/// A record of a call to [`future_value_schedule`], a Future Value calculation where the rate may
+/// vary for each period. The structure can calculate the period-by-period details.
+#[derive(Clone, Debug)]
+pub struct FutureValueSchedule(TvmSchedule);
+
+/// The period-by-period details of a Future Value calculation. This is the result of a call to
+/// ['FutureValueSolution::series`] if the rate is fixed or a call to
+/// [`FutureValueSchedule::series`] if the rate may vary for each period.
+#[derive(Clone, Debug)]
+pub struct FutureValueSeries(TvmSeries);
+
+impl FutureValueSolution {
+    fn new (solution: TvmSolution) -> Self {
+        Self {
+            0: solution,
+        }
+    }
+
+    pub fn series(&self) -> FutureValueSeries {
+        // For a rate, periods, or future value calculation the the period-by-period values are
+        // calculated the same way
+        FutureValueSeries::new(self.0.series())
+    }
+
+    pub fn print_series_table(&self, locale: &num_format::Locale, precision: usize) {
+        self.series().print_table(locale, precision);
+    }
+
+    /*
+    pub fn rate_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> RateSolution {
+        self.0.rate_solution(continuous_compounding, compounding_periods)
+    }
+
+    pub fn periods_solution(&self, continuous_compounding: bool) -> PeriodsSolution {
+        self.0.periods_solution(continuous_compounding)
+    }
+
+    pub fn present_value_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> PresentValueSolution {
+        self.0.present_value_solution(continuous_compounding, compounding_periods)
+    }
+
+    pub fn future_value_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> FutureValueSolution {
+        self.0.future_value_solution(continuous_compounding, compounding_periods)
+    }
+    */
+    pub fn tvm_solution_and_series(&self) -> (TvmSolution, TvmSeries) {
+        let series = self.series();
+        (self.clone().into(), series.into())
+    }
+}
+
+impl Deref for FutureValueSolution {
+    type Target = TvmSolution;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Into<TvmSolution> for FutureValueSolution {
+    fn into(self) -> TvmSolution {
+        self.0
+    }
+}
+
+impl FutureValueSchedule {
+    fn new (schedule: TvmSchedule) -> Self {
+        Self {
+            0: schedule,
+        }
+    }
+
+    pub fn series(&self) -> FutureValueSeries {
+        assert!(self.calculated_field().is_future_value());
+
+        // After period 0 this will hold the value of the previous period.
+        let mut prev_value = None;
+
+        // Add the values at each period.
+        let mut series = vec![];
+        for period in 0..=self.periods() {
+            let (value, formula, symbolic_formula, rate) = if period == 0 {
+                // This is period 0, the starting point, so the value at the end of this period is
+                // simply the present value.
+                let value = self.present_value();
+                let formula = format!("{:.4}", value);
+                let symbolic_formula = "value = pv";
+                let rate = 0.0;
+                (value, formula, symbolic_formula, rate)
+            } else {
+                // We want the rate for the current period. However, periods are 1-based and
+                // the vector of rates is 0-based, so the corresponding rate is at period - 1.
+                let rate = self.rates()[period as usize - 1];
+                assert!(rate >= -1.0);
+                let rate_multiplier = 1.0 + rate;
+                assert!(rate_multiplier >= 0.0);
+                let value = prev_value.unwrap() * rate_multiplier;
+                let formula = format!("{:.4} = {:.4} * {:.6}", value, prev_value.unwrap(), rate_multiplier);
+                let symbolic_formula = "value = {previous period value} * (1 + r)";
+                (value, formula, symbolic_formula, rate)
+            };
+            assert!(value.is_finite());
+            prev_value = Some(value);
+            series.push(TvmPeriod::new(period, rate, value, &formula, &symbolic_formula))
+        }
+        FutureValueSeries::new(TvmSeries::new(series))
+    }
+
+    pub fn print_series_table(&self, locale: &num_format::Locale, precision: usize) {
+        self.series().print_table(locale, precision);
+    }
+
+    pub fn tvm_solution_and_series(&self) -> (TvmSchedule, TvmSeries) {
+        let series = self.series();
+        (self.clone().into(), series.into())
+    }
+
+}
+
+impl Deref for FutureValueSchedule {
+    type Target = TvmSchedule;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Into<TvmSchedule> for FutureValueSchedule {
+    fn into(self) -> TvmSchedule {
+        self.0
+    }
+}
+
+impl FutureValueSeries {
+    fn new (series: TvmSeries) -> Self {
+        Self {
+            0: series,
+        }
+    }
+}
+
+impl Deref for FutureValueSeries {
+    type Target = TvmSeries;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Into<TvmSeries> for FutureValueSeries {
+    fn into(self) -> TvmSeries {
+        self.0
+    }
+}
 
 /// Returns the value of an investment after it has grown or shrunk over time, using a fixed rate.
 ///
@@ -96,12 +257,7 @@ use crate::{present_value::present_value, rate::rate, periods::periods};
 pub fn future_value<T>(rate: f64, periods: u32, present_value: T) -> f64
     where T: Into<f64> + Copy
 {
-    let present_value = present_value.into();
-    check_future_value_parameters(rate, periods, present_value);
-
-    let future_value = present_value * (1.0 + rate).powi(periods as i32);
-    assert!(future_value.is_finite());
-    future_value
+    future_value_internal(rate, periods as f64, present_value.into(), false)
 }
 
 /// Calculates the value of an investment after it has grown or shrunk over time and returns a
@@ -154,9 +310,9 @@ pub fn future_value<T>(rate: f64, periods: u32, present_value: T) -> f64
 /// let formula = solution.formula();
 /// dbg!(&formula);
 /// assert_eq!(formula, "220026.0467 = 200000.0000 * (1.012000 ^ 8)");
-/// let formula_symbolic = solution.formula_symbolic();
-/// dbg!(&formula_symbolic);
-/// assert_eq!(formula_symbolic, "fv = pv * (1 + r)^n");
+/// let symbolic_formula = solution.symbolic_formula();
+/// dbg!(&symbolic_formula);
+/// assert_eq!(symbolic_formula, "fv = pv * (1 + r)^n");
 ///
 /// // Calculate the value at the end of each period.
 /// let series = solution.series();
@@ -191,19 +347,26 @@ pub fn future_value<T>(rate: f64, periods: u32, present_value: T) -> f64
 /// let formula = scenarios[0].formula();
 /// dbg!(&formula);
 /// assert_eq!("201219.6472 = 100000.0000 * (1.060000 ^ 12)", formula);
-/// let formula_symbolic = scenarios[0].formula_symbolic();
-/// dbg!(&formula_symbolic);
-/// assert_eq!("fv = pv * (1 + r)^n", formula_symbolic);
+/// let symbolic_formula = scenarios[0].symbolic_formula();
+/// dbg!(&symbolic_formula);
+/// assert_eq!("fv = pv * (1 + r)^n", symbolic_formula);
 /// ```
-pub fn future_value_solution<T>(rate: f64, periods: u32, present_value: T) -> TvmSolution
+pub fn future_value_solution<T>(rate: f64, periods: u32, present_value: T) -> FutureValueSolution
     where T: Into<f64> + Copy
 {
-    let future_value = future_value(rate, periods, present_value);
-    let rate_multiplier = 1.0 + rate;
-    assert!(rate_multiplier >= 0.0);
-    let formula = format!("{:.4} = {:.4} * ({:.6} ^ {})", future_value, present_value.into(), rate_multiplier, periods);
-    let formula_symbolic = "fv = pv * (1 + r)^n";
-    TvmSolution::new(TvmVariable::FutureValue, false, rate, periods, present_value.into(), future_value, &formula, formula_symbolic)
+    future_value_solution_internal(rate, periods as f64, present_value.into(), false)
+}
+
+pub fn future_value_continuous<T>(rate: f64, periods: u32, present_value: T) -> f64
+    where T: Into<f64> + Copy
+{
+    future_value_internal(rate, periods as f64, present_value.into(), true)
+}
+
+pub fn future_value_continuous_solution<T>(rate: f64, periods: u32, present_value: T) -> FutureValueSolution
+    where T: Into<f64> + Copy
+{
+    future_value_solution_internal(rate, periods as f64, present_value.into(), true)
 }
 
 /// Calculates a future value based on rates that change for each period.
@@ -251,7 +414,7 @@ pub fn future_value_schedule<T>(rates: &[f64], present_value: T) -> f64
 
     // Check the parameters including all of the provided rates.
     for rate in rates {
-        check_future_value_parameters(*rate, periods as u32, present_value);
+        check_future_value_parameters(*rate, periods as f64, present_value);
     }
 
     let mut future_value = present_value;
@@ -306,72 +469,42 @@ pub fn future_value_schedule<T>(rates: &[f64], present_value: T) -> f64
 /// let present_value = 4_000.00;
 /// let schedule = finance::future_value_schedule(&rates, present_value);
 /// ```
-pub fn future_value_schedule_solution<T>(rates: &[f64], present_value: T) -> TvmSchedule
+pub fn future_value_schedule_solution<T>(rates: &[f64], present_value: T) -> FutureValueSchedule
     where T: Into<f64> + Copy
 {
     let future_value = future_value_schedule(rates, present_value);
-    TvmSchedule::new(TvmVariable::FutureValue, rates, present_value.into(), future_value)
+    FutureValueSchedule::new(TvmSchedule::new(TvmVariable::FutureValue, rates, present_value.into(), future_value))
 }
 
-pub(crate) fn future_value_schedule_series(schedule: &TvmSchedule) -> TvmSeries {
-    assert!(schedule.calculated_field().is_future_value());
-
-    // After period 0 this will hold the value of the previous period.
-    let mut prev_value = None;
-
-    // Add the values at each period.
-    let mut series = vec![];
-    for period in 0..=schedule.periods() {
-        let (value, formula, formula_symbolic, rate) = if period == 0 {
-            // This is period 0, the starting point, so the value at the end of this period is
-            // simply the present value.
-            let value = schedule.present_value();
-            let formula = format!("{:.4}", value);
-            let formula_symbolic = "value = pv";
-            let rate = 0.0;
-            (value, formula, formula_symbolic, rate)
-        } else {
-            // We want the rate for the current period. However, periods are 1-based and
-            // the vector of rates is 0-based, so the corresponding rate is at period - 1.
-            let rate = schedule.rates()[period as usize - 1];
-            assert!(rate >= -1.0);
-            let rate_multiplier = 1.0 + rate;
-            assert!(rate_multiplier >= 0.0);
-            let value = prev_value.unwrap() * rate_multiplier;
-            let formula = format!("{:.4} = {:.4} * {:.6}", value, prev_value.unwrap(), rate_multiplier);
-            let formula_symbolic = "value = {previous period value} * (1 + r)";
-            (value, formula, formula_symbolic, rate)
-        };
-        assert!(value.is_finite());
-        prev_value = Some(value);
-        series.push(TvmPeriod::new(period, rate, value, &formula, &formula_symbolic))
-    }
-    TvmSeries::new(series)
-}
-
-pub fn future_value_continuous<T>(rate: f64, periods: u32, present_value: T) -> f64
-    where T: Into<f64> + Copy
-{
-    // http://www.edmichaelreggie.com/TMVContent/rate.htm
-
-    let present_value = present_value.into();
+pub(crate) fn future_value_internal(rate: f64, periods: f64, present_value: f64, continuous_compounding: bool) -> f64 {
     check_future_value_parameters(rate, periods, present_value);
-
-    let future_value = present_value * std::f64::consts::E.powf(rate * periods as f64);
+    let future_value = if continuous_compounding {
+        // http://www.edmichaelreggie.com/TMVContent/rate.htm
+        present_value * std::f64::consts::E.powf(rate * periods)
+    } else {
+        present_value * (1.0 + rate).powf(periods)
+    };
     assert!(future_value.is_finite());
     future_value
 }
 
-pub fn future_value_continuous_solution<T>(rate: f64, periods: u32, present_value: T) -> TvmSolution
-    where T: Into<f64> + Copy
-{
-    let future_value = future_value_continuous(rate, periods, present_value);
-    let formula = format!("{:.4} = {:.4} * {:.6}^({:.6} * {})", future_value, present_value.into(), std::f64::consts::E, rate, periods);
-    let formula_symbolic = "fv = pv * e^(rt)";
-    TvmSolution::new(TvmVariable::FutureValue, true, rate, periods, present_value.into(), future_value, &formula, formula_symbolic)
+pub(crate) fn future_value_solution_internal(rate: f64, periods: f64, present_value: f64, continuous_compounding: bool) -> FutureValueSolution {
+    let future_value = future_value_internal(rate, periods, present_value, continuous_compounding);
+    let (formula, symbolic_formula) = if continuous_compounding {
+        let formula = format!("{:.4} = {:.4} * {:.6}^({:.6} * {})", future_value, present_value, std::f64::consts::E, rate, periods);
+        let symbolic_formula = "fv = pv * e^(rt)";
+        (formula, symbolic_formula)
+    } else {
+        let rate_multiplier = 1.0 + rate;
+        assert!(rate_multiplier >= 0.0);
+        let formula = format!("{:.4} = {:.4} * ({:.6} ^ {})", future_value, present_value, rate_multiplier, periods);
+        let symbolic_formula = "fv = pv * (1 + r)^n";
+        (formula, symbolic_formula)
+    };
+    FutureValueSolution::new(TvmSolution::new_fractional_periods(TvmVariable::FutureValue, continuous_compounding, rate, periods, present_value.into(), future_value, &formula, symbolic_formula))
 }
 
-fn check_future_value_parameters(rate: f64, _periods: u32, present_value: f64) {
+fn check_future_value_parameters(rate: f64, _periods: f64, present_value: f64) {
     assert!(rate.is_finite(), "The rate must be finite (not NaN or infinity)");
     assert!(rate >= -1.0, "The rate must be greater than or equal to -1.0 because a rate lower than -100% would mean the investment loses more than its full value in a period.");
     if rate.abs() > 1. {

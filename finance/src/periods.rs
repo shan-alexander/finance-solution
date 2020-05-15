@@ -17,6 +17,76 @@ use crate::tvm_simple::*;
 // Needed for the Rustdoc comments.
 #[allow(unused_imports)]
 use crate::{future_value::future_value, present_value::present_value, rate::rate};
+use std::ops::Deref;
+
+/// A record of a call to [`periods_solution`]. The structure shows details such as the formula and
+/// can calculate the period-by-period details.
+#[derive(Clone, Debug)]
+pub struct PeriodsSolution(TvmSolution);
+
+/// The period-by-period details of a Periods calculation. This is the result of a call to
+/// ['PeriodSolution::series`].
+#[derive(Clone, Debug)]
+pub struct PeriodsSeries(TvmSeries);
+
+impl PeriodsSolution {
+    fn new (solution: TvmSolution) -> Self {
+        Self {
+            0: solution,
+        }
+    }
+
+    pub fn series(&self) -> PeriodsSeries {
+        // For a rate, periods, or future value calculation the the period-by-period values are
+        // calculated the same way
+        PeriodsSeries::new(self.0.series())
+    }
+
+    pub fn print_series_table(&self, locale: &num_format::Locale, precision: usize) {
+        self.series().print_table(locale, precision);
+    }
+
+    pub fn tvm_solution_and_series(&self) -> (TvmSolution, TvmSeries) {
+        let series = self.series();
+        (self.clone().into(), series.into())
+    }
+}
+
+impl Deref for PeriodsSolution {
+    type Target = TvmSolution;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Into<TvmSolution> for PeriodsSolution {
+    fn into(self) -> TvmSolution {
+        self.0
+    }
+}
+
+impl PeriodsSeries {
+    fn new (series: TvmSeries) -> Self {
+        Self {
+            0: series,
+        }
+    }
+}
+
+impl Deref for PeriodsSeries {
+    type Target = TvmSeries;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Into<TvmSeries> for PeriodsSeries {
+    fn into(self) -> TvmSeries {
+        self.0
+    }
+}
 
 /// Returns the number of periods given a periodic rate along with the present and future values.
 ///
@@ -94,28 +164,7 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
         P: Into<f64> + Copy,
         F: Into<f64> + Copy
 {
-    let present_value = present_value.into();
-    let future_value = future_value.into();
-    if present_value == future_value {
-        // This is a special case that doesn't require us to check the parameters and which covers
-        // the case where both are zero.
-        return 0.0;
-    }
-    if future_value == 0.0 && rate == -1.0 {
-        // This is a special case that we can't run through the log function. Since the rate is
-        // -100%, given any present value the future value will be zero and it will take only one
-        // period to get there.
-        // We already know that the present value is nonzero because that case would have been
-        // caught above.
-        assert!(present_value != 0.0);
-        return 1.0;
-    }
-
-    check_period_parameters(rate, present_value, future_value);
-
-    let fractional_periods = (future_value / present_value).log(1.0 + rate);
-    assert!(fractional_periods >= 0.0);
-    fractional_periods
+    periods_internal(rate, present_value.into(), future_value.into(), false)
 }
 
 /// Calculates the number of periods given a periodic rate along with the present and future values
@@ -199,9 +248,9 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
 /// let formula = solution.formula();
 /// dbg!(&formula);
 /// assert_eq!("20.15 = log(200000.0000 / 100000.0000, base 1.035000)", formula);
-/// let formula_symbolic = solution.formula_symbolic();
-/// dbg!(&formula_symbolic);
-/// assert_eq!("n = log(fv / pv, base (1 + r))", formula_symbolic);
+/// let symbolic_formula = solution.symbolic_formula();
+/// dbg!(&symbolic_formula);
+/// assert_eq!("n = log(fv / pv, base (1 + r))", symbolic_formula);
 ///
 /// let series = solution.series();
 /// dbg!(&series);
@@ -230,19 +279,12 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
 /// // View the period-by-period values.
 /// dbg!(solution.series());
 /// ```
-pub fn periods_solution<P, F>(rate: f64, present_value: P, future_value: F) -> TvmSolution
+pub fn periods_solution<P, F>(rate: f64, present_value: P, future_value: F) -> PeriodsSolution
     where
         P: Into<f64> + Copy,
         F: Into<f64> + Copy
 {
-    let fractional_periods = periods(rate, present_value, future_value);
-    assert!(fractional_periods >= 0.0);
-    let present_value = present_value.into();
-    let future_value = future_value.into();
-    let rate_multiplier = 1.0 + rate;
-    let formula = format!("{:.2} = log({:.4} / {:.4}, base {:.6})", fractional_periods, future_value, present_value, rate_multiplier);
-    let formula_symbolic = "n = log(fv / pv, base (1 + r))";
-    TvmSolution::new_fractional_periods(TvmVariable::Periods,false, rate, fractional_periods, present_value, future_value, &formula, formula_symbolic)
+    periods_solution_internal(rate, present_value.into(), future_value.into(), false)
 }
 
 pub fn periods_continuous<P, F>(rate: f64, present_value: P, future_value: F) -> f64
@@ -250,10 +292,18 @@ pub fn periods_continuous<P, F>(rate: f64, present_value: P, future_value: F) ->
         P: Into<f64> + Copy,
         F: Into<f64> + Copy
 {
-    // http://www.edmichaelreggie.com/TMVContent/rate.htm
+    periods_internal(rate, present_value.into(), future_value.into(), true)
+}
 
-    let present_value = present_value.into();
-    let future_value = future_value.into();
+pub fn periods_continuous_solution<P, F>(rate: f64, present_value: P, future_value: F) -> PeriodsSolution
+    where
+        P: Into<f64> + Copy,
+        F: Into<f64> + Copy
+{
+    periods_solution_internal(rate, present_value.into(), future_value.into(), true)
+}
+
+pub(crate) fn periods_internal(rate: f64, present_value: f64, future_value: f64, continuous_compounding: bool) -> f64 {
     if present_value == future_value {
         // This is a special case that doesn't require us to check the parameters and which covers
         // the case where both are zero.
@@ -269,28 +319,35 @@ pub fn periods_continuous<P, F>(rate: f64, present_value: P, future_value: F) ->
         return 1.0;
     }
 
-    check_period_parameters(rate, present_value, future_value);
+    check_periods_parameters(rate, present_value, future_value);
 
-    let fractional_periods= (future_value / present_value).log(std::f64::consts::E) / rate;
+    let fractional_periods = if continuous_compounding {
+        // http://www.edmichaelreggie.com/TMVContent/rate.htm
+        (future_value / present_value).log(std::f64::consts::E) / rate
+    } else {
+        (future_value / present_value).log(1.0 + rate)
+    };
     assert!(fractional_periods >= 0.0);
     fractional_periods
 }
 
-pub fn periods_continuous_solution<P, F>(rate: f64, present_value: P, future_value: F) -> TvmSolution
-    where
-        P: Into<f64> + Copy,
-        F: Into<f64> + Copy
-{
-    let fractional_periods = periods_continuous(rate, present_value, future_value);
+pub fn periods_solution_internal(rate: f64, present_value: f64, future_value: f64, continuous_compounding: bool) -> PeriodsSolution {
+    let fractional_periods = periods_internal(rate, present_value, future_value, continuous_compounding);
     assert!(fractional_periods >= 0.0);
-    let present_value = present_value.into();
-    let future_value = future_value.into();
-    let formula = format!("{:.2} = log({:.4} / {:.4}, base {:.6}) / {:.6}", fractional_periods, future_value, present_value, std::f64::consts::E, rate);
-    let formula_symbolic = "t = log(fv / pv, base e) / r";
-    TvmSolution::new_fractional_periods(TvmVariable::Periods,true, rate, fractional_periods, present_value, future_value, &formula, formula_symbolic)
+    let (formula, symbolic_formula) = if continuous_compounding {
+        let formula = format!("{:.2} = log({:.4} / {:.4}, base {:.6}) / {:.6}", fractional_periods, future_value, present_value, std::f64::consts::E, rate);
+        let symbolic_formula = "t = log(fv / pv, base e) / r";
+        (formula, symbolic_formula)
+    } else {
+        let rate_multiplier = 1.0 + rate;
+        let formula = format!("{:.2} = log({:.4} / {:.4}, base {:.6})", fractional_periods, future_value, present_value, rate_multiplier);
+        let symbolic_formula = "n = log(fv / pv, base (1 + r))";
+        (formula, symbolic_formula)
+    };
+    PeriodsSolution::new(TvmSolution::new_fractional_periods(TvmVariable::Periods,continuous_compounding, rate, fractional_periods, present_value, future_value, &formula, symbolic_formula))
 }
 
-fn check_period_parameters(rate: f64, present_value: f64, future_value: f64) {
+fn check_periods_parameters(rate: f64, present_value: f64, future_value: f64) {
     assert!(rate.is_finite(), "The rate must be finite (not NaN or infinity)");
     assert!(present_value.is_finite(), "The present value must be finite (not NaN or infinity)");
     assert!(future_value.is_finite(), "The future value must be finite (not NaN or infinity)");

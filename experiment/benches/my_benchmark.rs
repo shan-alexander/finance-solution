@@ -16,8 +16,8 @@ fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pv ann", |b| b.iter(|| 
         finance::present_value_annuity(black_box(0.034), black_box(52), black_box(1_000), black_box(false))));
 
-    c.bench_function("pv ann formula", |b| b.iter(|| 
-        finance::present_value_annuity_formula(black_box(0.034), black_box(52), black_box(1_000), black_box(false))));
+    // c.bench_function("pv ann formula", |b| b.iter(||
+    //    finance::present_value_annuity_formula(black_box(0.034), black_box(52), black_box(1_000), black_box(false))));
 
 }
 

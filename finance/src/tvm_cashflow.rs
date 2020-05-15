@@ -94,6 +94,8 @@ impl fmt::Display for TvmCashflowVariable {
     }
 }
 
+/// A record of a cash flow calculation such as payment, net present value, or the present value or
+/// future value of an annuity.
 #[derive(Clone, Debug)]
 pub struct TvmCashflowSolution {
     calculated_field: TvmCashflowVariable,
@@ -106,7 +108,7 @@ pub struct TvmCashflowSolution {
     sum_of_payments: f64,
     sum_of_interest: f64,
     formula: String,
-    formula_symbolic: String,
+    symbolic_formula: String,
     // pub input_in_percent: String,
 }
 
@@ -120,7 +122,7 @@ impl TvmCashflowSolution {
         due_at_beginning: bool,
         payment: f64,
         formula: &str,
-        formula_symbolic: &str,
+        symbolic_formula: &str,
     ) -> Self {
         assert!(formula.len() > 0);
         let sum_of_payments = payment * periods as f64;
@@ -136,15 +138,7 @@ impl TvmCashflowSolution {
             sum_of_payments,
             sum_of_interest,
             formula: formula.to_string(),
-            formula_symbolic: formula_symbolic.to_string(),
-        }
-    }
-
-    pub fn series(&self) -> TvmCashflowSeries {
-        if self.calculated_field.is_payment() {
-            payment_series(self)
-        } else {
-            unimplemented!()
+            symbolic_formula: symbolic_formula.to_string(),
         }
     }
 
@@ -188,33 +182,10 @@ impl TvmCashflowSolution {
         &self.formula
     }
 
-    pub fn formula_symbolic(&self) -> &str {
-        &self.formula_symbolic
+    pub fn symbolic_formula(&self) -> &str {
+        &self.symbolic_formula
     }
 
-    pub fn print_ab_comparison(
-        &self,
-        other: &TvmCashflowSolution,
-        include_running_totals: bool,
-        include_remaining_amounts: bool,
-        locale: &num_format::Locale,
-        precision: usize)
-    {
-        println!();
-        print_ab_comparison_values_string("calculated_field", &self.calculated_field.to_string(), &other.calculated_field.to_string());
-        print_ab_comparison_values_float("rate", self.rate, other.rate, locale, 6);
-        print_ab_comparison_values_int("periods", self.periods as i128, other.periods as i128, locale);
-        print_ab_comparison_values_float("present_value", self.present_value, other.present_value, locale, precision);
-        print_ab_comparison_values_float("future_value", self.future_value, other.future_value, locale, precision);
-        print_ab_comparison_values_bool("due_at_beginning", self.due_at_beginning, other.due_at_beginning);
-        print_ab_comparison_values_float("payment", self.payment, other.payment, locale, precision);
-        print_ab_comparison_values_float("sum_of_payments", self.sum_of_payments, other.sum_of_payments, locale, precision);
-        print_ab_comparison_values_float("sum_of_interest", self.sum_of_interest, other.sum_of_interest, locale, precision);
-        print_ab_comparison_values_string("formula", &self.formula, &other.formula);
-        print_ab_comparison_values_string("formula_symbolic", &self.formula_symbolic, &other.formula_symbolic);
-
-        self.series().print_ab_comparison(&other.series(), include_running_totals, include_remaining_amounts, locale, precision);
-    }
 }
 
 /*
@@ -233,7 +204,7 @@ impl Debug for TvmCashflowSolution {
                &format!("\n\tsum_of_payments: {}", self.sum_of_payments),
                &format!("\n\tsum_of_interest: {}", self.sum_of_interest),
                &format!("\n\tformula: {:?}", self.formula),
-               &format!("\n\tformula_symbolic: {:?}", self.formula_symbolic),
+               &format!("\n\tsymbolic_formula: {:?}", self.symbolic_formula),
                // &format!("input_in_percent: {:.6}%", self.input_in_percent),
                // &format!("output: {}", self.output.to_string().green()),
         )
@@ -349,7 +320,7 @@ pub struct TvmCashflowPeriod {
     interest_to_date: f64,
     interest_remaining: f64,
     formula: String,
-    formula_symbolic: String,
+    symbolic_formula: String,
     // pub input_in_percent: String,
 }
 
@@ -368,7 +339,7 @@ impl TvmCashflowPeriod {
         interest_to_date: f64,
         interest_remaining: f64,
         formula: String,
-        formula_symbolic: String,
+        symbolic_formula: String,
     ) -> Self {
         Self {
             period,
@@ -384,7 +355,7 @@ impl TvmCashflowPeriod {
             interest_to_date,
             interest_remaining,
             formula,
-            formula_symbolic,
+            symbolic_formula,
         }
     }
 
@@ -440,8 +411,8 @@ impl TvmCashflowPeriod {
         &self.formula
     }
 
-    pub fn formula_symbolic(&self) -> &str {
-        &self.formula_symbolic
+    pub fn symbolic_formula(&self) -> &str {
+        &self.symbolic_formula
     }
 
     pub fn print_flat(&self, precision: usize) {
@@ -458,7 +429,7 @@ impl TvmCashflowPeriod {
                  &format!("interest_to_date: {:.prec$}", self.interest_to_date, prec = precision),
                  &format!("interest_remaining: {:.prec$}", self.interest_remaining, prec = precision),
                  &format!("formula: {:?}", self.formula),
-                 &format!("formula_symbolic: {:?}", self.formula_symbolic));
+                 &format!("symbolic_formula: {:?}", self.symbolic_formula));
     }
 }
 
