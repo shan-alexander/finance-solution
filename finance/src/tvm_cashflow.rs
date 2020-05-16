@@ -231,11 +231,29 @@ impl TvmCashflowSeries {
     }
 
     pub fn print_table(
-            &self,
-            include_running_totals: bool,
-            include_remaining_amounts: bool,
-            locale: &num_format::Locale,
-            precision: usize) {
+        &self,
+        include_running_totals: bool,
+        include_remaining_amounts: bool)
+    {
+        self.print_table_internal(include_running_totals, include_remaining_amounts, None, None);
+    }
+
+    pub fn print_table_locale(
+        &self,
+        include_running_totals: bool,
+        include_remaining_amounts: bool,
+        locale: &num_format::Locale,
+        precision: usize) {
+        self.print_table_internal(include_running_totals, include_remaining_amounts, Some(locale), Some(precision));
+    }
+
+    fn print_table_internal(
+        &self,
+        include_running_totals: bool,
+        include_remaining_amounts: bool,
+        locale: Option<&num_format::Locale>,
+        precision: Option<usize>)
+    {
         let columns = vec![("period", "i", true),
                            ("payments_to_date", "f", include_running_totals), ("payments_remaining", "f", include_remaining_amounts),
                            ("principal", "f", true), ("principal_to_date", "f", include_running_totals), ("principal_remaining", "f", include_remaining_amounts),
@@ -245,16 +263,35 @@ impl TvmCashflowSeries {
                               entry.principal.to_string(), entry.principal_to_date.to_string(), entry.principal_remaining.to_string(),
                               entry.interest.to_string(), entry.interest_to_date.to_string(), entry.interest_remaining.to_string()])
             .collect::<Vec<_>>();
-        print_table_locale(&columns, &mut data, locale, precision);
+        print_table_locale_opt(&columns, data, locale, precision);
     }
 
     pub fn print_ab_comparison(
+        &self,
+        other: &TvmCashflowSeries,
+        include_running_totals: bool,
+        include_remaining_amounts: bool)
+    {
+        self.print_ab_comparison_internal(other, include_running_totals, include_remaining_amounts, None, None);
+    }
+
+    pub fn print_ab_comparison_locale(
             &self,
             other: &TvmCashflowSeries,
             include_running_totals: bool,
             include_remaining_amounts: bool,
             locale: &num_format::Locale,
             precision: usize) {
+        self.print_ab_comparison_internal(other, include_running_totals, include_remaining_amounts, Some(locale), Some(precision));
+    }
+
+    pub fn print_ab_comparison_internal(
+            &self,
+            other: &TvmCashflowSeries,
+            include_running_totals: bool,
+            include_remaining_amounts: bool,
+            locale: Option<&num_format::Locale>,
+            precision: Option<usize>) {
         let columns = vec![("period", "i", true),
                            ("payment_a", "f", true), ("payment_b", "f", true),
                            ("pmt_to_date_a", "f", include_running_totals), ("pmt_to_date_b", "f", include_running_totals),
@@ -290,7 +327,7 @@ impl TvmCashflowSeries {
                 other.get(row_index).map_or("".to_string(), |x| x.interest_remaining.to_string()),
             ]);
         }
-        print_table_locale(&columns, &mut data, locale, precision);
+        print_table_locale_opt(&columns, data, locale, precision);
     }
 
 }

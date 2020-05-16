@@ -65,13 +65,13 @@ impl PaymentSolution {
     /// let include_remaining_amounts = true;
     /// let locale = finance::num_format::Locale::en;
     /// let precision = 2; // Two decimal places.
-    /// series.print_table(include_running_totals, include_remaining_amounts, &locale, precision);
+    /// series.print_table_locale(include_running_totals, include_remaining_amounts, &locale, precision);
     ///
     /// // As above but print only the last period for every yeor of the loan, that is periods 12, 24,
-    /// // 36, 48, and 60.
+    /// // 36, 48, and 60; and use default formatting.
     /// series
     ///     .filter(|x| x.period() % 12 == 0)
-    ///     .print_table(include_running_totals, include_remaining_amounts, &locale, precision);
+    ///     .print_table(include_running_totals, include_remaining_amounts);
     /// ```
     pub fn series(&self) -> PaymentSeries {
         let mut series = vec![];
@@ -118,13 +118,33 @@ impl PaymentSolution {
         &self,
         other: &PaymentSolution,
         include_running_totals: bool,
+        include_remaining_amounts: bool)
+    {
+        self.print_ab_comparison_internal(other, include_running_totals, include_remaining_amounts, None, None);
+    }
+
+    pub fn print_ab_comparison_locale(
+        &self,
+        other: &PaymentSolution,
+        include_running_totals: bool,
         include_remaining_amounts: bool,
         locale: &num_format::Locale,
         precision: usize)
     {
+        self.print_ab_comparison_internal(other, include_running_totals, include_remaining_amounts, Some(locale), Some(precision));
+    }
+
+    fn print_ab_comparison_internal(
+        &self,
+        other: &PaymentSolution,
+        include_running_totals: bool,
+        include_remaining_amounts: bool,
+        locale: Option<&num_format::Locale>,
+        precision: Option<usize>)
+    {
         println!();
         // print_ab_comparison_values_string("calculated_field", &self.calculated_field().to_string(), &other.calculated_field.to_string());
-        print_ab_comparison_values_float("rate", self.rate(), other.rate(), locale, 6);
+        print_ab_comparison_values_float("rate", self.rate(), other.rate(), locale, precision);
         print_ab_comparison_values_int("periods", self.periods() as i128, other.periods() as i128, locale);
         print_ab_comparison_values_float("present_value", self.present_value(), other.present_value(), locale, precision);
         print_ab_comparison_values_float("future_value", self.future_value(), other.future_value(), locale, precision);
@@ -135,7 +155,7 @@ impl PaymentSolution {
         print_ab_comparison_values_string("formula", &self.formula(), &other.formula());
         print_ab_comparison_values_string("symbolic_formula", &self.symbolic_formula(), &other.symbolic_formula());
 
-        self.series().print_ab_comparison(&other.series(), include_running_totals, include_remaining_amounts, locale, precision);
+        self.series().print_ab_comparison_internal(&other.series(), include_running_totals, include_remaining_amounts, locale, precision);
     }
 
     fn invariant(&self) {
@@ -578,31 +598,34 @@ pub fn payment<P, F>(rate: f64, periods: u32, present_value: P, future_value: F,
 /// println!();
 /// dbg!(&series);
 ///
-/// // Print the period-by-period values in a table with two decimal places and the numbers aligned.
-/// // Show all columns including running totals and remaining amounts.
+/// // Print the period-by-period values in a table with two decimal places and the numbers aligned,
+/// // with Vietnamese formatting for the thousands and decimal separators. Show all columns
+/// // including running totals and remaining amounts.
+/// let locale = &finance::num_format::Locale::vi;
 /// let include_running_totals = true;
 /// let include_remaining_amounts = true;
 /// println!();
-/// series.print_table(include_running_totals, include_remaining_amounts, &finance::num_format::Locale::en, 2);
+/// series.print_table_locale(include_running_totals, include_remaining_amounts, &locale, 2);
 ///
 /// // Print a table with only the last period of each year, that is all of the periods that can be
-/// // divided by 12. Include the running totals columns but not remaining amounts.
+/// // divided by 12. Include the running totals columns but not remaining amounts. Also this time
+/// // use default formatting without specifying the locale or number of decimal places.
 /// let include_running_totals = true;
 /// let include_remaining_amounts = false;
 /// println!();
 /// series
 ///     .filter(|entry| entry.period() % 12 == 0)
-///     .print_table(include_running_totals, include_remaining_amounts, &finance::num_format::Locale::en, 2);
+///     .print_table(include_running_totals, include_remaining_amounts);
 ///
 /// // Print a table starting at the first period where at least 95% of the interest has been paid
 /// // off, and round all dollar amounts to whole numbers by passing zero as the second argument to
-/// // print_table(). Include the remanining amounts columns but not the running totals.
+/// // print_table_locale(). Include the remanining amounts columns but not the running totals.
 /// let include_running_totals = false;
 /// let include_remaining_amounts = true;
 /// println!();
 /// series
 ///     .filter(|entry| entry.interest_to_date() >= solution.sum_of_interest() * 0.95)
-///     .print_table(include_running_totals, include_remaining_amounts, &finance::num_format::Locale::en, 0);
+///     .print_table_locale(include_running_totals, include_remaining_amounts, locale, 0);
 /// ```
 pub fn payment_solution<P, F>(rate: f64, periods: u32, present_value: P, future_value: F, due_at_beginning: bool) -> PaymentSolution
     where

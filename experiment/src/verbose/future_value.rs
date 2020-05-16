@@ -13,7 +13,7 @@ pub fn main() {
     // try_doc_example_schedule_series();
     // try_find_rate();
     // try_series_print_table();
-    try_ab_comparison();
+    // try_ab_comparison();
     // check_formulas();
     // dbg!(finance::future_value_solution(0.012, 8, 200_000));
     // try_continuous();
@@ -26,6 +26,7 @@ pub fn main() {
     */
 }
 
+/*
 fn try_future_value() {
     // expect 1100
     let rate_of_return = 0.05;
@@ -395,4 +396,4 @@ fn try_simple_to_continuous(vary_field: &finance::TvmVariable) {
     println!("\nBack to simple compounding, varying {} to keep the other three values constant.\n", vary_field.to_string().to_lowercase());
     dbg!(&simple_solution_round_trip);
 }
-
+*/

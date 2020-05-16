@@ -22,7 +22,9 @@ use std::ops::Deref;
 /// fixed. The structure shows details such as the formula and can calculate the period-by-period
 /// details.
 #[derive(Clone, Debug)]
-pub struct FutureValueSolution(TvmSolution);
+pub struct FutureValueSolution {
+    tvm_solution: TvmSolution
+}
 
 /// A record of a call to [`future_value_schedule`], a Future Value calculation where the rate may
 /// vary for each period. The structure can calculate the period-by-period details.
@@ -36,15 +38,16 @@ pub struct FutureValueSchedule(TvmSchedule);
 pub struct FutureValueSeries(TvmSeries);
 
 impl FutureValueSolution {
-    fn new (solution: TvmSolution) -> Self {
+    fn new (tvm_solution: TvmSolution) -> Self {
+        assert!(tvm_solution.calculated_field().is_future_value());
         Self {
-            0: solution,
+            tvm_solution,
         }
     }
 
     pub fn series(&self) -> FutureValueSeries {
         // For a rate, periods, or future value calculation the the period-by-period values are
-        // calculated the same way
+        // calculated the same way.
         FutureValueSeries::new(self.0.series())
     }
 
@@ -52,40 +55,64 @@ impl FutureValueSolution {
         self.series().print_table(locale, precision);
     }
 
-    /*
-    pub fn rate_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> RateSolution {
-        self.0.rate_solution(continuous_compounding, compounding_periods)
+    /// Returns true if the value is compounded continuously rather than period-by-period.
+    pub fn continuous_compounding(&self) -> bool {
+        self.tvm_solution.continuous_compounding()
     }
 
-    pub fn periods_solution(&self, continuous_compounding: bool) -> PeriodsSolution {
-        self.0.periods_solution(continuous_compounding)
+    /// Returns the periodic rate that was given as an input to the future value calculation.
+    pub fn rate(&self) -> f64 {
+        self.tvm_solution.rate()
     }
 
-    pub fn present_value_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> PresentValueSolution {
-        self.0.present_value_solution(continuous_compounding, compounding_periods)
+    /// Returns the number of periods that were given as an input to the future value calculation.
+    /// In the rare case where the number of periods might not be a whole number use
+    /// [fractional_periods](./struct.PresentValueSolution.html#method.fractional_periods).
+    pub fn periods(&self) -> u32 {
+        self.tvm_solution.periods()
     }
 
-    pub fn future_value_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> FutureValueSolution {
-        self.0.future_value_solution(continuous_compounding, compounding_periods)
+    /// Returns the number of periods as a floating point number. Most of the time this is unneeded
+    /// and it's better to use [periods](./struct.PresentValueSolution.html#method.periods) which is an integer. The floating point number is relevant
+    /// only in the unusual case where the current `PresentValueSolution` was created by starting
+    /// with a period calculation, then transforming it into a present value calculation with a call
+    /// to [TvmSolution::present_value_solution](./struct.TvmSolution.html#method.present_value_solution).
+    pub fn fractional_periods(&self) -> f64 {
+        self.tvm_solution.fractional_periods()
     }
-    */
-    pub fn tvm_solution_and_series(&self) -> (TvmSolution, TvmSeries) {
-        let series = self.series();
-        (self.clone().into(), series.into())
+
+    /// Returns the calculated present value based on the provided rate, periods, and future value.
+    pub fn present_value(&self) -> f64 {
+        self.tvm_solution.present_value()
+    }
+
+    /// Returns the future value that was given as an input to the present value calculation.
+    pub fn future_value(&self) -> f64 {
+        self.tvm_solution.future_value()
+    }
+
+    /// Returns a text version of the formula used to calculate the present value. The formula
+    /// includes the actual values rather than variable names. For the formula with variables such
+    /// as "n" for periods call [symbolic_formula](./struct.PresentValueSolution.html#method.symbolic_formula).
+    pub fn formula(&self) -> &str {
+        &self.tvm_solution.formula()
+    }
+
+    /// Returns a text version of the formula used to calculate the present value. The formula uses variables
+    /// such as "n" for the number of periods. For the formula with the actual values rather than
+    /// variables call [formula](./struct.PresentValueSolution.html#method.formula).
+    pub fn symbolic_formula(&self) -> &str {
+        &self.tvm_solution.symbolic_formula()
     }
 }
 
-impl Deref for FutureValueSolution {
-    type Target = TvmSolution;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl TimeValueOfMoneySolution for FutureValueSolution {
+    fn tvm_solution(&self) -> TvmSolution {
+        self.tvm_solution.clone()
     }
-}
 
-impl Into<TvmSolution> for FutureValueSolution {
-    fn into(self) -> TvmSolution {
-        self.0
+    fn tvm_series(&self) -> TvmSeries {
+        self.series().into()
     }
 }
 
@@ -134,6 +161,10 @@ impl FutureValueSchedule {
 
     pub fn print_series_table(&self, locale: &num_format::Locale, precision: usize) {
         self.series().print_table(locale, precision);
+    }
+
+    pub fn tvm_solution(&self) -> TvmSchedule {
+        self.clone().into()
     }
 
     pub fn tvm_solution_and_series(&self) -> (TvmSchedule, TvmSeries) {

@@ -23,7 +23,9 @@ use std::ops::Deref;
 /// fixed. The structure shows details such as the formula and can calculate the period-by-period
 /// details.
 #[derive(Clone, Debug)]
-pub struct PresentValueSolution(TvmSolution);
+pub struct PresentValueSolution {
+    tvm_solution: TvmSolution
+}
 
 /// A record of a call to [`present_value_schedule`], a Present Value calculation where the rate may
 /// vary for each period. The structure can calculate the period-by-period details.
@@ -37,10 +39,10 @@ pub struct PresentValueSchedule(TvmSchedule);
 pub struct PresentValueSeries(TvmSeries);
 
 impl PresentValueSolution {
-    pub(crate) fn new(solution: TvmSolution) -> Self {
-        assert!(solution.calculated_field().is_present_value());
+    pub(crate) fn new(tvm_solution: TvmSolution) -> Self {
+        assert!(tvm_solution.calculated_field().is_present_value());
         Self {
-            0: solution,
+            tvm_solution,
         }
     }
 
@@ -106,23 +108,64 @@ impl PresentValueSolution {
         self.series().print_table(locale, precision);
     }
 
-    pub fn tvm_solution_and_series(&self) -> (TvmSolution, TvmSeries) {
-        let series = self.series();
-        (self.clone().into(), series.into())
+    /// Returns true if the value is compounded continuously rather than period-by-period.
+    pub fn continuous_compounding(&self) -> bool {
+        self.tvm_solution.continuous_compounding()
+    }
+
+    /// Returns the periodic rate that was given as an input to the present value calculation.
+    pub fn rate(&self) -> f64 {
+        self.tvm_solution.rate()
+    }
+
+    /// Returns the number of periods that were given as an input to the present_value calculation.
+    /// In the rare case where the number of periods might not be a whole number use
+    /// [fractional_periods](./struct.PresentValueSolution.html#method.fractional_periods).
+    pub fn periods(&self) -> u32 {
+        self.tvm_solution.periods()
+    }
+
+    /// Returns the number of periods as a floating point number. Most of the time this is unneeded
+    /// and it's better to use [periods](./struct.PresentValueSolution.html#method.periods) which is an integer. The floating point number is relevant
+    /// only in the unusual case where the current `PresentValueSolution` was created by starting
+    /// with a period calculation, then transforming it into a present value calculation with a call
+    /// to [TvmSolution::present_value_solution](./struct.TvmSolution.html#method.present_value_solution).
+    pub fn fractional_periods(&self) -> f64 {
+        self.tvm_solution.fractional_periods()
+    }
+
+    /// Returns the calculated present value based on the provided rate, periods, and future value.
+    pub fn present_value(&self) -> f64 {
+        self.tvm_solution.present_value()
+    }
+
+    /// Returns the future value that was given as an input to the present value calculation.
+    pub fn future_value(&self) -> f64 {
+        self.tvm_solution.future_value()
+    }
+
+    /// Returns a text version of the formula used to calculate the present value. The formula
+    /// includes the actual values rather than variable names. For the formula with variables such
+    /// as "n" for periods call [symbolic_formula](./struct.PresentValueSolution.html#method.symbolic_formula).
+    pub fn formula(&self) -> &str {
+        &self.tvm_solution.formula()
+    }
+
+    /// Returns a text version of the formula used to calculate the present value. The formula uses variables
+    /// such as "n" for the number of periods. For the formula with the actual values rather than
+    /// variables call [formula](./struct.PresentValueSolution.html#method.formula).
+    pub fn symbolic_formula(&self) -> &str {
+        &self.tvm_solution.symbolic_formula()
     }
 }
 
-impl Deref for PresentValueSolution {
-    type Target = TvmSolution;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl TimeValueOfMoneySolution for PresentValueSolution {
+    fn tvm_solution(&self) -> TvmSolution {
+        self.tvm_solution.clone()
     }
-}
 
-impl Into<TvmSolution> for PresentValueSolution {
-    fn into(self) -> TvmSolution {
-        self.0
+    fn tvm_series(&self) -> TvmSeries {
+        self.series().into()
     }
 }
 
@@ -193,6 +236,10 @@ impl PresentValueSchedule {
 
     pub fn print_series_table(&self, locale: &num_format::Locale, precision: usize) {
         self.series().print_table(locale, precision);
+    }
+
+    pub fn tvm_solution(&self) -> TvmSchedule {
+        self.clone().into()
     }
 
     pub fn tvm_solution_and_series(&self) -> (TvmSchedule, TvmSeries) {

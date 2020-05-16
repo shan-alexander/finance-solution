@@ -225,36 +225,58 @@ macro_rules! assert_rounded_8 {
 //     }};
 // }
 
-pub(crate) fn format_int_locale<T>(val: T, locale: &Locale) -> String
-    where T: ToFormattedString
-{
-    val.to_formatted_string(locale)
+fn decimal_separator_locale_opt(locale: Option<&Locale>) -> String {
+    match locale {
+        Some(locale) => locale.decimal().to_string(),
+        None => ".".to_string(),
+    }
 }
 
-pub(crate) fn format_float_locale<T>(val: T, locale: &Locale, precision: usize) -> String
+fn minus_sign_locale_opt(val: f64, locale: Option<&Locale>) -> String {
+    if val.is_sign_negative() {
+        match locale {
+            Some(locale) => locale.minus_sign().to_string(),
+            None => "-".to_string(),
+        }
+    } else {
+        "".to_string()
+    }
+}
+
+pub(crate) fn format_int_locale_opt<T>(val: T, locale: Option<&Locale>) -> String
+    where T: ToFormattedString
+{
+    match locale {
+        Some(locale) => val.to_formatted_string(locale),
+        None => val.to_formatted_string(&Locale::en).replace(",", "_"),
+    }
+}
+
+pub(crate) fn format_float_locale_opt<T>(val: T, locale: Option<&Locale>, precision: Option<usize>) -> String
     where T: Into<f64>
 {
+    let precision = precision.unwrap_or(4);
     let val = val.into();
     if val.is_finite() {
         // let locale = SystemLocale::default().unwrap();
         if precision == 0 {
-            format_int_locale(val.round() as i128, locale)
+            format_int_locale_opt(val.round() as i128, locale)
         } else {
-            let left = format_int_locale(val.trunc().abs() as i128, locale);
+            let left = format_int_locale_opt(val.trunc().abs() as i128, locale);
             let right = &format!("{:.*}", precision, val.fract().abs())[2..];
-            let minus_sign = if val.is_sign_negative() { locale.minus_sign() } else { "" };
-            format!("{}{}{}{}", minus_sign, left, locale.decimal(), right)
+            let minus_sign = minus_sign_locale_opt(val as f64, locale);
+            format!("{}{}{}{}", minus_sign, left, decimal_separator_locale_opt(locale), right)
         }
     } else {
         format!("{:?}", val)
     }
 }
 
-pub(crate) fn print_table_locale(columns: &Vec<(&str, &str, bool)>, data: &mut Vec<Vec<String>>, locale: &num_format::Locale, precision: usize) {
+pub(crate) fn print_table_locale_opt(columns: &Vec<(&str, &str, bool)>, mut data: Vec<Vec<String>>, locale: Option<&num_format::Locale>, precision: Option<usize>) {
     if columns.len() == 0 || data.len() == 0 {
         return;
     }
-    
+
     let column_separator = "  ";
 
     let column_count = data[0].len();
@@ -270,9 +292,9 @@ pub(crate) fn print_table_locale(columns: &Vec<(&str, &str, bool)>, data: &mut V
                     //bg!(&col_type, &data[row_index][col_index]);
                     if col_type != "s" {
                         data[row_index][col_index] = if col_type == "f" {
-                            format_float_locale(data[row_index][col_index].parse::<f64>().unwrap(), locale, precision)
+                            format_float_locale_opt(data[row_index][col_index].parse::<f64>().unwrap(), locale, precision)
                         } else if col_type == "i" {
-                            format_int_locale(data[row_index][col_index].parse::<i128>().unwrap(), locale)
+                            format_int_locale_opt(data[row_index][col_index].parse::<i128>().unwrap(), locale)
                         } else {
                             panic!("Unexpected column type = \"{}\"", col_type)
                         }
@@ -340,20 +362,20 @@ pub(crate) fn print_ab_comparison_values_string(field_name: &str, value_a: &str,
     print_ab_comparison_values_internal(field_name, value_a, value_b, false);
 }
 
-pub(crate) fn print_ab_comparison_values_int(field_name: &str, value_a: i128, value_b: i128, locale: &num_format::Locale) {
+pub(crate) fn print_ab_comparison_values_int(field_name: &str, value_a: i128, value_b: i128, locale: Option<&num_format::Locale>) {
     print_ab_comparison_values_internal(
         field_name,
-        &format_int_locale(value_a, locale),
-        &format_int_locale(value_b, locale),
+        &format_int_locale_opt(value_a, locale),
+        &format_int_locale_opt(value_b, locale),
         true
     );
 }
 
-pub(crate) fn print_ab_comparison_values_float(field_name: &str, value_a: f64, value_b: f64, locale: &num_format::Locale, precision: usize) {
+pub(crate) fn print_ab_comparison_values_float(field_name: &str, value_a: f64, value_b: f64, locale: Option<&num_format::Locale>, precision: Option<usize>) {
     print_ab_comparison_values_internal(
         field_name,
-        &format_float_locale(value_a, locale, precision),
-        &format_float_locale(value_b, locale, precision),
+        &format_float_locale_opt(value_a, locale, precision),
+        &format_float_locale_opt(value_b, locale, precision),
         true
     );
 }

@@ -46,6 +46,54 @@ pub struct TvmSchedule {
 #[derive(Clone, Debug)]
 pub struct TvmSeries(Vec<TvmPeriod>);
 
+pub trait TimeValueOfMoneySolution {
+
+    /// Returns the shared inner structure that holds fields common to any `TimeValueOfMoneySolution`
+    /// struct such as [RateSolution](././rate/struct.RateSolution.html) or [PresentValueSolution](././present_value/struct.PresentValueSolution.html).
+    fn tvm_solution(&self) -> TvmSolution;
+
+    /// Returns the period-by-period details of this calculation in a form that's shared between
+    /// `TimeValueOfMoneySolution` structs such as [PeriodsSolution](././periods/struct.PeriodsSolution.html) and [FutureValueSolution](././future_value/struct.FutureValueSolution.html).
+    fn tvm_series(&self) -> TvmSeries;
+
+    fn tvm_solution_and_series(&self) -> (TvmSolution, TvmSeries) {
+        (self.tvm_solution(), self.tvm_series())
+    }
+
+    fn rate_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> RateSolution {
+        self.tvm_solution().rate_solution(continuous_compounding, compounding_periods)
+    }
+
+    fn periods_solution(&self, continuous_compounding: bool) -> PeriodsSolution {
+        self.tvm_solution().periods_solution(continuous_compounding)
+    }
+
+    fn present_value_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> PresentValueSolution {
+        self.tvm_solution().present_value_solution(continuous_compounding, compounding_periods)
+    }
+
+    fn future_value_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> FutureValueSolution {
+        self.tvm_solution().future_value_solution(continuous_compounding, compounding_periods)
+    }
+
+    fn present_value_vary_compounding_periods(&self, compounding_periods: &[u32]) -> Vec<(u32, f64)> {
+        self.tvm_solution().present_value_vary_compounding_periods(compounding_periods)
+    }
+
+    fn future_value_vary_compounding_periods(&self, compounding_periods: &[u32]) -> Vec<(u32, f64)> {
+        self.tvm_solution().future_value_vary_compounding_periods(compounding_periods)
+    }
+
+    fn print_ab_comparison(
+        &self,
+        other: &dyn TimeValueOfMoneySolution,
+        locale: &num_format::Locale,
+        precision: usize)
+    {
+        self.tvm_solution().print_ab_comparison(&other.tvm_solution(), locale, precision);
+    }
+}
+
 impl TvmVariable {
     /// Returns true if the variant is TvmVariable::Rate indicating that the periodic rate was
     /// calculated from the number of periods, the present value, and the future value.

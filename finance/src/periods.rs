@@ -22,7 +22,9 @@ use std::ops::Deref;
 /// A record of a call to [`periods_solution`]. The structure shows details such as the formula and
 /// can calculate the period-by-period details.
 #[derive(Clone, Debug)]
-pub struct PeriodsSolution(TvmSolution);
+pub struct PeriodsSolution {
+    tvm_solution: TvmSolution,
+}
 
 /// The period-by-period details of a Periods calculation. This is the result of a call to
 /// ['PeriodSolution::series`].
@@ -30,39 +32,83 @@ pub struct PeriodsSolution(TvmSolution);
 pub struct PeriodsSeries(TvmSeries);
 
 impl PeriodsSolution {
-    fn new (solution: TvmSolution) -> Self {
+    fn new (tvm_solution: TvmSolution) -> Self {
+        assert!(tvm_solution.calculated_field().is_periods());
         Self {
-            0: solution,
+            tvm_solution,
         }
     }
 
     pub fn series(&self) -> PeriodsSeries {
         // For a rate, periods, or future value calculation the the period-by-period values are
-        // calculated the same way
-        PeriodsSeries::new(self.0.series())
+        // calculated the same way.
+        PeriodsSeries::new(self.tvm_solution.series())
     }
 
-    pub fn print_series_table(&self, locale: &num_format::Locale, precision: usize) {
-        self.series().print_table(locale, precision);
+    pub fn print_series_table(&self) {
+        self.series().print_table();
     }
 
-    pub fn tvm_solution_and_series(&self) -> (TvmSolution, TvmSeries) {
-        let series = self.series();
-        (self.clone().into(), series.into())
+    pub fn print_series_table_locale(&self, locale: &num_format::Locale, precision: usize) {
+        self.series().print_table_locale(locale, precision);
+    }
+
+    /// Returns true if the value is compounded continuously rather than period-by-period.
+    pub fn continuous_compounding(&self) -> bool {
+        self.tvm_solution.continuous_compounding()
+    }
+
+    /// Returns the periodic rate that was given as an input to the periods calculation.
+    pub fn rate(&self) -> f64 {
+        self.tvm_solution.rate()
+    }
+
+    /// Returns the calculated number of periods as a whole number. It's possible that the
+    /// calculated periods were not a whole number in which case [fractional_periods](./struct.PeriodsSolution.html#method.fractional_periods)
+    /// will have the more precise value. To get the whole number of periods we round away from
+    /// zero.
+    pub fn periods(&self) -> u32 {
+        self.tvm_solution.periods()
+    }
+
+    /// Returns the calculated number of periods as a floating point number. To get a whole number
+    /// of periods (rounded away from zero) use [periods](./struct.PeriodsSolution.html#method.periods).
+    pub fn fractional_periods(&self) -> f64 {
+        self.tvm_solution.fractional_periods()
+    }
+
+    /// Returns the present value that was given as an input to the periods calculation.
+    pub fn present_value(&self) -> f64 {
+        self.tvm_solution.present_value()
+    }
+
+    /// Returns the future value that was given as an input to the periods calculation.
+    pub fn future_value(&self) -> f64 {
+        self.tvm_solution.future_value()
+    }
+
+    /// Returns a text version of the formula used to calculate the periods. The formula includes
+    /// the actual values rather than variable names. For the formula with variables such as "r" for
+    /// rate call [symbolic_formula](./struct.PeriodsSolution.html#method.symbolic_formula).
+    pub fn formula(&self) -> &str {
+        &self.tvm_solution.formula()
+    }
+
+    /// Returns a text version of the formula used to calculate the periods. The formula uses
+    /// variables such as "r" for the rate. For the formula with the actual values rather than
+    /// variables call [formula](./struct.PeriodsSolution.html#method.formula).
+    pub fn symbolic_formula(&self) -> &str {
+        &self.tvm_solution.symbolic_formula()
     }
 }
 
-impl Deref for PeriodsSolution {
-    type Target = TvmSolution;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl TimeValueOfMoneySolution for PeriodsSolution {
+    fn tvm_solution(&self) -> TvmSolution {
+        self.tvm_solution.clone()
     }
-}
 
-impl Into<TvmSolution> for PeriodsSolution {
-    fn into(self) -> TvmSolution {
-        self.0
+    fn tvm_series(&self) -> TvmSeries {
+        self.series().into()
     }
 }
 
