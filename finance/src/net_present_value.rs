@@ -187,7 +187,7 @@ where C: Into<f64> + Copy
 /// Returns the **net present value of a schedule** of rates and cashflows (can be varying), subtracting the initial investment cost. 
 /// Returns a custom solution struct with detailed information and additional functionality (recommended).
 /// 
-/// For example...
+/// For example..
 /// ```
 /// // example here
 /// ```
@@ -289,9 +289,23 @@ impl NpvSolution {
     pub fn net_present_value(&self) -> f64 {
         self.net_present_value
     }
-    /// Shortcut function for net_present_value()
+    /// Alias for net_present_value()
     pub fn npv(&self) -> f64 {
         self.net_present_value
+    }
+
+    /// Pretty-print a table of the periods and their rel
+    pub fn print_series_table(&self, locale: &num_format::Locale, precision: usize) {
+        self.series().print_table(locale, precision);
+    }
+
+    /// Return the max discounted cashflow (present value of the cashflow)
+    pub fn max_discounted_cashflow(&self) -> f64 {
+        self.series().max_discounted_cashflow() 
+    }
+    /// Return the min discounted cashflow (present value of the cashflow)
+    pub fn min_discounted_cashflow(&self) -> f64 {
+        self.series().min_discounted_cashflow() 
     }
 
 }
@@ -311,6 +325,54 @@ impl NpvSeries {
             0: self.iter().filter(|x| predicate(x)).map(|x| x.clone()).collect()
         }
     }
+    pub fn print_table(&self, locale: &num_format::Locale, precision: usize) {
+        let columns = vec![("period", "i", true), ("rate", "f", true), ("present_value", "f", true), ("future_value", "f", true), ("investment_value", "f", true)];
+        let mut data = self.iter()
+            .map(|entry| vec![entry.period.to_string(), entry.rate.to_string(), entry.present_value.to_string(), entry.future_value.to_string(), entry.investment_value.to_string()])
+            .collect::<Vec<_>>();
+        print_table_locale(&columns, &mut data, locale, precision);
+    }
+
+    pub fn print_ab_comparison(
+        &self,
+        other: &NpvSeries,
+        locale: &num_format::Locale,
+        precision: usize)
+    {
+        let columns = vec![("period", "i", true),
+                           ("rate_a", "f", true), ("rate_b", "f", true),
+                           ("present_value_a", "f", true), ("present_value_b", "f", true),
+                           ("future_value_a", "f", true), ("future_value_b", "f", true),
+                           ("investment_value_a", "f", true), ("investment_value_b", "f", true)];
+        let mut data = vec![];
+        let rows = max(self.len(), other.len());
+        for row_index in 0..rows {
+            data.push(vec![
+                row_index.to_string(),
+                self.get(row_index).map_or("".to_string(), |x| x.rate.to_string()),
+                other.get(row_index).map_or("".to_string(), |x| x.rate.to_string()),
+                self.get(row_index).map_or("".to_string(), |x| x.present_value.to_string()),
+                other.get(row_index).map_or("".to_string(), |x| x.present_value.to_string()),
+                self.get(row_index).map_or("".to_string(), |x| x.future_value.to_string()),
+                other.get(row_index).map_or("".to_string(), |x| x.future_value.to_string()),
+                self.get(row_index).map_or("".to_string(), |x| x.investment_value.to_string()),
+                other.get(row_index).map_or("".to_string(), |x| x.investment_value.to_string()),
+            ]);
+        }
+        print_table_locale(&columns, &mut data, locale, precision);
+    }
+
+    /// Return the max discounted cashflow (present value of the cashflow)
+    pub fn max_discounted_cashflow(&self) -> f64 {
+        assert!(self.len() > 1); 
+        self.iter().skip(1).fold(std::f64::MIN, |acc, x| acc.max(x.present_value()))
+    }
+
+    /// Return the min discounted cashflow (present value of the cashflow)
+    pub fn min_discounted_cashflow(&self) -> f64 {
+        assert!(self.len() > 1); 
+        self.iter().skip(1).fold(std::f64::MAX, |acc, x| acc.min(x.present_value()))
+    }
 }
 impl Deref for NpvSeries {
     type Target = Vec<NpvPeriod>;
@@ -326,6 +388,7 @@ pub struct NpvPeriod {
     rate: f64,
     present_value: f64,
     future_value: f64,
+    investment_value: f64,
     formula: String,
     formula_symbolic: String,
 }
@@ -335,6 +398,7 @@ impl NpvPeriod {
         rate: f64,
         present_value: f64,
         future_value: f64,
+        investment_value: f64,
         formula: String,
         formula_symbolic: String,
     ) -> Self {
@@ -343,6 +407,7 @@ impl NpvPeriod {
             rate,
             present_value,
             future_value,
+            investment_value,
             formula,
             formula_symbolic,
         }
@@ -369,6 +434,11 @@ impl NpvPeriod {
     pub fn future_value(&self) -> f64 {
         self.future_value
     }
+    
+    /// Returns the investment value of the Npv scenario at the time of the current period.
+    pub fn investment_value(&self) -> f64 {
+        self.investment_value
+    }
 
     /// Returns a text version of the formula used to calculate the value for the current period.
     /// The formula includes the actual values rather than variable names. For the formula with
@@ -387,36 +457,23 @@ impl NpvPeriod {
 
 pub(crate) fn net_present_value_schedule_series(schedule: &NpvSolution) -> NpvSeries {
     let mut series = vec![];
-    if schedule.periods() == 0 {
-        // Special case.
-        let present_value = schedule.initial_investment();
-        let future_value = present_value;
-        let formula = format!("{:.4}", future_value);
-        let formula_symbolic = "value = initial_investment".to_string();
-        series.push(NpvPeriod::new(0, 0.0, present_value, future_value, formula, formula_symbolic));
-    } else {
+  
+    let periods = schedule.periods();
+    let mut investment_value = 0_f64;
 
-        let periods = schedule.periods();
-        // let sum_of_discounted_cashflows = schedule.sum_of_discounted_cashflows();
-
-        // Add the values at each period starting with the last one and working backwards to period
-        // zero which represents the starting conditions.
-        for period in (0..=periods).rev() {  
-            
-            let rate = if period == 0 {
-                0.0
-            } else {
-                schedule.rates()[(period-1) as usize]
-            };
-            let future_value = schedule.cashflows[period as usize];
-            let present_value = schedule.cashflows[period as usize] / (1. + rate).powf(period as f64);
-            let formula = format!("{:.4}", present_value);
-            let formula_symbolic = "present_value = fv / (1 + rate)^periods".to_string();
-            assert!(present_value.is_finite());
-            // We want to end up with the periods in order starting with period 0, so each time
-            // through the loop we insert the new NpvPeriod object at the beginning of the vector.
-            series.insert(0, NpvPeriod::new(period, rate, present_value, future_value, formula, formula_symbolic))
+    for period in 0..=periods {         
+        let rate = if period == 0 {
+            0.0
+        } else {
+            schedule.rates()[(period-1) as usize]
         };
+        let future_value = schedule.cashflows[period as usize];
+        let present_value = schedule.cashflows[period as usize] / (1. + rate).powf(period as f64);
+        assert!(present_value.is_finite());
+        investment_value += present_value;
+        let formula = format!("{:.4} = {:.4} / (1 + {:.6})^{}", present_value, future_value, rate, period);
+        let formula_symbolic = "present_value = fv / (1 + rate)^periods".to_string();
+        series.push(NpvPeriod::new(period, rate, present_value, future_value, investment_value, formula, formula_symbolic))
     }
     NpvSeries::new(series)
 }
