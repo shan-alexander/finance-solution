@@ -33,10 +33,11 @@ pub fn main() {
     // dbg!(answer.series().print_table(true, true, &Locale::en, 4));
 
     let rates = vec![0.034, 0.058, 0.047, 0.023];
-    let cashflows = vec![-1000, 3000, 2000, 3700, 4000];
+    let cashflows = vec![-10000, 3000, 2000, 3700, 4000];
     let npv = net_present_value_schedule_solution(&rates, &cashflows);
     dbg!(&npv);
     dbg!(&npv.series());
+    dbg!(&npv.series().print_table(&Locale::en, 4));
     // assert_approx_equal!(&npv.sum_of_discounted_cashflows, &npv.series().iter().present_value().sum());
 
 

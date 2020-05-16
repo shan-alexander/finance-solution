@@ -311,6 +311,13 @@ impl NpvSeries {
             0: self.iter().filter(|x| predicate(x)).map(|x| x.clone()).collect()
         }
     }
+    pub fn print_table(&self, locale: &num_format::Locale, precision: usize) {
+        let columns = vec![("period", "i", true), ("rate", "f", true), ("present_value", "f", true), ("future_value", "f", true), ("investment_value", "f", true)];
+        let mut data = self.iter()
+            .map(|entry| vec![entry.period.to_string(), entry.rate.to_string(), entry.present_value.to_string(), entry.future_value.to_string(), entry.investment_value.to_string()])
+            .collect::<Vec<_>>();
+        print_table_locale(&columns, &mut data, locale, precision);
+    }
 }
 impl Deref for NpvSeries {
     type Target = Vec<NpvPeriod>;
@@ -326,6 +333,7 @@ pub struct NpvPeriod {
     rate: f64,
     present_value: f64,
     future_value: f64,
+    investment_value: f64,
     formula: String,
     formula_symbolic: String,
 }
@@ -335,6 +343,7 @@ impl NpvPeriod {
         rate: f64,
         present_value: f64,
         future_value: f64,
+        investment_value: f64,
         formula: String,
         formula_symbolic: String,
     ) -> Self {
@@ -343,6 +352,7 @@ impl NpvPeriod {
             rate,
             present_value,
             future_value,
+            investment_value,
             formula,
             formula_symbolic,
         }
@@ -369,6 +379,11 @@ impl NpvPeriod {
     pub fn future_value(&self) -> f64 {
         self.future_value
     }
+    
+    /// Returns the investment value of the Npv scenario at the time of the current period.
+    pub fn investment_value(&self) -> f64 {
+        self.investment_value
+    }
 
     /// Returns a text version of the formula used to calculate the value for the current period.
     /// The formula includes the actual values rather than variable names. For the formula with
@@ -391,17 +406,21 @@ pub(crate) fn net_present_value_schedule_series(schedule: &NpvSolution) -> NpvSe
         // Special case.
         let present_value = schedule.initial_investment();
         let future_value = present_value;
-        let formula = format!("{:.4}", future_value);
-        let formula_symbolic = "value = initial_investment".to_string();
-        series.push(NpvPeriod::new(0, 0.0, present_value, future_value, formula, formula_symbolic));
+        let formula = format!("{:.4} = {:.4} / (1 + 0.0)^0", present_value, future_value);
+        let formula_symbolic = "present_value = initial investment".to_string();
+        let mut investment_value = 0_f64;
+        investment_value = present_value;
+        series.push(NpvPeriod::new(0, 0.0, present_value, future_value, investment_value, formula, formula_symbolic));
     } else {
 
         let periods = schedule.periods();
+        let mut investment_value = 0_f64;
+
         // let sum_of_discounted_cashflows = schedule.sum_of_discounted_cashflows();
 
         // Add the values at each period starting with the last one and working backwards to period
         // zero which represents the starting conditions.
-        for period in (0..=periods).rev() {  
+        for period in 0..=periods {  
             
             let rate = if period == 0 {
                 0.0
@@ -410,12 +429,13 @@ pub(crate) fn net_present_value_schedule_series(schedule: &NpvSolution) -> NpvSe
             };
             let future_value = schedule.cashflows[period as usize];
             let present_value = schedule.cashflows[period as usize] / (1. + rate).powf(period as f64);
-            let formula = format!("{:.4}", present_value);
-            let formula_symbolic = "present_value = fv / (1 + rate)^periods".to_string();
             assert!(present_value.is_finite());
+            investment_value += present_value;
+            let formula = format!("{:.4} = {:.4} / (1 + {:.6})^{}", present_value, future_value, rate, period);
+            let formula_symbolic = "present_value = fv / (1 + rate)^periods".to_string();
             // We want to end up with the periods in order starting with period 0, so each time
             // through the loop we insert the new NpvPeriod object at the beginning of the vector.
-            series.insert(0, NpvPeriod::new(period, rate, present_value, future_value, formula, formula_symbolic))
+            series.push(NpvPeriod::new(period, rate, present_value, future_value, investment_value, formula, formula_symbolic))
         };
     }
     NpvSeries::new(series)
