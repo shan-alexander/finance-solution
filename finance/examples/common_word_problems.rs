@@ -32,12 +32,30 @@ pub fn main() {
     // let answer = payment_solution(rate, periods, present_value, 0, false);
     // dbg!(answer.series().print_table(true, true, &Locale::en, 4));
 
+    // example 1
     let rates = vec![0.034, 0.058, 0.047, 0.023];
     let cashflows = vec![-10000, 3000, 2000, 3700, 4000];
     let npv = net_present_value_schedule_solution(&rates, &cashflows);
     dbg!(&npv);
-    dbg!(&npv.series());
-    dbg!(&npv.series().print_table(&Locale::en, 4));
+    let series_ = npv.series();
+    dbg!(&series_.print_table(&Locale::en, 4));
+    
+    // filter example
+    series_.filter(|x| x.investment_value() < 0.0 ).print_table(&Locale::en, 4);
+    
+    // example 2
+    let cashflows_2 = vec![-8000, 2000,2500,2500,1500];
+    let npv_2 = net_present_value_schedule_solution(&rates, &cashflows_2);
+    
+    //compare 1 & 2
+    dbg!(&series_.print_ab_comparison(&npv_2.series(), &Locale::en, 4));
+
+    dbg!(&npv_2.max_discounted_cashflow());
+    dbg!(&npv_2.series().max_discounted_cashflow());
+
+    dbg!(&npv_2.min_discounted_cashflow());
+    dbg!(npv_2.series().min_discounted_cashflow());
+
     // assert_approx_equal!(&npv.sum_of_discounted_cashflows, &npv.series().iter().present_value().sum());
 
 
