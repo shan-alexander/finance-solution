@@ -14,7 +14,7 @@ use finance::*;
 use num_format::{Locale};
 
 pub fn main() {
-    pv_problem_1();
+    // pv_problem_1();
     // fv_problem_1();
     // nper_problem_1();
     // rate_problem_1();
@@ -27,7 +27,7 @@ pub fn main() {
     // pv_annuity_problem_1();
     // fv_annuity_problem_1();
 
-    // retirement_problem_1();
+    retirement_problem_1();
 }
 
 // If you wish to accumulate $140,000 in 13 years, 
@@ -42,6 +42,7 @@ fn pv_problem_1() {
     dbg!(&pv_problem_1); // Outputs solution struct.
     dbg!(pv_problem_1.present_value()); // Outputs 25489.71433359101 from solution struct.
     dbg!(present_value(rate, periods, future_value)); // Outputs 25489.71433359101 from f64 fn.
+    assert_rounded_2(25_489.71, pv_problem_1.present_value());
 }
 
 // What will $247,000 grow to be in 9 years if it is invested today 
@@ -55,6 +56,7 @@ fn fv_problem_1() {
     dbg!(&fv_problem_1); // Outputs solution struct.
     dbg!(fv_problem_1.future_value()); // Outputs 631835.1203234661 from solution struct.
     dbg!(future_value(rate, periods, present_value)); // Outputs 631835.1203234661 from f64 fn.
+    assert_rounded_2(631_835.12, fv_problem_1.future_value());
 }
 
 // How many years will it take for $136,000 to grow to be $468,000 
@@ -69,6 +71,7 @@ fn nper_problem_1() {
     dbg!(nper_problem_1.periods()); // Outputs 17 from solution struct.
     dbg!(nper_problem_1.fractional_periods()); // Outputs 16.057649324100133 from solution struct.
     dbg!(periods(rate, present_value, future_value)); // Outputs 16.057649324100133 from f64 fn.
+    assert_rounded_2(16.06, nper_problem_1.fractional_periods());
 }
 
 // At what annual interest rate must $137,000 be invested 
@@ -79,7 +82,9 @@ fn rate_problem_1() {
     let fv = 475_000;
     let periods = 14;
     let rate_problem_1 = rate_solution(periods, pv, fv);
-    dbg!(rate_problem_1);
+    dbg!(&rate_problem_1);
+    dbg!(&rate_problem_1.rate());
+    assert_rounded_4(0.0929, rate_problem_1.rate());
 }
 
 // If you wish to accumulate $197,000 in 5 years, 
@@ -87,8 +92,44 @@ fn rate_problem_1() {
 // a quoted annual interest rate of 13% with semi-annual compounding of interest?
 // Expect $104,947.03
 fn pv_problem_2() {
+    let years = 5;
+    let apr = 0.13;
     let fv = 197_000;
-    // finish here
+
+    // First solve using one period per year.
+
+    // The interest is compounded twice per year so we need to convert the APR to an effective
+    // annual rate (EAR) which will be slightly larger.
+    let ear = convert_apr_to_ear(apr, 2);
+    dbg!(apr, ear);
+    assert!(ear > apr);
+
+    // There is one period per year. This works only because we're using the EAR calculated above.
+    let periods = years;
+
+    let pv_problem_2_ear = present_value_solution(ear, periods, fv);
+    dbg!(&pv_problem_2_ear);
+    assert_rounded_2(104_947.03, pv_problem_2_ear.present_value());
+
+    // Solve it again using one period for each compounding period which in this case is twice per
+    // year.
+
+    // Convert the APR to an effective periodic rate (EPR) which means simply dividing the APR by
+    // the number of compounding periods, in this case two.
+    let epr = convert_apr_to_epr(apr, 2);
+    dbg!(apr, ear, epr);
+    assert_approx_equal!(apr / 2.0, epr);
+
+    // The interest is compounded semiannually so the number of compounding periods is twice the
+    // number of years.
+    let periods = years * 2;
+
+    let pv_problem_2_epr = present_value_solution(epr, periods, fv);
+    dbg!(&pv_problem_2_epr);
+    assert_rounded_2!(104_947.03, pv_problem_2_epr.present_value());
+
+    // Both approaches return the same answer.
+    assert_approx_equal!(pv_problem_2_ear.present_value(), pv_problem_2_epr.present_value());
 }
 
 // What will $153,000 grow to be in 13 years if it is invested today 
@@ -306,21 +347,63 @@ fn fv_annuity_problem_1() {
 // per year on your deposits. However, you only expect to earn 6% per year on your investment after you
 // retire since you will choose to place the money in less risky investments. What equal annual deposits must
 // you make each year to reach your retirement goal?
-// Expect  $8,874.79
+// Expect $8,874.79
 fn retirement_problem_1() {
     let retire_in = 33;
     let live_how_many_years_after_retirement = 27;
     let retirement_income = 180_000;
-    let total_inheretance = 2_500_000;
+    let total_inheritance = 2_500_000;
     let rate_before_retire = 0.12;
     let rate_after_retire = 0.06;
 
-    let pv_income = present_value_annuity(rate_after_retire, live_how_many_years_after_retirement, retirement_income, false);
-    let pv_inheretance = present_value(rate_after_retire, live_how_many_years_after_retirement, total_inheretance);
-    let total_at_retirement = pv_income + pv_inheretance;
-    let retirement_problem_1 = payment_solution(rate_before_retire, retire_in, 0, total_at_retirement, false);
-    dbg!(&retirement_problem_1);
-    let pv_total_at_retirement = present_value(rate_before_retire, retire_in, total_at_retirement);
-    let retirement_problem_1 = payment_solution(rate_before_retire, retire_in, pv_total_at_retirement, 0, false);
-    dbg!(&retirement_problem_1);
+    // First calculate the amount of money needed at the moment of retirement to achieve these
+    // goals. The retirement income of $180,000 can be treated as annuity for which we can calculate
+    // the present value at the time of retirement.
+    let due_at_beginning = true;
+    // Use the negative of the retirement income so that the value ends up positive.
+    let value_at_retirement_for_income= present_value_annuity(rate_after_retire, live_how_many_years_after_retirement, -retirement_income, due_at_beginning);
+    dbg!(value_at_retirement_for_income);
+
+    // What amount of money is needed at the moment of retirement so that it can be invested and
+    // eventually grow to $2.5 million at the moment of death?
+    let value_at_retirement_for_inheritance = present_value(rate_after_retire, live_how_many_years_after_retirement, total_inheritance);
+    dbg!(value_at_retirement_for_inheritance);
+
+    let total_at_retirement = value_at_retirement_for_income + value_at_retirement_for_inheritance;
+    dbg!(total_at_retirement);
+
+    let due_at_beginning = false;
+    // Calculate the payments needed from now until retirement to end up with the total amount
+    // needed at retirement. In this case we'll call payment_solution() to get a struct containing
+    // more information.
+    let payment_before_retirement = payment_solution(rate_before_retire, retire_in, 0, total_at_retirement, due_at_beginning);
+    dbg!(&payment_before_retirement);
+    // Since the desired future value was positive the payment is negative.
+    assert_rounded_2(-8_874.79, payment_before_retirement.payment());
+
+    // To double check the logic, start with the payments calculated just now and work forward.
+
+    // You start with zero dollars and will be paying in $8_874.79 per year (the amount that we're
+    // double checking) into an investment that pays 12% per year. What will be the value of that
+    // investment after 33 years, that is at the moment of retirement?
+    let payment = payment_before_retirement.payment();
+    let due_at_beginning = false;
+    let check_value_at_retirement = future_value_annuity(rate_before_retire, retire_in, payment, due_at_beginning);
+    dbg!(total_at_retirement, check_value_at_retirement);
+    // Compare this to the total amount at retirement we calculated earlier by working backward from
+    // the amounts needed at the moment of death.
+    assert_approx_equal!(total_at_retirement, check_value_at_retirement);
+
+    // Continuing to work forward and given the total amount at retirement, what retirement income
+    // could be drawn from an investment while still leaving $2.5 million at the end as an
+    // inheritance?
+    let rate = rate_after_retire;
+    let periods = live_how_many_years_after_retirement;
+    let present_value = check_value_at_retirement;
+    let future_value = -total_inheritance;
+    // The retirement income will be taken at the beginning of each year.
+    let due_at_beginning = true;
+    let check_payment_after_retirement = payment_solution(rate, periods, present_value, future_value, due_at_beginning);
+    dbg!(&check_payment_after_retirement);
+    assert_approx_equal!(-retirement_income as f64, check_payment_after_retirement.payment());
 }
