@@ -1,5 +1,7 @@
-//! Periodic rate calculations. Given an initial investment amount, a final amount, and a number of
+//! **Periodic rate calculations.** Given an initial investment amount, a final amount, and a number of
 //! periods such as periods, what does the rate per period need to be?
+//! 
+//! We recommend to use the [`rate_solution()`](./fn.rate_solution.html) function to provide the best experience with debugging and additional features.
 //!
 //! If you need to calculate the future value given a starting value, a number of periods, and one
 //! or more rates use [`future_value`] or related functions.
@@ -233,17 +235,17 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
 /// and future values.
 ///
 /// Related functions:
-/// * To calculate a periodic rate as a simple number use [`rate`].
+/// * To calculate a periodic rate returning an f64 value instead of solution object, use [`rate`](./fn.rate.html).
 ///
-/// Functions to solve for other values:
-/// * To calculate the future value given a present value, a number of periods, and one or more
-/// rates use [`future_value`] or related functions.
-/// * To calculate the present value given a future value, a number of periods, and one or more
-/// rates use [`present_value`] or related functions.
-/// * To calculate the number of periods given a fixed rate and a present and future value use
-/// [`periods`] or related functions.
+// / Functions to solve for other values:
+// / * To calculate the future value given a present value, a number of periods, and one or more
+// / rates use [`future_value`] or related functions.
+// / * To calculate the present value given a future value, a number of periods, and one or more
+// / rates use [`present_value`] or related functions.
+// / * To calculate the number of periods given a fixed rate and a present and future value use
+// / [`periods`] or related functions.
 ///
-/// The formula is:
+/// **The formula:**
 /// > rate = (future_value / present_value)<sup>1 / periods</sup> - 1
 ///
 /// or with the more commonly used variables:
@@ -267,13 +269,12 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F) -> f64
 /// Calculate a periodic rate and examine the period-by-period values.
 /// ```
 /// // The interest will compound for ten periods.
-/// let periods = 10;
-///
 /// // The starting value is $10,000.
-/// let present_value = 10_000.00;
-///
 /// // The ending value is $15,000.
+/// let periods = 10;
+/// let present_value = 10_000.00;
 /// let future_value = 15_000.00;
+///
 ///
 /// // Calculate the periodic rate and create a struct with a record of the
 /// // inputs, a description of the formula, and an option to calculate the
@@ -306,6 +307,9 @@ pub fn rate_solution<P, F>(periods: u32, present_value: P, future_value: F) -> R
     rate_solution_internal(periods, present_value.into(), future_value.into(), false)
 }
 
+/// Returns the **(effective rate)?** of an investment with the continuous compounding. Typically, periods are years and 
+/// therefore the rate this function provides is the **(effective annual rate)?**.
+///
 pub fn rate_continuous<P, F>(periods: u32, present_value: P, future_value: F) -> f64
     where
         P: Into<f64> + Copy,
@@ -314,6 +318,9 @@ pub fn rate_continuous<P, F>(periods: u32, present_value: P, future_value: F) ->
     rate_internal(periods, present_value.into(), future_value.into(), true)
 }
 
+/// Returns a solution object, including the **(effective rate)?** of an investment with the continuous compounding. Typically, periods are years and 
+/// therefore the rate this function provides is the **(effective annual rate)?**.
+///
 pub fn rate_continuous_solution<P, F>(periods: u32, present_value: P, future_value: F) -> RateSolution
     where
         P: Into<f64> + Copy,
