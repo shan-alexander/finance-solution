@@ -144,7 +144,7 @@ impl PaymentSolution {
     {
         println!();
         // print_ab_comparison_values_string("calculated_field", &self.calculated_field().to_string(), &other.calculated_field.to_string());
-        print_ab_comparison_values_float("rate", self.rate(), other.rate(), locale, precision);
+        print_ab_comparison_values_rate("rate", self.rate(), other.rate(), locale, precision);
         print_ab_comparison_values_int("periods", self.periods() as i128, other.periods() as i128, locale);
         print_ab_comparison_values_float("present_value", self.present_value(), other.present_value(), locale, precision);
         print_ab_comparison_values_float("future_value", self.future_value(), other.future_value(), locale, precision);

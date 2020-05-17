@@ -210,10 +210,10 @@ fn try_ab_comparison_table_formatting() {
     let solution_due_at_start = finance::payment_solution(rate, periods, present_value, future_value, true);
     let solution_due_at_end = finance::payment_solution(rate, periods, present_value, future_value, false);
 
-    solution_due_at_start.print_ab_comparison(&solution_due_at_end, true, true, &locale, 0);
-    solution_due_at_start.print_ab_comparison(&solution_due_at_end, true, false, &locale, 2);
-    solution_due_at_start.print_ab_comparison(&solution_due_at_end, false, true, &locale, 4);
-    solution_due_at_start.print_ab_comparison(&solution_due_at_end, false, false, &locale, 6);
+    solution_due_at_start.print_ab_comparison_locale(&solution_due_at_end, true, true, &locale, 0);
+    solution_due_at_start.print_ab_comparison_locale(&solution_due_at_end, true, false, &locale, 2);
+    solution_due_at_start.print_ab_comparison_locale(&solution_due_at_end, false, true, &locale, 4);
+    solution_due_at_start.print_ab_comparison_locale(&solution_due_at_end, false, false, &locale, 6);
 }
 
 fn try_ab_comparison_field_diffs() {

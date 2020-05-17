@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use finance::TimeValueOfMoneySolution;
+
 #[doc(hidden)]
 pub fn main() {
     // try_future_value();
@@ -13,7 +15,7 @@ pub fn main() {
     // try_doc_example_schedule_series();
     // try_find_rate();
     // try_series_print_table();
-    // try_ab_comparison();
+    try_ab_comparison();
     // check_formulas();
     // dbg!(finance::future_value_solution(0.012, 8, 200_000));
     // try_continuous();
@@ -289,6 +291,7 @@ fn try_series_print_table() {
     finance::future_value_schedule_solution(&[0.04, 0.07, 0.06, 0.05], 1_000)
         .print_series_table(&locale, precision);
 }
+*/
 
 fn try_ab_comparison() {
     let locale = finance::num_format::Locale::en;
@@ -312,6 +315,7 @@ fn try_ab_comparison() {
     solution_a.print_ab_comparison(&solution_b, &locale, precision);
 }
 
+/*
 fn check_formulas() {
     let solution = finance::future_value_solution(0.11, 5, 100);
     dbg!(&solution, &solution.series());

@@ -19,7 +19,7 @@ fn main() {
     // verbose::future_value_annuity::main();
     // verbose::net_present_value::main();
     // verbose::nper::main();
-    // verbose::payment::main();
+    verbose::payment::main();
     // verbose::payment_solution::main();
     // verbose::payment_tvm::main();
     // verbose::periods::main();
@@ -27,7 +27,7 @@ fn main() {
     // verbose::present_value::main();
     // verbose::present_value_annuity::main();
     // verbose::rate::main();
-    verbose::tvm_simple::main();
+    // verbose::tvm_simple::main();
     // verbose::tvm_solver::main();
     // verbose::weird_enum_solver::main();
 

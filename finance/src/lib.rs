@@ -380,6 +380,14 @@ pub(crate) fn print_ab_comparison_values_float(field_name: &str, value_a: f64, v
     );
 }
 
+pub(crate) fn print_ab_comparison_values_rate(field_name: &str, value_a: f64, value_b: f64, locale: Option<&num_format::Locale>, precision: Option<usize>) {
+    let precision = Some(match precision {
+        Some(precision) => precision.max(6),
+        None => 6,
+    };
+    print_ab_comparison_values_float(field_name, value_a, value_b, locale, precision);
+}
+
 pub(crate) fn print_ab_comparison_values_bool(field_name: &str, value_a: bool, value_b: bool) {
     print_ab_comparison_values_internal(
         field_name,

@@ -50,6 +50,44 @@ pub trait TimeValueOfMoneySolution {
 
     /// Returns the shared inner structure that holds fields common to any `TimeValueOfMoneySolution`
     /// struct such as [RateSolution](././rate/struct.RateSolution.html) or [PresentValueSolution](././present_value/struct.PresentValueSolution.html).
+    /// # Examples
+    /// Compare equivalent solutions calculated in different ways. The calculations are done using
+    /// [rate_solution](././fn.rate_solution.html), [periods_solution](././fn.periods_solution.html),
+    /// [present_value_solution](././fn.present_value_solution.html), and
+    /// [future_value_solution](././fn.future_value_solution.html).
+    /// ```
+    /// use finance::TimeValueOfMoneySolution;
+    ///
+    /// // Set up inputs for a variety of calculations that should all be equivalent.
+    /// let rate = 0.015;
+    /// let periods = 24;
+    /// let present_value = 10_000.0;
+    /// let future_value = finance::future_value(rate, periods, present_value);
+    ///
+    /// // Create a list of solution structs. For simplicity, instead of holding references to a
+    /// // `RateSolution`, a `PeriodsSolution`, and so on turn each result into a more general
+    /// // `TvmSolution`.
+    /// let list = vec![
+    ///     finance::rate_solution(periods, present_value, future_value).tvm_solution(),
+    ///     finance::periods_solution(rate, present_value, future_value).tvm_solution(),
+    ///     finance::present_value_solution(rate, periods, future_value).tvm_solution(),
+    ///     finance::future_value_solution(rate, periods, present_value).tvm_solution(),
+    /// ];
+    /// dbg!(&list);
+    ///
+    /// // Print the formulas used by the four types of calculations.
+    /// for solution in list.iter() {
+    ///     println!("{}:\n\t{}\n\t{}", solution.calculated_field(), solution.symbolic_formula(), solution.formula());
+    /// }
+    ///
+    /// // An alternative would be to create a vector of references to the solutions.
+    /// let _list: Vec<& dyn TimeValueOfMoneySolution> = vec![
+    ///     &finance::rate_solution(periods, present_value, future_value),
+    ///     &finance::periods_solution(rate, present_value, future_value),
+    ///     &finance::present_value_solution(rate, periods, future_value),
+    ///     &finance::future_value_solution(rate, periods, present_value),
+    /// ];
+    /// ```
     fn tvm_solution(&self) -> TvmSolution;
 
     /// Returns the period-by-period details of this calculation in a form that's shared between
@@ -86,11 +124,18 @@ pub trait TimeValueOfMoneySolution {
 
     fn print_ab_comparison(
         &self,
+        other: &dyn TimeValueOfMoneySolution)
+    {
+        self.tvm_solution().print_ab_comparison(&other.tvm_solution());
+    }
+
+    fn print_ab_comparison_locale(
+        &self,
         other: &dyn TimeValueOfMoneySolution,
         locale: &num_format::Locale,
         precision: usize)
     {
-        self.tvm_solution().print_ab_comparison(&other.tvm_solution(), locale, precision);
+        self.tvm_solution().print_ab_comparison_locale(&other.tvm_solution(), locale, precision);
     }
 }
 
@@ -364,8 +409,12 @@ impl TvmSolution {
         TvmSeries::new(series)
     }
 
-    pub fn print_series_table(&self, locale: &num_format::Locale, precision: usize) {
-        self.series().print_table(locale, precision);
+    pub fn print_series_table(&self) {
+        self.series().print_table();
+    }
+
+    pub fn print_series_table_locale(&self, locale: &num_format::Locale, precision: usize) {
+        self.series().print_table_locale(locale, precision);
     }
 
     /// Returns a variant of [`TvmVariable`] showing which value was calculated, either the periodic
@@ -375,8 +424,9 @@ impl TvmSolution {
     /// # Examples
     /// ```
     /// // Calculate the future value of $25,000 that grows at 5% for 12 yeors.
+    /// use finance::TimeValueOfMoneySolution;
     /// let solution = finance::future_value_solution(0.05, 12, 25_000);
-    /// assert!(solution.calculated_field().is_future_value());
+    /// assert!(solution.tvm_solution().calculated_field().is_future_value());
     /// ```
     pub fn calculated_field(&self) -> &TvmVariable {
         &self.calculated_field
@@ -481,14 +531,30 @@ impl TvmSolution {
 
     pub fn print_ab_comparison(
         &self,
+        other: &TvmSolution)
+    {
+        self.print_ab_comparison_internal(other, None, None);
+    }
+
+    pub fn print_ab_comparison_locale(
+        &self,
         other: &TvmSolution,
         locale: &num_format::Locale,
         precision: usize)
     {
+        self.print_ab_comparison_internal(other, Some(locale), Some(precision));
+    }
+
+    fn print_ab_comparison_internal(
+        &self,
+        other: &TvmSolution,
+        locale: Option<&num_format::Locale>,
+        precision: Option<usize>)
+    {
         println!();
         print_ab_comparison_values_string("calculated_field", &self.calculated_field.to_string(), &other.calculated_field.to_string());
         print_ab_comparison_values_bool("continuous_compounding", self.continuous_compounding, other.continuous_compounding);
-        print_ab_comparison_values_float("rate", self.rate, other.rate, locale, 6);
+        print_ab_comparison_values_rate("rate", self.rate, other.rate, locale, precision);
         print_ab_comparison_values_int("periods", self.periods as i128, other.periods as i128, locale);
         if self.calculated_field.is_periods() {
             print_ab_comparison_values_float("fractional_periods", self.fractional_periods, other.fractional_periods, locale, precision);
@@ -498,7 +564,7 @@ impl TvmSolution {
         print_ab_comparison_values_string("formula", &self.formula, &other.formula);
         print_ab_comparison_values_string("symbolic_formula", &self.symbolic_formula, &other.symbolic_formula);
 
-        self.series().print_ab_comparison(&other.series(), locale, precision);
+        self.series().print_ab_comparison_internal(&other.series(), locale, precision);
     }
 }
 
@@ -592,19 +658,43 @@ impl TvmSeries {
         }
     }
 
-    pub fn print_table(&self, locale: &num_format::Locale, precision: usize) {
+    pub fn print_table(&self) {
+        self.print_table_internal(None, None);
+    }
+
+    pub fn print_table_locale(&self, locale: &num_format::Locale, precision: usize) {
+        self.print_table_internal(Some(locale), Some(precision));
+    }
+
+    fn print_table_internal(&self, locale: Option<&num_format::Locale>, precision: Option<usize>) {
         let columns = vec![("period", "i", true), ("rate", "f", true), ("value", "f", true)];
-        let mut data = self.iter()
+        let data = self.iter()
             .map(|entry| vec![entry.period.to_string(), entry.rate.to_string(), entry.value.to_string()])
             .collect::<Vec<_>>();
-        print_table_locale(&columns, &mut data, locale, precision);
+        print_table_locale_opt(&columns, data, locale, precision);
     }
 
     pub fn print_ab_comparison(
         &self,
+        other: &TvmSeries)
+    {
+        self.print_ab_comparison_internal(other, None, None);
+    }
+
+    pub fn print_ab_comparison_locale(
+        &self,
         other: &TvmSeries,
         locale: &num_format::Locale,
         precision: usize)
+    {
+        self.print_ab_comparison_internal(other, Some(locale), Some(precision))
+    }
+
+    fn print_ab_comparison_internal(
+        &self,
+        other: &TvmSeries,
+        locale: Option<&num_format::Locale>,
+        precision: Option<usize>)
     {
         let columns = vec![("period", "i", true),
                            ("rate_a", "f", true), ("rate_b", "f", true),
@@ -620,7 +710,7 @@ impl TvmSeries {
                 other.get(row_index).map_or("".to_string(), |x| x.value.to_string()),
             ]);
         }
-        print_table_locale(&columns, &mut data, locale, precision);
+        print_table_locale_opt(&columns, data, locale, precision);
     }
 
 }

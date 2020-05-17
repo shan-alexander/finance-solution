@@ -325,12 +325,21 @@ impl NpvSeries {
             0: self.iter().filter(|x| predicate(x)).map(|x| x.clone()).collect()
         }
     }
-    pub fn print_table(&self, locale: &num_format::Locale, precision: usize) {
+
+    pub fn print_table(&self) {
+        self.print_table_locale_opt(None, None);
+    }
+
+    pub fn print_table_locale(&self, locale: &num_format::Locale, precision: usize) {
+        self.print_table_locale_opt(Some(locale), Some(precision));
+    }
+
+    fn print_table_locale_opt(&self, locale: Option<&num_format::Locale>, precision: Option<usize>) {
         let columns = vec![("period", "i", true), ("rate", "f", true), ("present_value", "f", true), ("future_value", "f", true), ("investment_value", "f", true)];
         let mut data = self.iter()
             .map(|entry| vec![entry.period.to_string(), entry.rate.to_string(), entry.present_value.to_string(), entry.future_value.to_string(), entry.investment_value.to_string()])
             .collect::<Vec<_>>();
-        print_table_locale(&columns, &mut data, locale, precision);
+        print_table_locale_opt(&columns, data, locale, precision);
     }
 
     pub fn print_ab_comparison(

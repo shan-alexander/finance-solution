@@ -38,7 +38,7 @@ pub fn main() {
     let npv = net_present_value_schedule_solution(&rates, &cashflows);
     dbg!(&npv);
     let series_ = npv.series();
-    dbg!(&series_.print_table(&Locale::en, 4));
+    dbg!(&series_.print_table_locale(&Locale::en, 4));
     
     // filter example
     series_.filter(|x| x.investment_value() < 0.0 ).print_table(&Locale::en, 4);

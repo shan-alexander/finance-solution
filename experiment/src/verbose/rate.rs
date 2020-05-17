@@ -78,12 +78,12 @@ fn try_doc_example_series_1() {
 
     // Print the period-by-period details in a formatted table using 2 decimal places.
     let locale = finance::num_format::Locale::en;
-    series.print_table(&locale, 2);
+    series.print_table_locale(&locale, 2);
 
     // Print only the periods where the value has grown to at least $120,000.
     series
-        .filter(|entry| entry.value >= 120_000.0)
-        .print_table(&locale, 4);
+        .filter(|entry| entry.value() >= 120_000.0)
+        .print_table_locale(&locale, 4);
 }
 
 fn check_formulas() {
