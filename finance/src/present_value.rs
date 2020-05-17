@@ -1,14 +1,18 @@
-//! Present value calculations. Given a final amount, a number of periods such as years, and fixed
+//! **Present value calculations.** Given a final amount, a number of periods such as years, and fixed
 //! or varying interest rates, what is the current value?
 //!
-//! If you need to calculate the future value given a present value, a number of periods, and one
-//! or more rates use [`future_value`] or related functions.
-//!
-//! If you need to calculate a fixed rate given a present value, future value, and number of periods
-//! use [`rate`] or related functions.
-//!
-//! If you need to calculate the number of periods given a fixed rate and a present and future value
-//! use [`periods`] or related functions.
+//! For most common usages, we recommend to use the [`present_value_solution`](./fn.present_value_solution.html) function to provide a better debugging experience and additional features.
+//! 
+//! If you have a more complicated use case which has varying rates per period, use the [`present_value_schedule_solution`](./fn.present_value_schedule_solution.html) function.
+//! 
+// ! If you need to calculate the future value given a present value, a number of periods, and one
+// ! or more rates use [`future_value`] or related functions.
+// !
+// ! If you need to calculate a fixed rate given a present value, future value, and number of periods
+// ! use [`rate`] or related functions.
+// !
+// ! If you need to calculate the number of periods given a fixed rate and a present and future value
+// ! use [`periods`] or related functions.
 
 use log::warn;
 
@@ -19,7 +23,7 @@ use crate::tvm_simple::*;
 use crate::{future_value::future_value, rate::rate, periods::periods};
 use std::ops::Deref;
 
-/// A record of a call to [`present_value_solution`], a Present Value calculation where the rate is
+/// A record of a call to [`present_value_solution`](./fn.present_value_solution.html), a Present Value calculation where the rate is
 /// fixed. The structure shows details such as the formula and can calculate the period-by-period
 /// details.
 #[derive(Clone, Debug)]
@@ -27,13 +31,13 @@ pub struct PresentValueSolution {
     tvm_solution: TvmSolution
 }
 
-/// A record of a call to [`present_value_schedule`], a Present Value calculation where the rate may
+/// A record of a call to [`present_value_schedule`](./fn.present_value_schedule.html), a Present Value calculation where the rate may
 /// vary for each period. The structure can calculate the period-by-period details.
 #[derive(Clone, Debug)]
 pub struct PresentValueSchedule(TvmSchedule);
 
 /// The period-by-period details of a Present Value calculation. This is the result of a call to
-/// ['PresentValueSolution::series`] if the rate is fixed or a call to
+/// [`PresentValueSolution::series`] if the rate is fixed or a call to
 /// [`PresentValueSchedule::series`] if the rate may vary for each period.
 #[derive(Clone, Debug)]
 pub struct PresentValueSeries(TvmSeries);
@@ -296,10 +300,10 @@ impl Into<TvmSeries> for PresentValueSeries {
 ///
 /// Related functions:
 /// * To calculate a present value with a fixed rate and return a struct that shows the formula and
-/// optionally produces the the period-by-period values use [`present_value_solution`].
-/// * To calculate the present value if the rates vary by period use [`present_value_schedule`].
+/// optionally produces the the period-by-period values use [`present_value_solution`](./fn.present_value_solution.html).
+/// * To calculate the present value if the rates vary by period use [`present_value_schedule`](./fn.present_value_schedule.html).
 /// * To calculate the present value with varying rates and return a struct that can produce the
-/// period-by-period values use [`present_value_schedule_solution`].
+/// period-by-period values use [`present_value_schedule_solution`](./fn.present_value_schedule_solution.html).
 ///
 /// The present value formula is:
 /// > present_value = future_value / (1 + rate)<sup>periods</sup>
@@ -357,10 +361,10 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T) -> f64
 /// financial scenarios so that they can be examined later.
 ///
 /// Related functions:
-/// * For simply calculating a single present value using a fixed rate use [`present_value`].
-/// * To calculate the present value if the rates vary by period use [`present_value_schedule`].
+/// * For simply calculating a single present value using a fixed rate use [`present_value`](./fn.present_value.html).
+/// * To calculate the present value if the rates vary by period use [`present_value_schedule`](./fn.present_value_schedule.html).
 /// * To calculate the present value with varying rates and return a struct that can produce the
-/// period-by-period values use [`present_value_schedule_solution`].
+/// period-by-period values use [`present_value_schedule_solution`](./fn.present_value_schedule_solution.html).
 ///
 /// The present value formula is:
 /// > present_value = future_value / (1 + rate)<sup>periods</sup>
@@ -482,11 +486,11 @@ pub fn present_value_continuous_solution<T>(rate: f64, periods: u32, future_valu
 /// Calculates a present value based on rates that change for each period.
 ///
 /// Related functions:
-/// * For simply calculating a single present value using a fixed rate use [`present_value`].
+/// * For simply calculating a single present value using a fixed rate use [`present_value`](./fn.present_value.html).
 /// * To calculate a present value with a fixed rate and return a struct that shows the formula and
-/// optionally produces the the period-by-period values use [`present_value_solution`].
+/// optionally produces the the period-by-period values use [`present_value_solution`](./fn.present_value_solution.html).
 /// * To calculate the present value with varying rates and return a struct that can produce the
-/// period-by-period values use [`present_value_schedule_solution`].
+/// period-by-period values use [`present_value_schedule_solution`](./fn.present_value_schedule_solution.html).
 ///
 /// The present value formula is:
 ///
@@ -538,10 +542,10 @@ pub fn present_value_schedule<T>(rates: &[f64], future_value: T) -> f64
 /// with the inputs and the calculated value.
 ///
 /// Related functions:
-/// * For simply calculating a single present value using a fixed rate use [`present_value`].
+/// * For simply calculating a single present value using a fixed rate use [`present_value`](./fn.present_value.html).
 /// * To calculate a present value with a fixed rate and return a struct that shows the formula and
-/// optionally produces the the period-by-period values use [`present_value_solution`].
-/// * To calculate the present value if the rates vary by period use [`present_value_schedule`].
+/// optionally produces the the period-by-period values use [`present_value_solution`](./fn.present_value_solution.html).
+/// * To calculate the present value if the rates vary by period use [`present_value_schedule`](./fn.present_value_schedule.html).
 ///
 /// The present value formula is:
 ///

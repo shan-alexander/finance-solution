@@ -1,16 +1,16 @@
 //! **Periodic rate calculations.** Given an initial investment amount, a final amount, and a number of
 //! periods such as periods, what does the rate per period need to be?
 //! 
-//! We recommend to use the [`rate_solution()`](./fn.rate_solution.html) function to provide the best experience with debugging and additional features.
+//! For most common usages, we recommend to use the [`rate_solution`](./fn.rate_solution.html) function to provide the best experience with debugging and additional features.
 //!
-//! If you need to calculate the future value given a starting value, a number of periods, and one
-//! or more rates use [`future_value`] or related functions.
-//!
-//! If you need to calculate the present value given a future value, a number of periods, and one
-//! or more rates use [`present_value`] or related functions.
-//!
-//! If you need to calculate the number of periods given a fixed rate and a present and future value
-//! use [`periods`] or related functions.
+// ! If you need to calculate the future value given a starting value, a number of periods, and one
+// ! or more rates use [`future_value`] or related functions.
+// !
+// ! If you need to calculate the present value given a future value, a number of periods, and one
+// ! or more rates use [`present_value`] or related functions.
+// !
+// ! If you need to calculate the number of periods given a fixed rate and a present and future value
+// ! use [`periods`] or related functions.
 
 // use log::warn;
 

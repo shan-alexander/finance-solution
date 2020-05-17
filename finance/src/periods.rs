@@ -1,14 +1,16 @@
-//! Number of periods calculations. Given a periodic rate and an initial and final amount, find the
-//! number of periods needed.
+//! **Number of periods calculations.** Given a periodic rate, present value, and future value, find the
+//! number of periods needed to satisfy the equation.
+//! 
+//! For most common usages, we recommend to use the ['periods_solution'](fn.periods_solution.html) function.
 //!
-//! If you need to calculate a fixed rate given a present value, future value, and number of periods
-//! use [`rate`] or related functions.
-//!
-//! If you need to calculate the future value given a starting value, a number of periods, and one
-//! or more rates use [`future_value`] or related functions.
-//!
-//! If you need to calculate the present value given a future value, a number of periods, and one
-//! or more rates use [`present_value`] or related functions.
+// ! If you need to calculate a fixed rate given a present value, future value, and number of periods
+// ! use [`rate`] or related functions.
+// !
+// ! If you need to calculate the future value given a starting value, a number of periods, and one
+// ! or more rates use [`future_value`] or related functions.
+// !
+// ! If you need to calculate the present value given a future value, a number of periods, and one
+// ! or more rates use [`present_value`] or related functions.
 
 // use log::warn;
 
@@ -143,13 +145,13 @@ impl Into<TvmSeries> for PeriodsSeries {
 /// * To calculate a periodic rate and return a struct that shows the formula and optionally
 /// produces the the period-by-period values use [`periods_solution`].
 ///
-/// Functions to solve for other values:
-/// * To calculate the future value given a present value, a number of periods, and one or more
-/// rates use [`future_value`] or related functions.
-/// * To calculate the present value given a future value, a number of periods, and one or more
-/// rates use [`present_value`] or related functions.
-/// * To calculate a fixed rate given a present value, future value, and number of periods use
-/// [`rate`] or related functions.
+// / Functions to solve for other values:
+// / * To calculate the future value given a present value, a number of periods, and one or more
+// / rates use [`future_value`] or related functions.
+// / * To calculate the present value given a future value, a number of periods, and one or more
+// / rates use [`present_value`] or related functions.
+// / * To calculate a fixed rate given a present value, future value, and number of periods use
+// / [`rate`] or related functions.
 ///
 /// The formula is:
 /// > periods = log<sub>(1 + rate)</sub> (future_value / present_value)
