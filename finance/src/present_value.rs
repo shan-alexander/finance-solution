@@ -104,8 +104,12 @@ impl PresentValueSolution {
         PresentValueSeries::new(TvmSeries::new(series))
     }
 
-    pub fn print_series_table(&self, locale: &num_format::Locale, precision: usize) {
-        self.series().print_table(locale, precision);
+    pub fn print_series_table(&self) {
+        self.series().print_table();
+    }
+
+    pub fn print_series_table_locale(&self, locale: &num_format::Locale, precision: usize) {
+        self.series().print_table_locale(locale, precision);
     }
 
     /// Returns true if the value is compounded continuously rather than period-by-period.
@@ -118,7 +122,7 @@ impl PresentValueSolution {
         self.tvm_solution.rate()
     }
 
-    /// Returns the number of periods that were given as an input to the present_value calculation.
+    /// Returns the number of periods that were given as an input to the present value calculation.
     /// In the rare case where the number of periods might not be a whole number use
     /// [fractional_periods](./struct.PresentValueSolution.html#method.fractional_periods).
     pub fn periods(&self) -> u32 {
@@ -151,9 +155,9 @@ impl PresentValueSolution {
         &self.tvm_solution.formula()
     }
 
-    /// Returns a text version of the formula used to calculate the present value. The formula uses variables
-    /// such as "n" for the number of periods. For the formula with the actual values rather than
-    /// variables call [formula](./struct.PresentValueSolution.html#method.formula).
+    /// Returns a text version of the formula used to calculate the present value. The formula uses
+    /// variables such as "n" for the number of periods. For the formula with the actual values
+    /// rather than variables call [formula](./struct.PresentValueSolution.html#method.formula).
     pub fn symbolic_formula(&self) -> &str {
         &self.tvm_solution.symbolic_formula()
     }
@@ -234,8 +238,12 @@ impl PresentValueSchedule {
         PresentValueSeries::new(TvmSeries::new(series))
     }
 
-    pub fn print_series_table(&self, locale: &num_format::Locale, precision: usize) {
-        self.series().print_table(locale, precision);
+    pub fn print_series_table(&self) {
+        self.series().print_table();
+    }
+
+    pub fn print_series_table_locale(&self, locale: &num_format::Locale, precision: usize) {
+        self.series().print_table_locale(locale, precision);
     }
 
     pub fn tvm_solution(&self) -> TvmSchedule {

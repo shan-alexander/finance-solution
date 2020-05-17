@@ -41,14 +41,14 @@ pub fn main() {
     dbg!(&series_.print_table_locale(&Locale::en, 4));
     
     // filter example
-    series_.filter(|x| x.investment_value() < 0.0 ).print_table(&Locale::en, 4);
+    series_.filter(|x| x.investment_value() < 0.0 ).print_table_locale(&Locale::en, 4);
     
     // example 2
     let cashflows_2 = vec![-8000, 2000,2500,2500,1500];
     let npv_2 = net_present_value_schedule_solution(&rates, &cashflows_2);
     
     //compare 1 & 2
-    dbg!(&series_.print_ab_comparison(&npv_2.series(), &Locale::en, 4));
+    dbg!(&series_.print_ab_comparison_locale(&npv_2.series(), &Locale::en, 4));
 
     dbg!(&npv_2.max_discounted_cashflow());
     dbg!(&npv_2.series().max_discounted_cashflow());

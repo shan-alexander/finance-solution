@@ -131,10 +131,10 @@ impl PaymentSolution {
         locale: &num_format::Locale,
         precision: usize)
     {
-        self.print_ab_comparison_internal(other, include_running_totals, include_remaining_amounts, Some(locale), Some(precision));
+        self.print_ab_comparison_locale_opt(other, include_running_totals, include_remaining_amounts, Some(locale), Some(precision));
     }
 
-    fn print_ab_comparison_internal(
+    fn print_ab_comparison_locale_opt(
         &self,
         other: &PaymentSolution,
         include_running_totals: bool,
@@ -155,7 +155,7 @@ impl PaymentSolution {
         print_ab_comparison_values_string("formula", &self.formula(), &other.formula());
         print_ab_comparison_values_string("symbolic_formula", &self.symbolic_formula(), &other.symbolic_formula());
 
-        self.series().print_ab_comparison_internal(&other.series(), include_running_totals, include_remaining_amounts, locale, precision);
+        self.series().print_ab_comparison_locale_opt(&other.series(), include_running_totals, include_remaining_amounts, locale, precision);
     }
 
     fn invariant(&self) {

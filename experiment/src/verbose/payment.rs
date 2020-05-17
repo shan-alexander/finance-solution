@@ -10,11 +10,11 @@ pub fn main() {
     // try_test_against_excel_ipmt_month_1();
     // try_test_against_excel_ipmt_month_2();
     // try_ab_comparison_table_formatting();
-    // try_ab_comparison_field_diffs();
+    try_ab_comparison_field_diffs();
     // try_payment_doc_example_1();
     // try_payment_due_doc_example_1();
     // try_payment_solution_doc_example_1();
-    try_payment_series_doc_example_1();
+    // try_payment_series_doc_example_1();
     // generate_scenarios_for_excel();
     // find_numerator_failures();
     // find_calculation_failure_curve();
@@ -217,8 +217,8 @@ fn try_ab_comparison_table_formatting() {
 }
 
 fn try_ab_comparison_field_diffs() {
-    let locale = finance::num_format::Locale::en;
-    let precision = 2;
+    let locale_en = finance::num_format::Locale::en;
+    let locale_vi = finance::num_format::Locale::vi;
 
     let years = 1;
     let rate = 0.11 / 12.0;
@@ -228,7 +228,10 @@ fn try_ab_comparison_field_diffs() {
     let solution_a = finance::payment_solution(rate, periods, present_value + 1_000.0, future_value, false);
     let solution_b = finance::payment_solution(rate, periods -3, present_value, future_value, false);
 
-    solution_a.print_ab_comparison(&solution_b, true, true, &locale, precision);
+    // Try the comparison with two different locales and with the default Rust-style formatting.
+    solution_a.print_ab_comparison_locale(&solution_b, true, true, &locale_en, 2);
+    solution_a.print_ab_comparison_locale(&solution_b, true, true, &locale_vi, 4);
+    solution_a.print_ab_comparison(&solution_b, true, true);
 }
 
 fn try_payment_doc_example_1() {
@@ -314,7 +317,7 @@ fn try_payment_solution_doc_example_1() {
     // Show all columns including running totals and remaining amounts.
     let include_running_totals = true;
     let include_remaining_amounts = true;
-    series.print_table(include_running_totals, include_remaining_amounts, &finance::num_format::Locale::en, 2);
+    series.print_table_locale(include_running_totals, include_remaining_amounts, &finance::num_format::Locale::en, 2);
 
     // Print a table with only the last period of each year, that is all of the periods that can be
     // divided by 12. Include the running totals columns but not remaining amounts.
@@ -322,7 +325,7 @@ fn try_payment_solution_doc_example_1() {
     let include_remaining_amounts = false;
     series
         .filter(|entry| entry.period() % 12 == 0)
-        .print_table(include_running_totals, include_remaining_amounts, &finance::num_format::Locale::en, 2);
+        .print_table_locale(include_running_totals, include_remaining_amounts, &finance::num_format::Locale::en, 2);
 
     // Print a table starting at the first period where at least 95% of the interest has been paid
     // off, and round all dollar amounts to whole numbers by passing zero as the second argument to
@@ -331,7 +334,7 @@ fn try_payment_solution_doc_example_1() {
     let include_remaining_amounts = true;
     series
         .filter(|entry| entry.interest_to_date() >= solution.sum_of_interest() * 0.95)
-        .print_table(include_running_totals, include_remaining_amounts, &finance::num_format::Locale::en, 0);
+        .print_table_locale(include_running_totals, include_remaining_amounts, &finance::num_format::Locale::en, 0);
 }
 
 fn try_payment_series_doc_example_1() {
@@ -369,13 +372,13 @@ fn try_payment_series_doc_example_1() {
     let include_remaining_amounts = true;
     let locale = finance::num_format::Locale::en;
     let precision = 2; // Two decimal places.
-    series.print_table(include_running_totals, include_remaining_amounts, &locale, precision);
+    series.print_table_locale(include_running_totals, include_remaining_amounts, &locale, precision);
 
     // As above but print only the last period for every yeor of the loan, that is periods 12, 24,
     // 36, 48, and 60.
     series
         .filter(|x| x.period() % 12 == 0)
-        .print_table(include_running_totals, include_remaining_amounts, &locale, precision);
+        .print_table_locale(include_running_totals, include_remaining_amounts, &locale, precision);
 }
 
 fn generate_scenarios_for_excel() {
@@ -522,16 +525,16 @@ fn show_payment_series_rounding_issue() {
     dbg!(&solution);
     let series = solution.series();
     // finance::print_series_table(&series, precision);
-    series.print_table(true, true, &locale, precision);
+    series.print_table_locale(true, true, &locale, precision);
 
     finance::payment_solution(rate, periods, present_value, future_value, false)
         .series()
-        .print_table(true, false, &locale, precision);
+        .print_table_locale(true, false, &locale, precision);
 
     finance::payment_solution(rate, periods, present_value, future_value, false)
         .series()
         .filter(|x| x.period() % 4 == 0)
-        .print_table(false, true, &locale, precision);
+        .print_table_locale(false, true, &locale, precision);
 
     /*
     let periods = 1_200;

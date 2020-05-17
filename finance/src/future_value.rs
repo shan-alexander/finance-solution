@@ -48,11 +48,15 @@ impl FutureValueSolution {
     pub fn series(&self) -> FutureValueSeries {
         // For a rate, periods, or future value calculation the the period-by-period values are
         // calculated the same way.
-        FutureValueSeries::new(self.0.series())
+        FutureValueSeries::new(self.tvm_solution.series())
     }
 
-    pub fn print_series_table(&self, locale: &num_format::Locale, precision: usize) {
-        self.series().print_table(locale, precision);
+    pub fn print_series_table(&self) {
+        self.series().print_table();
+    }
+
+    pub fn print_series_table_locale(&self, locale: &num_format::Locale, precision: usize) {
+        self.series().print_table_locale(locale, precision);
     }
 
     /// Returns true if the value is compounded continuously rather than period-by-period.
@@ -67,40 +71,41 @@ impl FutureValueSolution {
 
     /// Returns the number of periods that were given as an input to the future value calculation.
     /// In the rare case where the number of periods might not be a whole number use
-    /// [fractional_periods](./struct.PresentValueSolution.html#method.fractional_periods).
+    /// [fractional_periods](./struct.FutureValueSolution.html#method.fractional_periods).
     pub fn periods(&self) -> u32 {
         self.tvm_solution.periods()
     }
 
     /// Returns the number of periods as a floating point number. Most of the time this is unneeded
     /// and it's better to use [periods](./struct.PresentValueSolution.html#method.periods) which is an integer. The floating point number is relevant
-    /// only in the unusual case where the current `PresentValueSolution` was created by starting
-    /// with a period calculation, then transforming it into a present value calculation with a call
-    /// to [TvmSolution::present_value_solution](./struct.TvmSolution.html#method.present_value_solution).
+    /// only in the unusual case where the current `FutureValueSolution` was created by starting
+    /// with a period calculation, then transforming it into a future value calculation with a call
+    /// to [TvmSolution::future_value_solution](./struct.TvmSolution.html#method.future_value_solution).
     pub fn fractional_periods(&self) -> f64 {
         self.tvm_solution.fractional_periods()
     }
 
-    /// Returns the calculated present value based on the provided rate, periods, and future value.
+    /// Returns the present value that was given as an input to the future value calculation.
     pub fn present_value(&self) -> f64 {
         self.tvm_solution.present_value()
     }
 
-    /// Returns the future value that was given as an input to the present value calculation.
+    /// Returns the future value that was calculated based on the provided rate, periods, and
+    /// present value.
     pub fn future_value(&self) -> f64 {
         self.tvm_solution.future_value()
     }
 
-    /// Returns a text version of the formula used to calculate the present value. The formula
+    /// Returns a text version of the formula used to calculate the future value. The formula
     /// includes the actual values rather than variable names. For the formula with variables such
-    /// as "n" for periods call [symbolic_formula](./struct.PresentValueSolution.html#method.symbolic_formula).
+    /// as "n" for periods call [symbolic_formula](./struct.FutureValueSolution.html#method.symbolic_formula).
     pub fn formula(&self) -> &str {
         &self.tvm_solution.formula()
     }
 
-    /// Returns a text version of the formula used to calculate the present value. The formula uses variables
-    /// such as "n" for the number of periods. For the formula with the actual values rather than
-    /// variables call [formula](./struct.PresentValueSolution.html#method.formula).
+    /// Returns a text version of the formula used to calculate the future value. The formula uses
+    /// variables such as "r" for the rate. For the formula with the actual values rather than
+    /// variables call [formula](./struct.FutureValueSolution.html#method.formula).
     pub fn symbolic_formula(&self) -> &str {
         &self.tvm_solution.symbolic_formula()
     }
@@ -159,8 +164,12 @@ impl FutureValueSchedule {
         FutureValueSeries::new(TvmSeries::new(series))
     }
 
-    pub fn print_series_table(&self, locale: &num_format::Locale, precision: usize) {
-        self.series().print_table(locale, precision);
+    pub fn print_series_table(&self) {
+        self.series().print_table();
+    }
+
+    pub fn print_series_table_locale(&self, locale: &num_format::Locale, precision: usize) {
+        self.series().print_table_locale(locale, precision);
     }
 
     pub fn tvm_solution(&self) -> TvmSchedule {

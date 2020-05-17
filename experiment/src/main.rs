@@ -15,11 +15,11 @@ fn main() {
     // verbose::convert_rates::main();
     // verbose::examples_1::main();
     // verbose::find_rate::main();
-    // verbose::future_value::main();
+    verbose::future_value::main();
     // verbose::future_value_annuity::main();
     // verbose::net_present_value::main();
     // verbose::nper::main();
-    verbose::payment::main();
+    // verbose::payment::main();
     // verbose::payment_solution::main();
     // verbose::payment_tvm::main();
     // verbose::periods::main();

@@ -1,5 +1,5 @@
-//! Periodic rate calculations. Given an initial investment amount, a final amount, and a a number
-//! of periods such as periods, what does the rate per period need to be?
+//! Periodic rate calculations. Given an initial investment amount, a final amount, and a number of
+//! periods such as periods, what does the rate per period need to be?
 //!
 //! If you need to calculate the future value given a starting value, a number of periods, and one
 //! or more rates use [`future_value`] or related functions.
@@ -16,23 +16,26 @@ use crate::tvm_simple::*;
 
 // Needed for the Rustdoc comments.
 #[allow(unused_imports)]
-use crate::{future_value::future_value, present_value::present_value, periods::periods};
+use crate::*;
 use std::ops::Deref;
 
 /// A record of a call to [rate_solution](./fn.rate_solution.html). The structure shows details such as the formula and
 /// can calculate the period-by-period details.
 #[derive(Clone, Debug)]
-pub struct RateSolution(TvmSolution);
+pub struct RateSolution {
+    tvm_solution: TvmSolution,
+}
 
-/// The period-by-period details of a Rate calculation. This is the result of a call to
-/// [RateSolution::series](./struct.RateSolution#method.series.html).
+/// The period-by-period details of a rate calculation. This is the result of a call to
+/// [RateSolution::series](./struct.RateSolution.html#method.series).
 #[derive(Clone, Debug)]
 pub struct RateSeries(TvmSeries);
 
 impl RateSolution {
-    fn new (solution: TvmSolution) -> Self {
+    fn new(tvm_solution: TvmSolution) -> Self {
+        assert!(tvm_solution.calculated_field().is_rate());
         Self {
-            0: solution,
+            tvm_solution,
         }
     }
 
@@ -41,162 +44,106 @@ impl RateSolution {
     /// # Examples
     /// A rate calculation with simple compounding using [rate_solution](./fn.rate_solution.html).
     /// ```
-    /// // The initial investment is $10,000.12.
-    /// let present_value = 10_000.12;
-    ///
-    /// // The interest rate is 1.5% per month.
-    /// let interest_rate = 0.015;
-    ///
-    /// // The investment will grow for 24 months.
+    /// // The interest will compound monthly for two years.
     /// let periods = 24;
     ///
-    /// // Calculate the overall solution including the future value.
-    /// let solution = finance::future_value_solution(interest_rate, periods, present_value);
+    /// // The starting value is $100,000.
+    /// let present_value = 100_000.00;
+    ///
+    /// // The ending value is $15,000.
+    /// let future_value = 125_000.00;
+    ///
+    /// // Calculate the periodic rate and create a struct that supports further operations.
+    /// let solution = finance::rate_solution(periods, present_value, future_value);
     /// dbg!(&solution);
     ///
-    /// // Calculate the value at the end of each period.
+    /// // Calculate the period-by-period values.
     /// let series = solution.series();
     /// dbg!(&series);
     ///
-    /// // Confirm that we have one entry for the initial value and one entry for each period.
-    /// assert_eq!(25, series.len());
+    /// // Print the period-by-period details in a formatted table using 2 decimal places.
+    /// let locale = finance::num_format::Locale::en;
+    /// series.print_table_locale(&locale, 2);
     ///
-    /// // Create a reduced vector with every fourth period.
-    /// let filtered_series = series
-    ///     .iter()
-    ///     .filter(|x| x.period() % 4 == 0)
-    ///     .collect::<Vec<_>>();
-    /// dbg!(&filtered_series);
-    /// assert_eq!(7, filtered_series.len());
-    /// ```
-    /// Calculate the future value of an investment whose rates vary by year, then find the point
-    /// where the value passes a certain threshold. Uses [`future_value_schedule`].
-    /// ```
-    /// // The rates vary by year: 11.6% followed by 13.4%, 9%, and 8.6%.
-    /// let rates = [0.116, 0.134, -0.09, 0.086];
-    ///
-    /// // The initial investment is $50,000.
-    /// let present_value = 50_000.00;
-    ///
-    /// // Calculate the future value and create a struct with all of the variables
-    /// // and the formula used.
-    /// let solution = finance::future_value_schedule_solution(&rates, present_value);
-    /// dbg!(&solution);
-    /// finance::assert_rounded_4(62534.3257, solution.future_value());
-    ///
-    /// // Calculate the value at the end of each period.
-    /// let series = solution.series();
-    /// dbg!(&series);
-    ///
-    /// // Confirm that there are four periods corresponding to the four interest
-    /// // rates as well as one more for period 0 representing the initial value.
-    /// assert_eq!(5, series.len());
-    ///
-    /// // Confirm that the value of the fourth period is the same as the overall
-    /// // future value.
-    /// finance::assert_rounded_4(solution.future_value(), series.last().unwrap().value());
-    ///
-    /// // Find the first period where the value of the investment was at least
-    /// // $60,000.
-    /// let period = series.iter().find(|x| x.value() >= 60_000.00);
-    /// dbg!(&period);
-    /// assert_eq!(2, period.unwrap().period());
-    /// ```
-    /// Calculate a present value with a fixed rate then examine the period-by-period values. Uses
-    /// [`present_value_solution`].
-    /// ```
-    /// // The interest rate is 7.8% per year.
-    /// let interest_rate = 0.078;
-    ///
-    /// // The investment will grow for 10 years.
-    /// let periods = 10;
-    ///
-    /// // The final value is $8112.75.
-    /// let future_value = 8_112.75;
-    ///
-    /// // Calculate the present value.
-    /// let solution = finance::present_value_solution(interest_rate, periods, future_value);
-    /// dbg!(&solution);
-    ///
-    /// // Calculate the value at the end of each period.
-    /// let series = solution.series();
-    /// dbg!(&series);
-    ///
-    /// // Confirm that we have one entry for the present value, that is the
-    /// // initial value before any interest is applied, and one entry for each
-    /// // period.
-    /// assert_eq!(11, series.len());
-    ///
-    /// // Create a reduced vector with every other period not including period 0,
-    /// // the initial state.
-    /// let filtered_series = series
-    ///     .iter()
-    ///     .filter(|x| x.period() % 2 == 0 && x.period() != 0)
-    ///     .collect::<Vec<_>>();
-    /// dbg!(&filtered_series);
-    /// assert_eq!(5, filtered_series.len());
-    /// ```
-    /// Calculate a present value with varying rates then examine the period-by-period values. Uses
-    /// [`present_value_schedule`].
-    /// ```
-    /// // The annual rate varies from -12% to 11%.
-    /// let rates = [0.04, 0.07, -0.12, -0.03, 0.11];
-    ///
-    /// // The value of the investment after applying all of these periodic rates
-    /// // will be $100_000.25.
-    /// let future_value = 100_000.25;
-    ///
-    /// // Calculate the present value and keep track of the inputs and the formula
-    /// // in a struct.
-    /// let solution = finance::present_value_schedule_solution(&rates, future_value);
-    /// dbg!(&solution);
-    ///
-    /// // Calculate the value at the end of each period.
-    /// let series = solution.series();
-    /// dbg!(&series);
-    /// // There is one entry for each period and one entry for period 0 containing
-    /// // the present value.
-    /// assert_eq!(6, series.len());
-    ///
-    /// // Create a filtered list of periods, only those with a negative rate.
-    /// let filtered_series = series
-    ///     .iter()
-    ///     .filter(|x| x.rate() < 0.0)
-    ///     .collect::<Vec<_>>();
-    /// dbg!(&filtered_series);
-    /// assert_eq!(2, filtered_series.len());
+    /// // Print only the periods where the value has grown to at least $120,000, and use default
+    /// // formatting for the numbers.
+    /// series
+    ///     .filter(|entry| entry.value() >= 120_000.0)
+    ///     .print_table();
     /// ```
     pub fn series(&self) -> RateSeries {
         // For a rate, periods, or future value calculation the the period-by-period values are
-        // calculated the same way
-        RateSeries::new(self.0.series())
+        // calculated the same way.
+        RateSeries::new(self.tvm_solution.series())
     }
 
-    pub fn print_series_table(&self, locale: &num_format::Locale, precision: usize) {
-        self.series().print_table(locale, precision);
+    pub fn print_series_table(&self) {
+        self.series().print_table();
     }
 
-    pub fn tvm_solution(&self) -> TvmSolution {
-        self.clone().into()
+    pub fn print_series_table_locale(&self, locale: &num_format::Locale, precision: usize) {
+        self.series().print_table_locale(locale, precision);
     }
 
-    pub fn tvm_solution_and_series(&self) -> (TvmSolution, TvmSeries) {
-        let series = self.series();
-        (self.clone().into(), series.into())
+    /// Returns true if the value is compounded continuously rather than period-by-period.
+    pub fn continuous_compounding(&self) -> bool {
+        self.tvm_solution.continuous_compounding()
     }
+
+    /// Returns the periodic rate that was calculated based on the periods, present value, and
+    /// future value.
+    pub fn rate(&self) -> f64 {
+        self.tvm_solution.rate()
+    }
+
+    /// Returns the number of periods that were given as an input to the rate calculation. In the
+    /// rare case where the number of periods might not be a whole number use [fractional_periods](./struct.RateSolution.html#method.fractional_periods).
+    pub fn periods(&self) -> u32 {
+        self.tvm_solution.periods()
+    }
+
+    /// Returns the number of periods as a floating point number. Most of the time this is unneeded
+    /// and it's better to use [periods](./struct.RateSolution.html#method.periods) which is an integer. The floating point number is relevant
+    /// only in the unusual case where the current `RateSolution` was created by starting with a
+    /// period calculation, then transforming it into a rate calculation with a call to
+    //  [TvmSolution::rate_solution](./struct.TvmSolution.html#method.rate_solution).
+    pub fn fractional_periods(&self) -> f64 {
+        self.tvm_solution.fractional_periods()
+    }
+
+    /// Returns the present value that was given as an input to the rate calculation.
+    pub fn present_value(&self) -> f64 {
+        self.tvm_solution.present_value()
+    }
+
+    /// Returns the future value that was given as an input to the rate calculation.
+    pub fn future_value(&self) -> f64 {
+        self.tvm_solution.future_value()
+    }
+
+    /// Returns a text version of the formula used to calculate the rate. The formula includes the
+    /// actual values rather than variable names. For the formula with variables such as "n" for
+    /// periods call [symbolic_formula](./struct.RateSolution.html#method.symbolic_formula).
+    pub fn formula(&self) -> &str {
+        &self.tvm_solution.formula()
+    }
+
+    /// Returns a text version of the formula used to calculate the rate. The formula uses variables
+    /// such as "n" for the number of periods. For the formula with the actual values rather than
+    /// variables call [formula](./struct.RateSolution.html#method.formula).
+    pub fn symbolic_formula(&self) -> &str {
+        &self.tvm_solution.symbolic_formula()
+    }
+
 }
 
-impl Deref for RateSolution {
-    type Target = TvmSolution;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl TimeValueOfMoneySolution for RateSolution {
+    fn tvm_solution(&self) -> TvmSolution {
+        self.tvm_solution.clone()
     }
-}
 
-impl Into<TvmSolution> for RateSolution {
-    fn into(self) -> TvmSolution {
-        self.0
+    fn tvm_series(&self) -> TvmSeries {
+        self.series().into()
     }
 }
 
@@ -375,7 +322,7 @@ pub fn rate_continuous_solution<P, F>(periods: u32, present_value: P, future_val
     rate_solution_internal(periods, present_value.into(), future_value.into(), true)
 }
 
-pub fn rate_internal(periods: u32, present_value: f64, future_value: f64, continuous_compounding: bool) -> f64 {
+fn rate_internal(periods: u32, present_value: f64, future_value: f64, continuous_compounding: bool) -> f64 {
     if present_value + future_value == 0.0 {
         // This is a special case where any rate will work.
         return 0.0;
@@ -401,7 +348,7 @@ pub fn rate_internal(periods: u32, present_value: f64, future_value: f64, contin
     rate
 }
 
-pub fn rate_solution_internal(periods: u32, present_value: f64, future_value: f64, continuous_compounding: bool) -> RateSolution {
+pub (crate) fn rate_solution_internal(periods: u32, present_value: f64, future_value: f64, continuous_compounding: bool) -> RateSolution {
     if present_value == 0.0 && future_value == 0.0 {
         // This is a special case where any rate will work.
         let formula = "{special case}";
@@ -433,7 +380,7 @@ fn check_rate_parameters(periods: u32, present_value: f64, future_value: f64) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::*;
+    //use crate::*;
 
     #[test]
     fn test_rate_nominal() {

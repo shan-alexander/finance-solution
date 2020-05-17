@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use num_format::{Locale, ToFormattedString};
 use itertools::Itertools;
 
@@ -243,6 +245,12 @@ fn minus_sign_locale_opt(val: f64, locale: Option<&Locale>) -> String {
     }
 }
 
+pub(crate) fn format_int<T>(val: T) -> String
+    where T: ToFormattedString
+{
+    format_int_locale_opt(val, None)
+}
+
 pub(crate) fn format_int_locale_opt<T>(val: T, locale: Option<&Locale>) -> String
     where T: ToFormattedString
 {
@@ -250,6 +258,12 @@ pub(crate) fn format_int_locale_opt<T>(val: T, locale: Option<&Locale>) -> Strin
         Some(locale) => val.to_formatted_string(locale),
         None => val.to_formatted_string(&Locale::en).replace(",", "_"),
     }
+}
+
+pub(crate) fn format_float<T>(val: T) -> String
+    where T: Into<f64>
+{
+    format_float_locale_opt(val, None, None)
 }
 
 pub(crate) fn format_float_locale_opt<T>(val: T, locale: Option<&Locale>, precision: Option<usize>) -> String
@@ -291,7 +305,12 @@ pub(crate) fn print_table_locale_opt(columns: &Vec<(&str, &str, bool)>, mut data
                     let col_type = columns[col_index].1.to_lowercase();
                     //bg!(&col_type, &data[row_index][col_index]);
                     if col_type != "s" {
-                        data[row_index][col_index] = if col_type == "f" {
+                        data[row_index][col_index] = if col_type == "f" || col_type == "r" {
+                            let precision = if col_type == "f" {
+                                precision
+                            } else {
+                                precision_opt_set_min(precision, 6)
+                            };
                             format_float_locale_opt(data[row_index][col_index].parse::<f64>().unwrap(), locale, precision)
                         } else if col_type == "i" {
                             format_int_locale_opt(data[row_index][col_index].parse::<i128>().unwrap(), locale)
@@ -381,10 +400,7 @@ pub(crate) fn print_ab_comparison_values_float(field_name: &str, value_a: f64, v
 }
 
 pub(crate) fn print_ab_comparison_values_rate(field_name: &str, value_a: f64, value_b: f64, locale: Option<&num_format::Locale>, precision: Option<usize>) {
-    let precision = Some(match precision {
-        Some(precision) => precision.max(6),
-        None => 6,
-    };
+    let precision = precision_opt_set_min(precision, 6);
     print_ab_comparison_values_float(field_name, value_a, value_b, locale, precision);
 }
 
@@ -410,6 +426,13 @@ fn print_ab_comparison_values_internal(field_name: &str, value_a: &str, value_b:
             println!("{} b: {}", field_name, value_b);
         }
     }
+}
+
+fn precision_opt_set_min(precision: Option<usize>, min: usize) -> Option<usize> {
+    Some(match precision {
+        Some(precision) => precision.max(min),
+        None => 6,
+    })
 }
 
 #[derive(Debug)]

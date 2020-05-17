@@ -1,68 +1,42 @@
 #![allow(dead_code)]
 
+use finance::TimeValueOfMoneySolution;
+
 pub fn main() {
     try_doc_example_time_value_of_money_tvm_solution_1();
 }
 
 fn try_doc_example_time_value_of_money_tvm_solution_1() {
-
-    // The interest will compound for ten years.
-    let periods = 10;
-
-    // The starting value is $10,000.
-    let present_value = 10_000.00;
-
-    // The ending value is $15,000.
-    let future_value = 15_000.00;
-
-    // Calculate the periodic rate and create a struct with a record of the
-    // inputs, a description of the formula, and an option to calculate the
-    // period-by-period values.
-    let solution = finance::rate_solution(periods, present_value, future_value);
-    dbg!(&solution);
-
-    let rate = solution.rate();
-    dbg!(&rate);
-    // The rate is 4.138% per year.
-    finance::assert_rounded_6(0.041380, rate);
-
-    // Examine the formula.
-    let formula = solution.formula();
-    dbg!(formula);
-    assert_eq!("((15000.0000 / 10000.0000) ^ (1 / 10)) - 1", formula);
-
-    // Calculate the period-by-period values.
-    let series = solution.series();
-    dbg!(&series);
-}
-
-fn try_doc_example_series_1() {
-
-    // The interest will compound monthly for two years.
+    // Set up inputs for a variety of calculations that should all be equivalent.
+    let rate = 0.015;
     let periods = 24;
+    let present_value = 10_000.0;
+    let future_value = finance::future_value(rate, periods, present_value);
 
-    // The starting value is $100,000.
-    let present_value = 100_000.00;
+    // Create a list of solution structs. For simplicity, instead of holding references to a
+    // `RateSolution`, a `PeriodsSolution`, and so on turn each result into a more general
+    // `TvmSolution`.
+    let list = vec![
+        finance::rate_solution(periods, present_value, future_value).tvm_solution(),
+        finance::periods_solution(rate, present_value, future_value).tvm_solution(),
+        finance::present_value_solution(rate, periods, future_value).tvm_solution(),
+        finance::future_value_solution(rate, periods, present_value).tvm_solution(),
+    ];
+    dbg!(&list);
 
-    // The ending value is $15,000.
-    let future_value = 125_000.00;
+    // Print the formulas used by the four types of calculations.
+    for solution in list.iter() {
+        println!("{}:\n\t{}\n\t{}", solution.calculated_field(), solution.symbolic_formula(), solution.formula());
+    }
 
-    // Calculate the periodic rate and create a struct that supports further operations.
-    let solution = finance::rate_solution(periods, present_value, future_value);
-    dbg!(&solution);
+    // An alternative would be to create a vector of references to the solutions.
+    let _list: Vec<& dyn TimeValueOfMoneySolution> = vec![
+        &finance::rate_solution(periods, present_value, future_value),
+        &finance::periods_solution(rate, present_value, future_value),
+        &finance::present_value_solution(rate, periods, future_value),
+        &finance::future_value_solution(rate, periods, present_value),
+    ];
 
-    // Calculate the period-by-period values.
-    let series = solution.series();
-    dbg!(&series);
-
-    // Print the period-by-period details in a formatted table using 2 decimal places.
-    let locale = finance::num_format::Locale::en;
-    series.print_table(&locale, 2);
-
-    // Print only the periods where the value has grown to at least $120,000.
-    series
-        .filter(|entry| entry.value() >= 120_000.0)
-        .print_table(&locale, 4);
 }
 
 fn check_formulas() {

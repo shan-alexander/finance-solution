@@ -235,7 +235,7 @@ impl TvmCashflowSeries {
         include_running_totals: bool,
         include_remaining_amounts: bool)
     {
-        self.print_table_internal(include_running_totals, include_remaining_amounts, None, None);
+        self.print_table_locale_opt(include_running_totals, include_remaining_amounts, None, None);
     }
 
     pub fn print_table_locale(
@@ -244,10 +244,10 @@ impl TvmCashflowSeries {
         include_remaining_amounts: bool,
         locale: &num_format::Locale,
         precision: usize) {
-        self.print_table_internal(include_running_totals, include_remaining_amounts, Some(locale), Some(precision));
+        self.print_table_locale_opt(include_running_totals, include_remaining_amounts, Some(locale), Some(precision));
     }
 
-    fn print_table_internal(
+    fn print_table_locale_opt(
         &self,
         include_running_totals: bool,
         include_remaining_amounts: bool,
@@ -272,7 +272,7 @@ impl TvmCashflowSeries {
         include_running_totals: bool,
         include_remaining_amounts: bool)
     {
-        self.print_ab_comparison_internal(other, include_running_totals, include_remaining_amounts, None, None);
+        self.print_ab_comparison_locale_opt(other, include_running_totals, include_remaining_amounts, None, None);
     }
 
     pub fn print_ab_comparison_locale(
@@ -282,10 +282,10 @@ impl TvmCashflowSeries {
             include_remaining_amounts: bool,
             locale: &num_format::Locale,
             precision: usize) {
-        self.print_ab_comparison_internal(other, include_running_totals, include_remaining_amounts, Some(locale), Some(precision));
+        self.print_ab_comparison_locale_opt(other, include_running_totals, include_remaining_amounts, Some(locale), Some(precision));
     }
 
-    pub fn print_ab_comparison_internal(
+    pub(crate) fn print_ab_comparison_locale_opt(
             &self,
             other: &TvmCashflowSeries,
             include_running_totals: bool,

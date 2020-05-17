@@ -304,15 +304,15 @@ fn try_ab_comparison() {
 
     let solution_a = finance::future_value_solution(rate, periods, present_value -500.0);
     let solution_b = finance::future_value_solution(rate, periods -3, present_value);
-    solution_a.print_ab_comparison(&solution_b, &locale, precision);
+    solution_a.print_ab_comparison_locale(&solution_b, &locale, precision);
 
     let solution_a = finance::future_value_solution(rate, periods, present_value);
     let solution_b = solution_a.rate_solution(true, None);
-    solution_a.print_ab_comparison(&solution_b, &locale, precision);
+    solution_a.print_ab_comparison_locale(&solution_b, &locale, 8);
 
     let solution_a = finance::future_value_solution(rate, periods, present_value);
     let solution_b = finance::future_value_solution(rate + 0.001, periods, present_value);
-    solution_a.print_ab_comparison(&solution_b, &locale, precision);
+    solution_a.print_ab_comparison(&solution_b);
 }
 
 /*
