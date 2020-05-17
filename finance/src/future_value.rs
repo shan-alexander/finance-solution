@@ -22,19 +22,21 @@
 //! let (rate, periods, present_value) = (0.034, 10, 1_000);
 //! let fv = finance::future_value_solution(rate, periods, present_value);
 //! dbg!(fv);
-//! // Outputs to terminal:
 //! ```
-//! > {<br>
-//! >     calculated_field: FutureValue,<br>
-//! >     continuous_compounding: false,<br>
-//! >     rate: 0.034,<br>
-//! >     periods: 10,<br>
-//! >     fractional_periods: 10.0,<br>
-//! >     present_value: 1000.0,<br>
-//! >     future_value: 1397.0288910795477,<br>
-//! >     formula: "1397.0289 = 1000.0000 * (1.034000 ^ 10)",<br>
-//! >     symbolic_formula: "fv = pv * (1 + r)^n",<br>
-//! > }
+//! Outputs to terminal:
+//! ```text
+//! {
+//!     calculated_field: FutureValue,
+//!     continuous_compounding: false,
+//!     rate: 0.034,
+//!     periods: 10,
+//!     fractional_periods: 10.0,
+//!     present_value: 1000.0,
+//!     future_value: 1397.0288910795477,
+//!     formula: "1397.0289 = 1000.0000 * (1.034000 ^ 10)",
+//!     symbolic_formula: "fv = pv * (1 + r)^n",
+//! }
+//! ```
 
 use log::warn;
 
@@ -283,6 +285,7 @@ impl Into<TvmSeries> for FutureValueSeries {
 /// # Examples
 /// Investment that grows quarter by quarter.
 /// ```
+/// # use finance::*;
 /// // The investment grows by 3.4% per quarter.
 /// let rate = 0.034;
 ///
@@ -292,13 +295,14 @@ impl Into<TvmSeries> for FutureValueSeries {
 /// // The initial investment is $250,000.
 /// let present_value = 250_000;
 ///
-/// let future_value = finance::future_value(rate, periods, present_value);
+/// let future_value = future_value(rate, periods, present_value);
 /// // Confirm that the future value is correct to four decimal places (one
 /// // hundredth of a cent).
-/// finance::assert_rounded_4(295_489.9418, future_value);
+/// assert_rounded_4(295_489.9418, future_value);
 /// ```
 /// Investment that loses money each year.
 /// ```
+/// # use finance::*;
 /// // The investment loses 5% per year.
 /// let rate = -0.05;
 ///
@@ -308,17 +312,16 @@ impl Into<TvmSeries> for FutureValueSeries {
 /// // The initial investment is $10,000.75.
 /// let present_value = 10_000.75;
 ///
-/// let future_value = finance::future_value(rate, periods, present_value);
+/// let future_value = future_value(rate, periods, present_value);
 /// // Confirm that the future value is correct to the penny.
-/// finance::assert_rounded_2(7351.47, future_value);
+/// assert_rounded_2(7351.47, future_value);
 /// ```
 /// Error case: The investment loses 105% per year. There's no way to work out
 /// what this means so the call will panic.
 /// ```should_panic
-/// let rate = -1.05;
-/// let periods = 6;
-/// let present_value = 10_000.75;
-/// let future_value = finance::future_value(rate, periods, present_value);
+/// # use finance::future_value;
+/// let (rate, periods, present_value) = (-1.05, 6, 10_000.75);
+/// let future_value = future_value(rate, periods, present_value);
 /// ```
 pub fn future_value<T>(rate: f64, periods: u32, present_value: T) -> f64
     where T: Into<f64> + Copy
@@ -357,6 +360,7 @@ pub fn future_value<T>(rate: f64, periods: u32, present_value: T) -> f64
 /// # Examples
 /// Calculate a future value and examine the period-by-period values.
 /// ```
+/// # use finance::*;
 /// // The rate is 1.2% per month.
 /// let rate = 0.012;
 ///
@@ -366,11 +370,11 @@ pub fn future_value<T>(rate: f64, periods: u32, present_value: T) -> f64
 /// // The initial investment is $200,000.
 /// let present_value = 200_000;
 ///
-/// let solution = finance::future_value_solution(rate, periods, present_value);
+/// let solution = future_value_solution(rate, periods, present_value);
 /// dbg!(&solution);
 ///
 /// let future_value = solution.future_value();
-/// finance::assert_rounded_4(future_value, 220_026.0467);
+/// assert_rounded_4(future_value, 220_026.0467);
 ///
 /// // Examine the formulas.
 /// let formula = solution.formula();
@@ -455,22 +459,24 @@ pub fn future_value_continuous_solution<T>(rate: f64, periods: u32, present_valu
 /// # Examples
 /// Calculate the value of an investment whose rates vary by year.
 /// ```
+/// # use finance::*;
 /// // The rates vary by year: 4% followed by -3.9%, 10.6%, and -5.7%.
 /// let rates = [0.04, -0.039, 0.106, -0.057];
 ///
 /// // The initial investment is $75,000.
 /// let present_value = 75_000.00;
 ///
-/// let future_value = finance::future_value_schedule(&rates, present_value);
+/// let future_value = future_value_schedule(&rates, present_value);
 /// dbg!(&future_value);
-/// finance::assert_rounded_4(78_178.0458, future_value);
+/// assert_rounded_4(78_178.0458, future_value);
 /// ```
 /// Error case: One of the rates shows a drop of over 100%. There's no way to work out what this
 /// means so the call will panic.
 /// ```should_panic
+/// # use finance::future_value_schedule;
 /// let rates = [0.116, -100.134, -0.09, 0.086];
 /// let present_value = 4_000.00;
-/// let schedule = finance::future_value_schedule(&rates, present_value);
+/// let schedule = future_value_schedule(&rates, present_value);
 /// ```
 pub fn future_value_schedule<T>(rates: &[f64], present_value: T) -> f64
     where T: Into<f64> + Copy
@@ -511,18 +517,19 @@ pub fn future_value_schedule<T>(rates: &[f64], present_value: T) -> f64
 /// # Examples
 /// Calculate the value of an investment whose rates vary by year.
 /// ```
+/// use finance::*;
 /// // The rates vary by year: 8.1% followed by 11%, 4%, and -2.3%.
 /// let rates = [0.081, 0.11, 0.04, -0.023];
 ///
 /// // The initial investment is $10,000.
 /// let present_value = 10_000.00;
 ///
-/// let solution = finance::future_value_schedule_solution(&rates, present_value);
+/// let solution = future_value_schedule_solution(&rates, present_value);
 /// dbg!(&solution);
 ///
 /// let future_value = solution.future_value();
 /// dbg!(&future_value);
-/// finance::assert_rounded_4(future_value, 12_192.0455);
+/// assert_rounded_4(future_value, 12_192.0455);
 ///
 /// // Calculate the value for each period.
 /// let series = solution.series();
@@ -531,9 +538,10 @@ pub fn future_value_schedule<T>(rates: &[f64], present_value: T) -> f64
 /// Error case: One of the rates shows a drop of over 100%. There's no way to work out what this
 /// means so the call will panic.
 /// ```should_panic
+/// use finance::*;
 /// let rates = [0.116, -100.134, -0.09, 0.086];
 /// let present_value = 4_000.00;
-/// let schedule = finance::future_value_schedule(&rates, present_value);
+/// let schedule = future_value_schedule(&rates, present_value);
 /// ```
 pub fn future_value_schedule_solution<T>(rates: &[f64], present_value: T) -> FutureValueSchedule
     where T: Into<f64> + Copy

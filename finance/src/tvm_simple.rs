@@ -1,8 +1,12 @@
+//! The internal module which supports the solution struct for the family of Time-value-of-money equations
+//! which do not involve payments. For example, future value, present value, rate, and periods.
+#[allow(unused_imports)]
+
 // use std::fmt::Debug;
 // use std::fmt;
 
 // Import needed for the function references in the Rustdoc comments.
-#[allow(unused_imports)]
+
 use crate::*;
 use std::ops::Deref;
 use std::fmt::{Display, Formatter, Error};

@@ -10,21 +10,23 @@
 //! let (rate, periods, annuity, due) = (0.034, 10, 500, false);
 //! let fv_ann = finance::future_value_annuity_solution(rate, periods, annuity, due);
 //! dbg!(fv_ann);
-//! // Outputs to terminal:
 //! ```
-//! > {<br>
-//! > calculated_field: FutureValueAnnuity,<br>
-//! > rate: 0.034,<br>
-//! > periods: 10,<br>
-//! > present_value: -4179.341028819186,<br>
-//! > future_value: -5838.660162934523,<br>
-//! > due_at_beginning: false,<br>
-//! > payment: 500.0,<br>
-//! > sum_of_payments: 5000.0,<br>
-//! > sum_of_interest: -5018.0011917537095,<br>
-//! > formula: "-500 * ((1. - (1. / (1. + 0.034)).powf(10)) / 0.034);",<br>
-//! > symbolic_formula: "-annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate);",<br>
-//! > }<br>
+//! Outputs to terminal:
+//! ```text
+//! {
+//! calculated_field: FutureValueAnnuity,
+//! rate: 0.034,
+//! periods: 10,
+//! present_value: -4179.341028819186,
+//! future_value: -5838.660162934523,
+//! due_at_beginning: false,
+//! payment: 500.0,
+//! sum_of_payments: 5000.0,
+//! sum_of_interest: -5018.0011917537095,
+//! formula: "-500 * ((1. - (1. / (1. + 0.034)).powf(10)) / 0.034);",
+//! symbolic_formula: "-annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate);",
+//! }
+//! ```
 //! 
 
 // to-do: add "use log::warn;" and helper logs
@@ -80,28 +82,34 @@ fn check_future_value_annuity_parameters(rate:f64, periods:u32, cashflow:f64) {
 /// let (rate, periods, pmt, due_at_beginning) = (0.034, 5, 500, false);
 /// let my_annuity = future_value_annuity_solution(rate, periods, pmt, due_at_beginning);
 /// dbg!(&my_annuity);
-/// // PRINTS TO TERMINAL:
-/// // &my_annuity = TvmCashflowSolution {
-/// //  calculated_field: FutureValueAnnuity,
-/// //  rate: 0.034,
-/// //  periods: 5,
-/// //  present_value: 2263.9340209510633,
-/// //  future_value: 2675.8789281680038,
-/// //  due_at_beginning: false,
-/// //  payment: 500.0,
-/// //  sum_of_payments: 2500.0,
-/// //  sum_of_interest: 7439.812949119067,
-/// //  formula: "500 * ((1. - (1. / (1. + 0.034)).powf(5)) / 0.034);",
-/// //  formula_symbolic: "annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate);",
-/// // }
-/// 
+/// ```
+/// Outputs to terminal: 
+/// ```text
+/// {
+///  calculated_field: FutureValueAnnuity,
+///  rate: 0.034,
+///  periods: 5,
+///  present_value: 2263.9340209510633,
+///  future_value: 2675.8789281680038,
+///  due_at_beginning: false,
+///  payment: 500.0,
+///  sum_of_payments: 2500.0,
+///  sum_of_interest: 7439.812949119067,
+///  formula: "500 * ((1. - (1. / (1. + 0.034)).powf(5)) / 0.034);",
+///  formula_symbolic: "annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate);",
+/// }
+/// ```
+/// ```
+/// # use finance::*;
+/// # let (rate, periods, pmt, due_at_beginning) = (0.034, 5, 500, false);
+/// # let my_annuity = future_value_annuity_solution(rate, periods, pmt, due_at_beginning);
 /// // call the value as a method to get the solution value
 /// let final_answer = my_annuity.future_value();
 /// ```
 /// 
 /// Another example: Future value of a series of $2000 cashflows.
 /// ```
-/// use finance::*;
+/// # use finance::*;
 /// // The rate is 2.1% per month.
 /// let rate = 0.021;
 ///

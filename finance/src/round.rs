@@ -1,4 +1,4 @@
-//! Utilities for rounding money amounts to the nearest hundredth or ten-thousandth part.
+//! **Utilities for rounding** money amounts to the nearest hundredth or ten-thousandth part.
 
 /// Round to two decimal places. This function uses f64::round() which rounds halfway cases away
 /// from 0.0.

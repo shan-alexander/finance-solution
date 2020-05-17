@@ -10,37 +10,43 @@
 //! let (rate, periods, present_value, future_value, due) = (0.034, 10, 1000, 0, false);
 //! let pmt = finance::payment_solution(rate, periods, present_value, future_value, due);
 //! dbg!(&pmt);
-//! // Outputs to terminal:
-//! 
-//! // {
-//! // calculated_field: Payment,
-//! // rate: 0.034,
-//! // periods: 10,
-//! // present_value: 1000.0,
-//! // future_value: 0.0,
-//! // due_at_beginning: false,
-//! // payment: -119.63608534268569,
-//! // sum_of_payments: -1196.360853426857,
-//! // sum_of_interest: -196.36085342685692,
-//! // formula: "-119.6361 = ((1000.0000 * 1.034000^10) * -0.034000) / (1.034000^10 - 1)",
-//! // symbolic_formula: "pmt = ((pv * (1 + r)^n) * -r) / ((1 + r)^n - 1)",
-//! // }
-//! 
+//! ```
+//! Outputs to terminal:
+//! ```text
+//! {
+//! calculated_field: Payment,
+//! rate: 0.034,
+//! periods: 10,
+//! present_value: 1000.0,
+//! future_value: 0.0,
+//! due_at_beginning: false,
+//! payment: -119.63608534268569,
+//! sum_of_payments: -1196.360853426857,
+//! sum_of_interest: -196.36085342685692,
+//! formula: "-119.6361 = ((1000.0000 * 1.034000^10) * -0.034000) / (1.034000^10 - 1)",
+//! symbolic_formula: "pmt = ((pv * (1 + r)^n) * -r) / ((1 + r)^n - 1)",
+//! }
+//! ```
+//! ```
+//! # use finance::*;
+//! # let (rate, periods, present_value, future_value, due) = (0.034, 10, 1000, 0, false);
+//! # let pmt = payment_solution(rate, periods, present_value, future_value, due);
 //! dbg!(pmt.print_table());
-//! // Outputs to terminal:
-//! 
-//! // period  payments_to_date  payments_remaining  principal  principal_to_date  principal_remaining  interest  interest_to_date  interest_remaining
-//! // ------  ----------------  ------------------  ---------  -----------------  -------------------  --------  ----------------  ------------------
-//! //     1         -119.6361         -1_076.7248   -85.6361           -85.6361            -914.3639  -34.0000          -34.0000           -162.3609
-//! //     2         -239.2722           -957.0887   -88.5477          -174.1838            -825.8162  -31.0884          -65.0884           -131.2725
-//! //     3         -358.9083           -837.4526   -91.5583          -265.7421            -734.2579  -28.0778          -93.1661           -103.1947
-//! //     4         -478.5443           -717.8165   -94.6713          -360.4134            -639.5866  -24.9648         -118.1309            -78.2300
-//! //     5         -598.1804           -598.1804   -97.8901          -458.3036            -541.6964  -21.7459         -139.8768            -56.4840
-//! //     6         -717.8165           -478.5443  -101.2184          -559.5220            -440.4780  -18.4177         -158.2945            -38.0663
-//! //     7         -837.4526           -358.9083  -104.6598          -664.1818            -335.8182  -14.9763         -173.2708            -23.0901
-//! //     8         -957.0887           -239.2722  -108.2183          -772.4001            -227.5999  -11.4178         -184.6886            -11.6723
-//! //     9       -1_076.7248           -119.6361  -111.8977          -884.2978            -115.7022   -7.7384         -192.4270             -3.9339
-//! //     10      -1_196.3609             -0.0000  -115.7022          -999.0000              -0.0000   -3.9339         -196.3609              0.0000
+//! ```
+//! Outputs to terminal:
+//! ```text
+//! period  payments_to_date  payments_remaining  principal  principal_to_date  principal_remaining  interest  interest_to_date  interest_remaining
+//! ------  ----------------  ------------------  ---------  -----------------  -------------------  --------  ----------------  ------------------
+//!     1         -119.6361         -1_076.7248   -85.6361           -85.6361            -914.3639  -34.0000          -34.0000           -162.3609
+//!     2         -239.2722           -957.0887   -88.5477          -174.1838            -825.8162  -31.0884          -65.0884           -131.2725
+//!     3         -358.9083           -837.4526   -91.5583          -265.7421            -734.2579  -28.0778          -93.1661           -103.1947
+//!     4         -478.5443           -717.8165   -94.6713          -360.4134            -639.5866  -24.9648         -118.1309            -78.2300
+//!     5         -598.1804           -598.1804   -97.8901          -458.3036            -541.6964  -21.7459         -139.8768            -56.4840
+//!     6         -717.8165           -478.5443  -101.2184          -559.5220            -440.4780  -18.4177         -158.2945            -38.0663
+//!     7         -837.4526           -358.9083  -104.6598          -664.1818            -335.8182  -14.9763         -173.2708            -23.0901
+//!     8         -957.0887           -239.2722  -108.2183          -772.4001            -227.5999  -11.4178         -184.6886            -11.6723
+//!     9       -1_076.7248           -119.6361  -111.8977          -884.2978            -115.7022   -7.7384         -192.4270             -3.9339
+//!     10      -1_196.3609             -0.0000  -115.7022          -999.0000              -0.0000   -3.9339         -196.3609              0.0000
 //! ```
 use log::{warn};
 
@@ -421,6 +427,7 @@ impl Deref for PaymentSeries {
 /// # Examples
 /// A simple amortized loan with the payment due at the end of the month.
 /// ```
+/// # use finance::*;
 /// // The loan will be paid off in five years.
 /// let years = 5;
 ///
@@ -440,24 +447,24 @@ impl Deref for PaymentSeries {
 ///
 /// let due_at_beginning = false;
 ///
-/// let payment = finance::payment(rate, periods, present_value, future_value, due_at_beginning);
-/// dbg!(payment);
+/// let pmt = payment(rate, periods, present_value, future_value, due_at_beginning);
+/// dbg!(pmt);
 ///
 /// // The payment is $212.47/month. Since the principal/present value was positive the payment is
 /// // negative.
-/// finance::assert_rounded_4(payment, -212.4704);
+/// assert_rounded_4(pmt, -212.4704);
 ///
 ///
 /// // As above except this time the payment is due at the beginning of the month. This will reduce
 /// // the payment slightly.
 /// let due_at_beginning = true;
-/// let payment = finance::payment(rate, periods, present_value, future_value, due_at_beginning);
-/// dbg!(payment);
+/// let pmt = payment(rate, periods, present_value, future_value, due_at_beginning);
+/// dbg!(pmt);
 ///
 /// // The payment is $210.7145, shown as negative since the present value was positive. It's
 /// // slightly smaller (that is, closer to zero) than the payment in the case above where the
 /// // payment was due at the end of the month.
-/// finance::assert_rounded_4(payment, -210.7145);
+/// assert_rounded_4(pmt, -210.7145);
 ///
 /// ```
 pub fn payment<P, F>(rate: f64, periods: u32, present_value: P, future_value: F, due_at_beginning: bool) -> f64
@@ -589,6 +596,7 @@ pub fn payment<P, F>(rate: f64, periods: u32, present_value: P, future_value: F,
 /// then examine the formulas and the period-by-period details such as the amount of the payment
 /// that goes to principal and interest.
 /// ```
+/// # use finance::*;
 /// // The interest rate is 11.75% per year. Each period is one month so we need to divide the rate
 /// // by the number of months in a year.
 /// let rate = 0.1175 / 12.0;
@@ -605,21 +613,21 @@ pub fn payment<P, F>(rate: f64, periods: u32, present_value: P, future_value: F,
 ///
 /// let due_at_beginning = false;
 ///
-/// let solution = finance::payment_solution(rate, periods, present_value, future_value, due_at_beginning);
+/// let solution = payment_solution(rate, periods, present_value, future_value, due_at_beginning);
 /// // Display the inputs, payment amount, formulas, sum of interest, etc.
 /// dbg!(&solution);
 ///
 /// // The payment is $327.65/month. Since the principal/present value was negative the payment is
 /// // positive.
-/// finance::assert_rounded_4(solution.payment(), 327.6538);
+/// assert_rounded_4(solution.payment(), 327.6538);
 ///
 /// // The sum of payments is simply the monthly payment times the number of months.
-/// finance::assert_rounded_4(solution.sum_of_payments(), 15_727.3820);
+/// assert_rounded_4(solution.sum_of_payments(), 15_727.3820);
 ///
 /// // The sum of interest is the portion of the sum of payments that is over and above the original
 /// // loan amount. Here we add the present value since it has the opposite sign of the payments.
-/// finance::assert_rounded_4(solution.sum_of_interest(), solution.sum_of_payments() + solution.present_value());
-/// finance::assert_rounded_4(solution.sum_of_interest(), 3_226.8820);
+/// assert_rounded_4(solution.sum_of_interest(), solution.sum_of_payments() + solution.present_value());
+/// assert_rounded_4(solution.sum_of_interest(), 3_226.8820);
 ///
 /// // Examine the formulas. Since the future value is zero we expect to see a slightly simplified
 /// // formula.

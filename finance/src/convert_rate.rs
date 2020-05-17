@@ -30,86 +30,88 @@
 //! The solution functions provide helpful information in the `dbg!()` output, for example:
 //! 
 //! ```
-//! use finance::*;
+//! # use finance::*;
 //! // Example 1: Give the apr function an apr and compounding-periods-per-year. 
 //! let rate = apr(0.034, 12);
 //! dbg!(rate);
-//! 
-//! // prints to terminal: 
 //! ```
-//! >{<br>
-//! >input_name: Apr<br>
-//! >input_rate: 0.034<br>
-//! >compounds_per_year: 12<br>
-//! >apr_in_percent: 3.4000%<br>
-//! >epr_in_percent: 0.2833%<br>
-//! >ear_in_percent: 3.4535%<br>
-//! >apr: 0.034<br>
-//! >epr: 0.0028333333333333335<br>
-//! >ear: 0.03453486936028982<br>
-//! >apr_formula:<br>
-//! >epr_formula: 0.034 / 12<br>
-//! >ear_formula: (1 + (0.034/12))^12 - 1<br>
-//! >}
-//! 
+//! > prints to terminal: 
+//! ```text
+//! {
+//! input_name: Apr
+//! input_rate: 0.034
+//! compounds_per_year: 12
+//! apr_in_percent: 3.4000%
+//! epr_in_percent: 0.2833%
+//! ear_in_percent: 3.4535%
+//! apr: 0.034
+//! epr: 0.0028333333333333335
+//! ear: 0.03453486936028982
+//! apr_formula:
+//! epr_formula: 0.034 / 12
+//! ear_formula: (1 + (0.034/12))^12 - 1
+//! }
 //! ```
-//! // example 2: explicit call to f64 function
-//! use finance::*;
+//! Example 2: explicit call to f64 function
+//! ```
+//! # use finance::*;
 //! 
 //! let apr = convert_apr_to_ear(0.034, 12);
 //! dbg!(apr);
-//! // prints to terminal: 
 //! ```
-//! >0.03453486936028982
-//!
+//! > prints to terminal: 
+//! ```text
+//! 0.03453486936028982
 //! ```
-//! // example 3: explicit call to _solution function
-//! use finance::*;
+//! Example 3: explicit call to _solution function
+//! ```
+//! # use finance::*;
 //! 
 //! let apr = convert_rate::convert_apr_to_ear_solution(0.034, 12);  // provides same output as apr! macro                                                       
 //! dbg!(apr.ear());
-//! // prints to terminal: 
 //! ```
-//!  >0.03453486936028982
-//! 
+//! > prints to terminal: 
+//! ```text
+//!  0.03453486936028982
+//! ```
 //! Here are a few variations of how someone can use the `convert_rate` module functions:
 //! ```
-//! use finance::*;
-//! 
+//! # use finance::*;
 //! // What is the future value of $500 in 1 year 
 //! // if the APR is 3.4% and it's compounded monthly?
 //! // Solve twice, first using EPR and then using EAR.
 //! 
 //! // to solve, first convert the annual rate into a periodic rate (monthly):
 //! let epr = convert_rate::convert_apr_to_epr(0.034, 12);
-//! assert_approx_equal!(epr, 0.002833333333333333); // true
+//! assert_approx_equal!(epr, 0.002833333333333333);
 //!
 //! // then solve for future value:
 //! let fv = future_value::future_value_solution;
 //! let answer_1 = fv(epr, 12, 500);
 //! dbg!(&answer_1);
-//! // which prints:
 //! ```
-//! >&answer_1 = TvmSolution {<br>
-//! >    calculated_field: FutureValue<br>
-//! >    rate: 0.0028333333333333335<br>
-//! >    periods: 12<br>
-//! >    present_value: 500.0<br>
-//! >    future_value: 517.2674346801452<br>
-//! >    formula: "500.0000 * (1.002833 ^ 12)"<br>
-//! >}
-//! 
+//! > prints to terminal:
+//! ```text
+//! {
+//!     calculated_field: FutureValue
+//!     rate: 0.0028333333333333335
+//!     periods: 12
+//!     present_value: 500.0
+//!     future_value: 517.2674346801452
+//!     formula: "500.0000 * (1.002833 ^ 12)"
+//! }
 //! ```
-//! use finance::*;
-//! // then let's double-check the previous answer_1 by solving the future_value
+//! Now let's doublecheck the previous answer.
+//! ```
+//! # use finance::*;
+//! // Double-check the previous answer_1 by solving the future_value
 //! // using 1 year as the period and the effective annual rate, 
 //! // instead of using 12 monthly periods of the periodic rate.
 //! let rate = apr(0.034, 12);
 //! let answer_2 = future_value::future_value_solution(rate.ear(), 1, 500);
-//! dbg!(&answer_2.future_value());
+//! dbg!(&answer_2.future_value()); // outputs: 517.2674346801449
 //! // assert_approx_equal!(answer_1.future_value, answer_2.future_value); // true
 //! ```
-//! > &answer_2.future_value() = 517.2674346801449
 //! 
 //! Note: you might notice the last two decimal places are different:<br>
 //! > &answer1.future_value() = 517.26743468014**52**<br>
@@ -117,6 +119,7 @@
 //! 
 //! This is not a mistake, this is a natural phenomenon of computer calculations to have slight inaccuracies in floating point number calculations. Both answers are technically correct.
 //! Users of the crate can use our [`round`](../round/index.html) module, or [`assert_approx_equal!`](../macro.assert_approx_equal.html) macro for working with floating point representations.
+//! Notice how we used [`assert_approx_equal!`](./macro.assert_approx_equal.html) in the example above to assert two slightly different numbers as being equal.
 //! 
 //! Now you've learned Time-Value-of-Money problems can be
 //! solved using different rates and periods, while providing the same
