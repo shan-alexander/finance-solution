@@ -2,7 +2,33 @@
 
 //! **Present value _annuity_ calculations**. Given a series of cashflows, a number of periods such as years, and fixed
 //! or varying interest rates, what is the current value of the series of cashflows (annuity) right now?
-//!
+//! 
+//! For most common usages, we recommend to use the [`present_value_annuity_solution`](./fn.present_value_annuity_solution.html) function, which provides a better debugging experience and additional features.
+//! 
+//! ## Example
+//! ```
+//! # use finance::present_value_annuity_solution; // this function will be hidden
+//! let (rate, periods, annuity, due) = (0.034, 10, 500, false);
+//! let pv_ann = present_value_annuity_solution(rate, periods, annuity, due);
+//! dbg!(pv_ann);
+//! ```
+//! Outputs to terminal:
+//! ```text
+//! {
+//! calculated_field: PresentValueAnnuity,
+//! rate: 0.034,
+//! periods: 10,
+//! present_value: -4179.341028819192,
+//! future_value: -5838.660162934531,
+//! due_at_beginning: false,
+//! payment: 500.0,
+//! sum_of_payments: 5000.0,
+//! sum_of_interest: -5018.001191753723,
+//! formula: "-500 * ((1. - (1. / (1. + 0.034)).powf(10)) / 0.034) * (1 + (0.034 * 0));",
+//! symbolic_formula: "-annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate) * (1. + (rate * due));",
+//! }
+//! ```
+//!  
 
 // to do: add "use log::warn;" and helper logs
 
@@ -38,7 +64,7 @@ use crate::tvm_cashflow::*;
 /// 
 /// Quick glance, how to use:
 /// ```
-/// use finance::*;
+/// # use finance::*;
 /// let (rate, periods, annuity, due_at_beginning)  = (0.034, 10, 21_000, false);
 /// let my_annuity = present_value_annuity_solution(rate, periods, annuity, due_at_beginning);
 /// dbg!(my_annuity);
@@ -46,6 +72,7 @@ use crate::tvm_cashflow::*;
 /// 
 /// Present value of a series of $2000 cashflows.
 /// ```
+/// # use finance::*; 
 /// // The rate is 2.1% per month.
 /// let rate = 0.021;
 ///
@@ -58,11 +85,11 @@ use crate::tvm_cashflow::*;
 /// let due_at_beginning = false;
 ///
 /// // Find the current value.
-/// let present_value_ann = finance::present_value_annuity(rate, periods, cashflow, due_at_beginning);
+/// let present_value_ann = present_value_annuity(rate, periods, cashflow, due_at_beginning);
 /// dbg!(&present_value_ann);
 ///
 /// // Confirm that the present value is correct to four decimal places (one hundredth of a cent).
-/// // finance::assert_approx_equal!( , present_value_ann);
+/// assert_approx_equal!(-21021.368565, present_value_ann);
 /// ```
 pub fn present_value_annuity<T>(rate: f64, periods: u32, annuity: T, due_at_beginning: bool) -> f64
     where T: Into<f64> + Copy
@@ -180,6 +207,7 @@ pub fn present_value_annuity_accumulator<T>(rate: f64, periods: u32, annuity: T,
 /// # Examples
 /// Present value of a $500 annuity (a series of $500 cashflows).
 /// ```
+/// # use finance::*; 
 /// // The rate is 3.4% per month.
 /// let rate = 0.034;
 ///
@@ -192,24 +220,25 @@ pub fn present_value_annuity_accumulator<T>(rate: f64, periods: u32, annuity: T,
 /// let due_at_beginning = false;
 ///
 /// // Find the current value.
-/// let present_value_ann = finance::present_value_annuity_solution(rate, periods, cashflow, due_at_beginning);
+/// let present_value_ann = present_value_annuity_solution(rate, periods, cashflow, due_at_beginning);
 /// dbg!(&present_value_ann);
 /// ```
-/// The `dbg!` above will display:<br>
-/// >{<br>
-/// >calculated_field: Present Value Annuity<br>
-/// >rate (r): 0.034<br>
-/// >periods (n): 10<br>
-/// >present_value (pv): 4321.438623799037<br>
-/// >future_value (fv): ????<br>
-/// >due_at_beginning: false<br>
-/// >payment (pmt): 500<br>
-/// >sum_of_payments: 5000<br>
-/// >sum_of_interest: 9328.77195713237 (wrong)<br>
-/// >formula: "500 * ((1. - (1. / (1. + 0.034)).powf(10)) / 0.034);"<br>
-/// >formula_symbolic: "annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate);"<br>
-/// >}<br>
-/// 
+/// Outputs to terminal:
+/// ```text
+///  {
+///      calculated_field: PresentValueAnnuity,
+///      rate: 0.034,
+///      periods: 10,
+///      present_value: -4179.341028819192,
+///      future_value: -5838.660162934531,
+///      due_at_beginning: false,
+///      payment: 500.0,
+///      sum_of_payments: 5000.0,
+///      sum_of_interest: -5018.001191753723,
+///      formula: "-500 * ((1. - (1. / (1. + 0.034)).powf(10)) / 0.034) * (1 + (0.034 * 0));",
+///      symbolic_formula: "-annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate) * (1. + (rate * due));",
+///  }
+/// ```
 pub fn present_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T, due_at_beginning: bool) -> TvmCashflowSolution
     where T: Into<f64> + Copy
 {

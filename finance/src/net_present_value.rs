@@ -10,33 +10,37 @@
 //! 
 //! **Simple Usage:**
 //! ```
+//! # use finance::net_present_value_solution;
 //! let (rate, periods, initial_investment, cashflow) = (0.034, 3, -1000, 400);
-//! let npv = finance::net_present_value_solution(rate, periods, initial_investment, cashflow);
+//! let npv = net_present_value_solution(rate, periods, initial_investment, cashflow);
 //! dbg!(npv.print_table());
-//! // Outputs to terminal:
-//! 
-//! // period   rate   present_value  future_value  investment_value 
-//! // ------  ------  -------------  ------------  ---------------- 
-//! // 0       0.0000    -1_000.0000   -1_000.0000       -1_000.0000 
-//! // 1       0.0340       386.8472      400.0000         -613.1528 
-//! // 2       0.0340       374.1269      400.0000         -239.0259 
-//! // 3       0.0340       361.8248      400.0000          122.7989 
+//! ```
+//! > outputs to terminal:
+//! ```text
+//! period   rate   present_value  future_value  investment_value 
+//! ------  ------  -------------  ------------  ---------------- 
+//! 0       0.0000    -1_000.0000   -1_000.0000       -1_000.0000 
+//! 1       0.0340       386.8472      400.0000         -613.1528 
+//! 2       0.0340       374.1269      400.0000         -239.0259 
+//! 3       0.0340       361.8248      400.0000          122.7989 
 //! ```
 //! 
 //! **More typical usage (varying cashflows):**
 //! ```
+//! # use finance::net_present_value_schedule_solution;
 //! let rates = vec![0.034, 0.034, 0.034];
 //! let cashflows = vec![-1000, 300, 400, 500];
-//! let npv = finance::net_present_value_schedule_solution(&rates, &cashflows);
+//! let npv = net_present_value_schedule_solution(&rates, &cashflows);
 //! dbg!(npv.print_table());
-//! // Outputs to terminal:
-//! 
-//! // period   rate   present_value  future_value  investment_value 
-//! // ------  ------  -------------  ------------  ---------------- 
-//! // 0       0.0000    -1_000.0000   -1_000.0000       -1_000.0000 
-//! // 1       0.0340       290.1354      300.0000         -709.8646 
-//! // 2       0.0340       374.1269      400.0000         -335.7377 
-//! // 3       0.0340       452.2810      500.0000          116.5433 
+//! ```
+//! > outputs to terminal:
+//! ```text
+//! period   rate   present_value  future_value  investment_value 
+//! ------  ------  -------------  ------------  ---------------- 
+//! 0       0.0000    -1_000.0000   -1_000.0000       -1_000.0000 
+//! 1       0.0340       290.1354      300.0000         -709.8646 
+//! 2       0.0340       374.1269      400.0000         -335.7377 
+//! 3       0.0340       452.2810      500.0000          116.5433 
 //! ```
 
 
@@ -140,11 +144,11 @@ where I: Into<f64> + Copy, C: Into<f64> + Copy
 /// // Confirm that the present value is correct to four decimal places (one hundredth of a cent).
 /// assert_approx_equal!(-127.8016238, net_present_value);
 /// 
-/// //present_value(0.034, 1, 200): $193.42
-/// //present_value(0.089, 2, 300): $252.97
-/// //present_value(0.055, 3, 500): $425.81
-/// //initial investment:          -$1000
-/// //sum of the above:            -$127.80 (net present value)
+/// // present_value(0.034, 1, 200): $193.42
+/// // present_value(0.089, 2, 300): $252.97
+/// // present_value(0.055, 3, 500): $425.81
+/// // initial investment:          -$1000
+/// // sum of the above:            -$127.80 (net present value)
 /// 
 /// ```
 pub fn net_present_value_schedule<C>(rates: &[f64], cashflows: &[C]) -> f64 
@@ -263,14 +267,15 @@ where C: Into<f64> + Copy
 /// let cashflows = vec![-1000, 300, 400, 500];
 /// let npv = finance::net_present_value_schedule_solution(&rates, &cashflows);
 /// dbg!(npv.print_table());
-/// // Outputs to terminal:
-/// 
-/// // period   rate   present_value  future_value  investment_value 
-/// // ------  ------  -------------  ------------  ---------------- 
-/// // 0       0.0000    -1_000.0000   -1_000.0000       -1_000.0000 
-/// // 1       0.0340       290.1354      300.0000         -709.8646 
-/// // 2       0.0340       374.1269      400.0000         -335.7377 
-/// // 3       0.0340       452.2810      500.0000          116.5433 
+/// ```
+/// > outputs to terminal:
+/// ```text
+/// period   rate   present_value  future_value  investment_value 
+/// ------  ------  -------------  ------------  ---------------- 
+/// 0       0.0000    -1_000.0000   -1_000.0000       -1_000.0000 
+/// 1       0.0340       290.1354      300.0000         -709.8646 
+/// 2       0.0340       374.1269      400.0000         -335.7377 
+/// 3       0.0340       452.2810      500.0000          116.5433 
 /// ```
 pub fn net_present_value_schedule_solution<C>(rates: &[f64], cashflows: &[C]) -> NpvSolution 
 where C: Into<f64> + Copy
@@ -610,5 +615,14 @@ mod tests {
         let cashflows = vec![-1000,200,300,500];
         let npv = net_present_value_schedule_solution(&rates, &cashflows);
         assert_eq!(-127.80162, (100_000. * npv.npv()).round() / 100_000.);
+    }
+
+    #[test]
+    fn test_net_present_value_5() {
+        // wildcard use case: positive and negatives
+        let rates = vec![0.034,-0.0989,0.055,-0.02];
+        let cashflows = vec![-1000,1000,500,-250,-250];
+        let npv = net_present_value_schedule_solution(&rates, &cashflows);
+        assert_eq!(98.950922304, (10_000_000_000. * npv.npv()).round() / 10_000_000_000.);
     }
 }

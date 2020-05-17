@@ -9,6 +9,7 @@ use colored::*;
 #[allow(unused_imports)]
 use crate::*;
 
+/// The possible types of rates to convert.
 #[derive(Debug, Clone)]
 pub enum ConvertRateVariable {
     Apr,
