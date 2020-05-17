@@ -1,7 +1,7 @@
 //! **Net Present Value calculations**. Given a series of cashflows, an initial investment (the cashflow at time0), a number of periods such as years, and fixed
 //! or varying interest rates, what is the net value of the series of cashflows right now?
 //!
-//! For most common usages, we recommend to use the [`net_present_value_schedule_solution`](./fn.net_present_value_schedule_solution.html) function, to provide a better debugging experience and additional features.
+//! For most common usages, we recommend the [`net_present_value_schedule_solution`](./fn.net_present_value_schedule_solution.html) function, to provide a better debugging experience and additional features.
 //! This function allows you to provide varying cashflows and/or varying rates.
 //! 
 //! For very simple NPV calculations involving a constant cashflow and constant rate, the [`net_present_value_solution`](./fn.net_present_value_solution.html) function can be used.

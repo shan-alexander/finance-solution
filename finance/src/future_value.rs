@@ -1,9 +1,9 @@
 //! **Future value calculations.** Given an initial investment amount, a number of periods such as
 //! periods, and fixed or varying interest rates, what is the value of the investment at the end?
 //!
-//! For most common usages, we recommend to use the [`future_value_solution`](./fn.future_value_solution.html) function, which provides a better debugging experience and additional features.
+//! For most common usages, we recommend the [`future_value_solution`](./fn.future_value_solution.html) function, which provides a better debugging experience and additional features.
 //! 
-//! For more complex scenarios, which involve varying rates in each period, we recommend to use the [`future_value_schedule_solution`](./fn.future_value_schedule_solution.html) function.
+//! For more complex scenarios, which involve varying rates in each period, we recommend the [`future_value_schedule_solution`](./fn.future_value_schedule_solution.html) function.
 //! 
 //! To simply return an f64 value of the future value answer, use the [`future_value`](./fn.future_value.html) function.
 //! 

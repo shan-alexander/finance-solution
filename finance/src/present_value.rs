@@ -1,7 +1,7 @@
 //! **Present value calculations.** Given a final amount, a number of periods such as years, and fixed
 //! or varying interest rates, what is the current value?
 //!
-//! For most common usages, we recommend to use the [`present_value_solution`](./fn.present_value_solution.html) function to provide a better debugging experience and additional features.
+//! For most common usages, we recommend the [`present_value_solution`](./fn.present_value_solution.html) function to provide a better debugging experience and additional features.
 //! 
 //! If you have a more complicated use case which has varying rates per period, use the [`present_value_schedule_solution`](./fn.present_value_schedule_solution.html) function.
 //! 

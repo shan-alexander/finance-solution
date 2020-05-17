@@ -3,7 +3,7 @@
 //! **Present value _annuity_ calculations**. Given a series of cashflows, a number of periods such as years, and fixed
 //! or varying interest rates, what is the current value of the series of cashflows (annuity) right now?
 //! 
-//! For most common usages, we recommend to use the [`present_value_annuity_solution`](./fn.present_value_annuity_solution.html) function, which provides a better debugging experience and additional features.
+//! For most common usages, we recommend the [`present_value_annuity_solution`](./fn.present_value_annuity_solution.html) function, which provides a better debugging experience and additional features.
 //! 
 //! ## Example
 //! ```

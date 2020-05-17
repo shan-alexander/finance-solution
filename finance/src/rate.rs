@@ -1,7 +1,7 @@
 //! **Periodic rate calculations.** Given an initial investment amount, a final amount, and a number of
 //! periods such as periods, what does the rate per period need to be?
 //! 
-//! For most common usages, we recommend to use the [`rate_solution`](./fn.rate_solution.html) function to provide the best experience with debugging and additional features.
+//! For most common usages, we recommend the [`rate_solution`](./fn.rate_solution.html) function to provide the best experience with debugging and additional features.
 //!
 // ! If you need to calculate the future value given a starting value, a number of periods, and one
 // ! or more rates use [`future_value`] or related functions.
@@ -307,8 +307,7 @@ pub fn rate_solution<P, F>(periods: u32, present_value: P, future_value: F) -> R
     rate_solution_internal(periods, present_value.into(), future_value.into(), false)
 }
 
-/// Returns the **(effective rate)?** of an investment with the continuous compounding. Typically, periods are years and 
-/// therefore the rate this function provides is the **(effective annual rate)?**.
+/// Returns the annual percentage rate (APR) of an investment with continuous compounding.
 ///
 pub fn rate_continuous<P, F>(periods: u32, present_value: P, future_value: F) -> f64
     where
@@ -318,8 +317,8 @@ pub fn rate_continuous<P, F>(periods: u32, present_value: P, future_value: F) ->
     rate_internal(periods, present_value.into(), future_value.into(), true)
 }
 
-/// Returns a solution object, including the **(effective rate)?** of an investment with the continuous compounding. Typically, periods are years and 
-/// therefore the rate this function provides is the **(effective annual rate)?**.
+/// Returns a solution object including the annual percentage rate (APR) of an investment with
+/// continuous compounding.
 ///
 pub fn rate_continuous_solution<P, F>(periods: u32, present_value: P, future_value: F) -> RateSolution
     where
@@ -341,7 +340,7 @@ fn rate_internal(periods: u32, present_value: f64, future_value: f64, continuous
     check_rate_parameters(periods, present_value, future_value);
 
     let rate = if continuous_compounding {
-        // http://www.edmichaelreggie.com/TMVContent/rate.htm
+        // http://www.edmichaelreggie.com/TMVContent/APR.htm
         (future_value / present_value).log(std::f64::consts::E) / periods as f64
     } else {
         (future_value / present_value).powf(1.0 / periods as f64) - 1.0

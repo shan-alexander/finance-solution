@@ -3,7 +3,7 @@
 //! **Future value _annuity_ calculations**. Given a series of cashflows, a number of periods such as years, and a fixed
 //! interest rate, what is the value of the series of cashflows (annuity) at the final payment?
 //! 
-//! For most common usages, we recommend to use the [`future_value_annuity_solution`](./fn.future_value_annuity_solution.html) function, which provides a better debugging experience and additional features.
+//! For most common usages, we recommend the [`future_value_annuity_solution`](./fn.future_value_annuity_solution.html) function, which provides a better debugging experience and additional features.
 //! 
 //! ## Example
 //! ```

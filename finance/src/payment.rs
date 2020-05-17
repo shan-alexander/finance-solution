@@ -3,7 +3,7 @@
 //! **Payment calculations.** What is the periodic payment needed for an amortized loan and how much
 //! of that is interest or principal?
 //! 
-//! For most common usages, we recommend to use the [`payment_solution`](./fn.payment_solution.html) function, which provides a better debugging experience and additional functionality.
+//! For most common usages, we recommend the [`payment_solution`](./fn.payment_solution.html) function, which provides a better debugging experience and additional functionality.
 //!
 //! ## Example
 //! ```

@@ -1,7 +1,7 @@
 //! **Number of periods calculations.** Given a periodic rate, present value, and future value, find the
 //! number of periods needed to satisfy the equation.
 //! 
-//! For most common usages, we recommend to use the ['periods_solution'](fn.periods_solution.html) function.
+//! For most common usages, we recommend the ['periods_solution'](fn.periods_solution.html) function.
 //!
 // ! If you need to calculate a fixed rate given a present value, future value, and number of periods
 // ! use [`rate`] or related functions.
