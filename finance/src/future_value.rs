@@ -1,14 +1,40 @@
 //! **Future value calculations.** Given an initial investment amount, a number of periods such as
 //! periods, and fixed or varying interest rates, what is the value of the investment at the end?
 //!
-//! If you need to calculate the present value given a future value, a number of periods, and one
-//! or more rates use [`present_value`] or related functions.
+//! For most common usages, we recommend to use the [`future_value_solution`](./fn.future_value_solution.html) function, which provides a better debugging experience and additional features.
+//! 
+//! For more complex scenarios, which involve varying rates in each period, we recommend to use the [`future_value_schedule_solution`](./fn.future_value_schedule_solution.html) function.
+//! 
+//! To simply return an f64 value of the future value answer, use the [`future_value`](./fn.future_value.html) function.
+//! 
+// ! If you need to calculate the present value given a future value, a number of periods, and one
+// ! or more rates use [`present_value`] or related functions.
+// !
+// ! If you need to calculate a fixed rate given a present value, future value, and number of periods
+// ! use [`rate`] or related functions.
+// !
+// ! If you need to calculate the number of periods given a fixed rate and a present and future value
+// ! use [`periods`] or related functions.
 //!
-//! If you need to calculate a fixed rate given a present value, future value, and number of periods
-//! use [`rate`] or related functions.
-//!
-//! If you need to calculate the number of periods given a fixed rate and a present and future value
-//! use [`periods`] or related functions.
+//! ## Example
+//! 
+//! ```
+//! let (rate, periods, present_value) = (0.034, 10, 1_000);
+//! let fv = finance::future_value_solution(rate, periods, present_value);
+//! dbg!(fv);
+//! // Outputs to terminal:
+//! ```
+//! > {<br>
+//! >     calculated_field: FutureValue,<br>
+//! >     continuous_compounding: false,<br>
+//! >     rate: 0.034,<br>
+//! >     periods: 10,<br>
+//! >     fractional_periods: 10.0,<br>
+//! >     present_value: 1000.0,<br>
+//! >     future_value: 1397.0288910795477,<br>
+//! >     formula: "1397.0289 = 1000.0000 * (1.034000 ^ 10)",<br>
+//! >     symbolic_formula: "fv = pv * (1 + r)^n",<br>
+//! > }
 
 use log::warn;
 

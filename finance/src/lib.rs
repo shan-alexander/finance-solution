@@ -158,74 +158,17 @@ macro_rules! assert_rounded_8 {
     };
 }
 
-/// Convert APR to all variations of the rate. Returns a custom type with additional functionality and extra information available in the dbg!().
-// #[macro_export]
-// macro_rules! apr {
-//     ( $x1:expr ) => {
-//         finance::convert_rate::apr_continuous($x1)
-//     };
-//     ( $x1:expr, $x2:expr ) => {
-//         finance::convert_rate::apr($x1, $x2)
-//     };
-//     ( $x1:expr, $x2:expr, $x3:expr ) => {
-//         if $x3 == "Continuous" {
-//             finance::convert_rate::apr_continuous($x1)
-//         } else if $x3 == "Default" {
-//             finance::convert_rate::apr($x1, $x2)
-//         } else {
-//             panic!("Something went wrong in the apr! macro")
-//         }
-//     };
-// }
 
-// /// Convert EPR to all variations of the rate. Returns a custom type with additional functionality and extra information available in the dbg!().
-// #[macro_export]
-//     macro_rules! epr {
-//         ( $x1:expr, $x2:expr ) => {{
-//             let epr: f64 = $x1;
-//             let compounding_periods_in_year: u32 = $x2;
-//             convert_rate::assert_inputs(epr, compounding_periods_in_year, tvm_convert_rate::ConvertRateVariable::Epr);
-//             let apr = epr * compounding_periods_in_year as f64;
-//             let ear = convert_rate::convert_apr_to_ear(apr, compounding_periods_in_year);
-//             let apr_in_percent = format!("{:.4}%", apr * 100.);
-//             let epr_in_percent = format!("{:.4}%", epr * 100.);
-//             let ear_in_percent = format!("{:.4}%", ear * 100.);
-//             let apr_formula = format!("{} * {}", epr, compounding_periods_in_year);
-//             let epr_formula = format!("");
-//             let ear_formula = format!("(1 + {})^{} - 1", epr, compounding_periods_in_year);
-//             tvm_convert_rate::ConvertRateSolution::new(tvm_convert_rate::ConvertRateVariable::Epr, epr, compounding_periods_in_year, apr_in_percent, epr_in_percent, ear_in_percent, apr, epr, ear, &apr_formula, &epr_formula, &ear_formula,)
-//         }}
-//     }
-
-// /// Convert EAR to all variations of the rate. Returns a custom type with additional functionality and extra information available in the dbg!().
-// #[macro_export]
-//     macro_rules! ear {
-//         ( $x1:expr, $x2:expr ) => {{
-//             let ear: f64 = $x1;
-//             let compounding_periods_in_year: u32 = $x2;
-//             convert_rate::assert_inputs(ear, compounding_periods_in_year, tvm_convert_rate::ConvertRateVariable::Ear);
-//             let apr = convert_rate::convert_ear_to_apr(ear, compounding_periods_in_year);
-//             let epr = convert_rate::convert_ear_to_epr(ear, compounding_periods_in_year);
-//             let apr_in_percent = format!("{:.4}%", apr * 100.);
-//             let epr_in_percent = format!("{:.4}%", epr * 100.);
-//             let ear_in_percent = format!("{:.4}%", ear * 100.);
-//             let apr_formula = format!("{} * {}", epr, compounding_periods_in_year);
-//             let epr_formula = format!("(1 + {})^(1 / {}) - 1", ear, compounding_periods_in_year);
-//             let ear_formula = format!("{}", ear);
-//             tvm_convert_rate::ConvertRateSolution::new(tvm_convert_rate::ConvertRateVariable::Ear, ear, compounding_periods_in_year, apr_in_percent, epr_in_percent, ear_in_percent, apr, epr, ear, &apr_formula, &epr_formula, &ear_formula,)
-//         }}
-//     }
-
-//     #[macro_export]
-//     macro_rules! repeat {
-//     ( $x1:expr, $x2:expr ) => {{
-//         let mut repeats = vec![];
-//         for i in 0..$x2 {
-//             repeats.push($x1);
-//         }
-//         repeats
-//     }};
-// }
+#[macro_export]
+macro_rules! repeating_vec {
+    ( $x1:expr, $x2:expr ) => {{
+        let mut repeats = vec![];
+        for _i in 0..$x2 {
+            repeats.push($x1);
+        }
+        repeats
+    }};
+}
 
 fn decimal_separator_locale_opt(locale: Option<&Locale>) -> String {
     match locale {

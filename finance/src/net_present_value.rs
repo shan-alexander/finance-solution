@@ -1,6 +1,44 @@
 //! **Net Present Value calculations**. Given a series of cashflows, an initial investment (the cashflow at time0), a number of periods such as years, and fixed
 //! or varying interest rates, what is the net value of the series of cashflows right now?
 //!
+//! For most common usages, we recommend to use the [`net_present_value_schedule_solution`](./fn.net_present_value_schedule_solution.html) function, to provide a better debugging experience and additional features.
+//! This function allows you to provide varying cashflows and/or varying rates.
+//! 
+//! For very simple NPV calculations involving a constant cashflow and constant rate, the [`net_present_value_solution`](./fn.net_present_value_solution.html) function can be used.
+//! 
+//! ## Examples
+//! 
+//! **Simple Usage:**
+//! ```
+//! let (rate, periods, initial_investment, cashflow) = (0.034, 3, -1000, 400);
+//! let npv = finance::net_present_value_solution(rate, periods, initial_investment, cashflow);
+//! dbg!(npv.print_table());
+//! // Outputs to terminal:
+//! 
+//! // period   rate   present_value  future_value  investment_value 
+//! // ------  ------  -------------  ------------  ---------------- 
+//! // 0       0.0000    -1_000.0000   -1_000.0000       -1_000.0000 
+//! // 1       0.0340       386.8472      400.0000         -613.1528 
+//! // 2       0.0340       374.1269      400.0000         -239.0259 
+//! // 3       0.0340       361.8248      400.0000          122.7989 
+//! ```
+//! 
+//! **More typical usage (varying cashflows):**
+//! ```
+//! let rates = vec![0.034, 0.034, 0.034];
+//! let cashflows = vec![-1000, 300, 400, 500];
+//! let npv = finance::net_present_value_schedule_solution(&rates, &cashflows);
+//! dbg!(npv.print_table());
+//! // Outputs to terminal:
+//! 
+//! // period   rate   present_value  future_value  investment_value 
+//! // ------  ------  -------------  ------------  ---------------- 
+//! // 0       0.0000    -1_000.0000   -1_000.0000       -1_000.0000 
+//! // 1       0.0340       290.1354      300.0000         -709.8646 
+//! // 2       0.0340       374.1269      400.0000         -335.7377 
+//! // 3       0.0340       452.2810      500.0000          116.5433 
+//! ```
+
 
 // use crate::tvm_cashflow::*;
 // Needed for the Rustdoc comments.
@@ -10,7 +48,7 @@ use crate::*;
 
 use std::ops::Deref;
 
-/// Returns the **net present value** of a future series of constant cashflows and constant rate, subtracting the initial investment cost. Returns f64.
+/// Returns the net present value of a future series of constant cashflows and constant rate, subtracting the initial investment cost. Returns f64.
 ///
 /// Related functions:
 /// * To calculate a net present value with a varying rate or varying cashflow or both, use [`net_present_value_schedule`].
@@ -56,7 +94,39 @@ where I: Into<f64> + Copy, C: Into<f64> + Copy
     npv
 }
 
-/// Returns the **net present value of a schedule** of rates and cashflows (can be varying), subtracting the initial investment cost. Returns f64.
+/// Returns the net present value of a future series of constant cashflows and constant rate, subtracting the initial investment cost. Returns a solution struct with additional features..
+///
+/// Related functions:
+/// * To calculate a net present value with a varying rate or varying cashflow or both, use [`net_present_value_schedule`].
+///
+/// The net present value annuity formula is:
+///
+/// npv = initial_investment + sum( cashflow / (1 + rate)<sup>period</sup> )
+/// 
+/// or
+/// 
+/// npv = initial_investment +  cashflow * ((1. - (1. / (1. + rate)).powf(periods)) / rate)
+///
+/// # Arguments
+/// * `rate` - The rate at which the investment grows or shrinks per period,
+/// expressed as a floating point number. For instance 0.05 would mean 5%. Often appears as
+/// `r` or `i` in formulas.
+/// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
+/// * `cashflow` - The value of the constant cashflow (aka payment).
+/// * `initial investment` - The value of the initial investment (should be negative, or 0).
+pub fn net_present_value_solution<C, I>(rate: f64, periods: u32, initial_investment: I, cashflow: C) -> NpvSolution 
+where I: Into<f64> + Copy, C: Into<f64> + Copy
+{
+    let annuity = cashflow.into();
+    let ii = initial_investment.into();
+    let rates = repeating_vec![rate, periods];
+    let mut cashflows = repeating_vec![annuity, periods];
+    cashflows.insert(0, ii);
+    net_present_value_schedule_solution(&rates, &cashflows)
+
+}
+
+/// Returns the net present value of a schedule of rates and cashflows (can be varying), subtracting the initial investment cost. Returns f64.
 ///
 /// # Examples
 /// Net Present Value of a series of -$1000 investment which will payback $500 yearly for 10 years.
@@ -184,14 +254,24 @@ where C: Into<f64> + Copy
 }
 
 
-/// Returns the **net present value of a schedule** of rates and cashflows (can be varying), subtracting the initial investment cost. 
-/// Returns a custom solution struct with detailed information and additional functionality (recommended).
+/// Returns the net present value of a schedule of rates and cashflows (can be varying), subtracting the initial investment cost. 
+/// Returns a custom solution struct with detailed information and additional functionality.
 /// 
-/// For example..
+/// # Example
 /// ```
-/// // example here
-/// ```
+/// let rates = vec![0.034, 0.034, 0.034];
+/// let cashflows = vec![-1000, 300, 400, 500];
+/// let npv = finance::net_present_value_schedule_solution(&rates, &cashflows);
+/// dbg!(npv.print_table());
+/// // Outputs to terminal:
 /// 
+/// // period   rate   present_value  future_value  investment_value 
+/// // ------  ------  -------------  ------------  ---------------- 
+/// // 0       0.0000    -1_000.0000   -1_000.0000       -1_000.0000 
+/// // 1       0.0340       290.1354      300.0000         -709.8646 
+/// // 2       0.0340       374.1269      400.0000         -335.7377 
+/// // 3       0.0340       452.2810      500.0000          116.5433 
+/// ```
 pub fn net_present_value_schedule_solution<C>(rates: &[f64], cashflows: &[C]) -> NpvSolution 
 where C: Into<f64> + Copy
 {
@@ -290,13 +370,13 @@ impl NpvSolution {
         self.net_present_value
     }
 
-    /// Pretty-print a table of the periods and their rel
-    pub fn print_series_table(&self) {
+    /// Pretty-print a table of the calculations at each period for visual analysis. 
+    pub fn print_table(&self) {
         self.series().print_table();
     }
 
-    /// Pretty-print a table of the periods and their rel
-    pub fn print_series_table_locale(&self, locale: &num_format::Locale, precision: usize) {
+    /// Pretty-print a table of the calculations at each period for visual analysis, and provide a Locale for monetary formatting and preferred decimal precision.
+    pub fn print_table_locale(&self, locale: &num_format::Locale, precision: usize) {
         self.series().print_table_locale(locale, precision);
     }
 

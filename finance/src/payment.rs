@@ -2,7 +2,46 @@
 
 //! **Payment calculations.** What is the periodic payment needed for an amortized loan and how much
 //! of that is interest or principal?
-
+//! 
+//! For most common usages, we recommend to use the [`payment_solution`](./fn.payment_solution.html) function, which provides a better debugging experience and additional functionality.
+//!
+//! ## Example
+//! ```
+//! let (rate, periods, present_value, future_value, due) = (0.034, 10, 1000, 0, false);
+//! let pmt = finance::payment_solution(rate, periods, present_value, future_value, due);
+//! dbg!(&pmt);
+//! // Outputs to terminal:
+//! 
+//! // {
+//! // calculated_field: Payment,
+//! // rate: 0.034,
+//! // periods: 10,
+//! // present_value: 1000.0,
+//! // future_value: 0.0,
+//! // due_at_beginning: false,
+//! // payment: -119.63608534268569,
+//! // sum_of_payments: -1196.360853426857,
+//! // sum_of_interest: -196.36085342685692,
+//! // formula: "-119.6361 = ((1000.0000 * 1.034000^10) * -0.034000) / (1.034000^10 - 1)",
+//! // symbolic_formula: "pmt = ((pv * (1 + r)^n) * -r) / ((1 + r)^n - 1)",
+//! // }
+//! 
+//! dbg!(pmt.print_table());
+//! // Outputs to terminal:
+//! 
+//! // period  payments_to_date  payments_remaining  principal  principal_to_date  principal_remaining  interest  interest_to_date  interest_remaining
+//! // ------  ----------------  ------------------  ---------  -----------------  -------------------  --------  ----------------  ------------------
+//! //     1         -119.6361         -1_076.7248   -85.6361           -85.6361            -914.3639  -34.0000          -34.0000           -162.3609
+//! //     2         -239.2722           -957.0887   -88.5477          -174.1838            -825.8162  -31.0884          -65.0884           -131.2725
+//! //     3         -358.9083           -837.4526   -91.5583          -265.7421            -734.2579  -28.0778          -93.1661           -103.1947
+//! //     4         -478.5443           -717.8165   -94.6713          -360.4134            -639.5866  -24.9648         -118.1309            -78.2300
+//! //     5         -598.1804           -598.1804   -97.8901          -458.3036            -541.6964  -21.7459         -139.8768            -56.4840
+//! //     6         -717.8165           -478.5443  -101.2184          -559.5220            -440.4780  -18.4177         -158.2945            -38.0663
+//! //     7         -837.4526           -358.9083  -104.6598          -664.1818            -335.8182  -14.9763         -173.2708            -23.0901
+//! //     8         -957.0887           -239.2722  -108.2183          -772.4001            -227.5999  -11.4178         -184.6886            -11.6723
+//! //     9       -1_076.7248           -119.6361  -111.8977          -884.2978            -115.7022   -7.7384         -192.4270             -3.9339
+//! //     10      -1_196.3609             -0.0000  -115.7022          -999.0000              -0.0000   -3.9339         -196.3609              0.0000
+//! ```
 use log::{warn};
 
 // Import needed for the function references in the Rustdoc comments.
@@ -23,6 +62,9 @@ impl PaymentSolution {
         Self {
             0: solution,
         }
+    }
+    pub fn print_table(&self) {
+        self.series().print_table(true, true)
     }
 
     /// Calculates the period-by-period details of a payment calculation including how the payment

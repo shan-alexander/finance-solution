@@ -2,6 +2,30 @@
 
 //! **Future value _annuity_ calculations**. Given a series of cashflows, a number of periods such as years, and a fixed
 //! interest rate, what is the value of the series of cashflows (annuity) at the final payment?
+//! 
+//! For most common usages, we recommend to use the [`future_value_annuity_solution`](./fn.future_value_annuity_solution.html) function, which provides a better debugging experience and additional features.
+//! 
+//! ## Example
+//! ```
+//! let (rate, periods, annuity, due) = (0.034, 10, 500, false);
+//! let fv_ann = finance::future_value_annuity_solution(rate, periods, annuity, due);
+//! dbg!(fv_ann);
+//! // Outputs to terminal:
+//! ```
+//! > {<br>
+//! > calculated_field: FutureValueAnnuity,<br>
+//! > rate: 0.034,<br>
+//! > periods: 10,<br>
+//! > present_value: -4179.341028819186,<br>
+//! > future_value: -5838.660162934523,<br>
+//! > due_at_beginning: false,<br>
+//! > payment: 500.0,<br>
+//! > sum_of_payments: 5000.0,<br>
+//! > sum_of_interest: -5018.0011917537095,<br>
+//! > formula: "-500 * ((1. - (1. / (1. + 0.034)).powf(10)) / 0.034);",<br>
+//! > symbolic_formula: "-annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate);",<br>
+//! > }<br>
+//! 
 
 // to-do: add "use log::warn;" and helper logs
 
@@ -18,7 +42,7 @@ fn check_future_value_annuity_parameters(rate:f64, periods:u32, cashflow:f64) {
     assert!(periods > 0);
 }
 
-/// Returns the **future value of annuity** (a series of constant cashflows) at a constant rate. Returns f64.
+/// Returns the future value of annuity (a series of constant cashflows) at a constant rate. Returns f64.
 /// 
 /// The future value annuity formula is:
 ///
@@ -126,7 +150,7 @@ pub fn future_value_annuity<T>(rate: f64, periods: u32, annuity: T, due_at_begin
     fv_ann
 }
 
-/// Returns the **future value of annuity** (a series of constant cashflows) at a constant rate. Returns custom **solution struct** with additional information and functionality.
+/// Returns the future value of annuity (a series of constant cashflows) at a constant rate. Returns custom solution struct with additional information and functionality.
 ///
 /// Related functions:
 /// * To calculate a future value returning an f64, use [`present_value_annuity`].
