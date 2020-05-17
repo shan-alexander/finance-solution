@@ -258,7 +258,7 @@ impl TvmCashflowSeries {
                            ("payments_to_date", "f", include_running_totals), ("payments_remaining", "f", include_remaining_amounts),
                            ("principal", "f", true), ("principal_to_date", "f", include_running_totals), ("principal_remaining", "f", include_remaining_amounts),
                            ("interest", "f", true), ("interest_to_date", "f", include_running_totals), ("interest_remaining", "f", include_remaining_amounts)];
-        let mut data = self.iter()
+        let data = self.iter()
             .map(|entry| vec![entry.period.to_string(), entry.payments_to_date.to_string(), entry.payments_remaining.to_string(),
                               entry.principal.to_string(), entry.principal_to_date.to_string(), entry.principal_remaining.to_string(),
                               entry.interest.to_string(), entry.interest_to_date.to_string(), entry.interest_remaining.to_string()])

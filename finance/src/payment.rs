@@ -120,7 +120,7 @@ impl PaymentSolution {
         include_running_totals: bool,
         include_remaining_amounts: bool)
     {
-        self.print_ab_comparison_internal(other, include_running_totals, include_remaining_amounts, None, None);
+        self.print_ab_comparison_locale_opt(other, include_running_totals, include_remaining_amounts, None, None);
     }
 
     pub fn print_ab_comparison_locale(

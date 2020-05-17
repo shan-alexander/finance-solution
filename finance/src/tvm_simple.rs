@@ -533,7 +533,7 @@ impl TvmSolution {
         &self,
         other: &TvmSolution)
     {
-        self.print_ab_comparison_internal(other, None, None);
+        self.print_ab_comparison_locale_opt(other, None, None);
     }
 
     pub fn print_ab_comparison_locale(
@@ -542,10 +542,10 @@ impl TvmSolution {
         locale: &num_format::Locale,
         precision: usize)
     {
-        self.print_ab_comparison_internal(other, Some(locale), Some(precision));
+        self.print_ab_comparison_locale_opt(other, Some(locale), Some(precision));
     }
 
-    fn print_ab_comparison_internal(
+    fn print_ab_comparison_locale_opt(
         &self,
         other: &TvmSolution,
         locale: Option<&num_format::Locale>,
@@ -678,7 +678,7 @@ impl TvmSeries {
         &self,
         other: &TvmSeries)
     {
-        self.print_ab_comparison_internal(other, None, None);
+        self.print_ab_comparison_locale_opt(other, None, None);
     }
 
     pub fn print_ab_comparison_locale(
@@ -687,17 +687,17 @@ impl TvmSeries {
         locale: &num_format::Locale,
         precision: usize)
     {
-        self.print_ab_comparison_internal(other, Some(locale), Some(precision))
+        self.print_ab_comparison_locale_opt(other, Some(locale), Some(precision))
     }
 
-    fn print_ab_comparison_internal(
+    fn print_ab_comparison_locale_opt(
         &self,
         other: &TvmSeries,
         locale: Option<&num_format::Locale>,
         precision: Option<usize>)
     {
         let columns = vec![("period", "i", true),
-                           ("rate_a", "f", true), ("rate_b", "f", true),
+                           ("rate_a", "r", true), ("rate_b", "r", true),
                            ("value_a", "f", true), ("value_b", "f", true)];
         let mut data = vec![];
         let rows = max(self.len(), other.len());
