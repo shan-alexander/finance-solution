@@ -1,4 +1,5 @@
 #![allow(unused_variables)]
+#![allow(unused_imports)]
 #![allow(dead_code)]
 
 // word problems:
@@ -13,7 +14,7 @@ use finance::*;
 use num_format::{Locale};
 
 pub fn main() {
-    // pv_problem_1();
+    pv_problem_1();
     // fv_problem_1();
     // nper_problem_1();
     // rate_problem_1();
@@ -23,42 +24,10 @@ pub fn main() {
     // periods_problem_2();
     // rate_problem_2();
 
-    pv_annuity_problem_1();
-    fv_annuity_problem_1();
+    // pv_annuity_problem_1();
+    // fv_annuity_problem_1();
 
     // retirement_problem_1();
-
-    // let (rate, periods, present_value) = (0.08, 5, 13_000);
-    // let answer = payment_solution(rate, periods, present_value, 0, false);
-    // dbg!(answer.series().print_table(true, true, &Locale::en, 4));
-
-    // example 1
-    let rates = vec![0.034, 0.058, 0.047, 0.023];
-    let cashflows = vec![-10000, 3000, 2000, 3700, 4000];
-    let npv = net_present_value_schedule_solution(&rates, &cashflows);
-    dbg!(&npv);
-    let series_ = npv.series();
-    dbg!(&series_.print_table_locale(&Locale::en, 4));
-    
-    // filter example
-    series_.filter(|x| x.investment_value() < 0.0 ).print_table_locale(&Locale::en, 4);
-    
-    // example 2
-    let cashflows_2 = vec![-8000, 2000,2500,2500,1500];
-    let npv_2 = net_present_value_schedule_solution(&rates, &cashflows_2);
-    
-    //compare 1 & 2
-    dbg!(&series_.print_ab_comparison_locale(&npv_2.series(), &Locale::en, 4));
-
-    dbg!(&npv_2.max_discounted_cashflow());
-    dbg!(&npv_2.series().max_discounted_cashflow());
-
-    dbg!(&npv_2.min_discounted_cashflow());
-    dbg!(npv_2.series().min_discounted_cashflow());
-
-    // assert_approx_equal!(&npv.sum_of_discounted_cashflows, &npv.series().iter().present_value().sum());
-
-
 }
 
 // If you wish to accumulate $140,000 in 13 years, 

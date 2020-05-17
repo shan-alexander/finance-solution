@@ -13,9 +13,10 @@ fn main() {
     // verbose::bilbo_baggins::main();
     // verbose::convert_rate::main();
     // verbose::convert_rates::main();
+    verbose::debug::main();
     // verbose::examples_1::main();
     // verbose::find_rate::main();
-    verbose::future_value::main();
+    // verbose::future_value::main();
     // verbose::future_value_annuity::main();
     // verbose::net_present_value::main();
     // verbose::nper::main();

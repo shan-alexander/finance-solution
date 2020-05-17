@@ -4,6 +4,7 @@ pub mod bilbo_baggins;
 pub mod convert_rate;
 pub mod convert_rate_solution;
 pub mod convert_rates_old;
+pub mod debug;
 pub mod examples_1;
 pub mod future_value;
 pub mod future_value_annuity;
