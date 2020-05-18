@@ -13,9 +13,10 @@ pub fn main() {
     // try_doc_example_schedule();
     // try_doc_example_schedule_solution();
     // try_doc_example_schedule_series();
+    // try_doc_example_print_table();
     // try_find_rate();
     // try_series_print_table();
-    try_ab_comparison();
+    // try_ab_comparison();
     // check_formulas();
     // dbg!(finance::future_value_solution(0.012, 8, 200_000));
     // try_continuous();
@@ -26,6 +27,15 @@ pub fn main() {
     try_simple_to_continuous(&finance::TvmVariable::PresentValue);
     try_simple_to_continuous(&finance::TvmVariable::FutureValue);
     */
+    // try_values_for_diagram_1();
+}
+
+fn try_doc_example_print_table() {
+    // finance::future_value_solution(0.045, 5, 10_000).print_series_table();
+    let locale = finance::num_format::Locale::en;
+    let precision = 2;
+    finance::future_value_solution(0.11, 4, 5_000).print_series_table_locale(&locale, precision);
+
 }
 
 /*
@@ -400,4 +410,29 @@ fn try_simple_to_continuous(vary_field: &finance::TvmVariable) {
     println!("\nBack to simple compounding, varying {} to keep the other three values constant.\n", vary_field.to_string().to_lowercase());
     dbg!(&simple_solution_round_trip);
 }
+*/
+
+/*
+$$\begin{tikzpicture}[scale=1.0544]\small
+\begin{axis}[axis line style=gray,
+	samples=100,
+	width=9.0cm,height=6.4cm,
+	xmin=0, xmax=12,
+	ymin=120, ymax=123,
+	restrict y to domain=0:1000,
+	ytick={120, 121, 122},
+	xtick={1,2,3,4,5,6,7,8,9,10,11,12},
+	axis equal,
+	axis x line=center,
+	axis y line=center,
+	xlabel=$n$,ylabel=$fv$]
+\addplot[red,domain=1:12,semithick]{100*((1+(0.2/x))^x)};
+\addplot[black,domain=1:12]{100*(e^(0.2))};
+\addplot[] coordinates {(2.5,122.8)} node{$fv=100e^{0.2}$};
+\addplot[red] coordinates {(4,120.3)} node{$fv=100(1+{0.2 \over n})^n$};
+\path (axis cs:0,122) node [anchor=north west,yshift=-0.07cm];
+\end{axis}
+\end{tikzpicture}$$
+
+//i.upmath.me/svg/%24%24%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%5Csmall%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D100%2C%0A%09width%3D9.0cm%2Cheight%3D6.4cm%2C%0A%09xmin%3D0%2C%20xmax%3D12%2C%0A%09ymin%3D120%2C%20ymax%3D123%2C%0A%09restrict%20y%20to%20domain%3D0%3A1000%2C%0A%09ytick%3D%7B120%2C%20121%2C%20122%7D%2C%0A%09xtick%3D%7B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%7D%2C%0A%09axis%20equal%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24n%24%2Cylabel%3D%24fv%24%5D%0A%5Caddplot%5Bred%2Cdomain%3D1%3A12%2Csemithick%5D%7B100*((1%2B(0.2%2Fx))%5Ex)%7D%3B%0A%5Caddplot%5Bblack%2Cdomain%3D1%3A12%5D%7B100*(e%5E(0.2))%7D%3B%0A%5Caddplot%5B%5D%20coordinates%20%7B(2.5%2C122.8)%7D%20node%7B%24fv%3D100e%5E%7B0.2%7D%24%7D%3B%0A%5Caddplot%5Bred%5D%20coordinates%20%7B(4%2C120.3)%7D%20node%7B%24fv%3D100(1%2B%7B0.2%20%5Cover%20n%7D)%5En%24%7D%3B%0A%5Cpath%20(axis%20cs%3A0%2C122)%20node%20%5Banchor%3Dnorth%20west%2Cyshift%3D-0.07cm%5D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D%24%24
 */

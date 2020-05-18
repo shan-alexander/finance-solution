@@ -1,11 +1,11 @@
 //! **Future value calculations.** Given an initial investment amount, a number of periods such as
 //! periods, and fixed or varying interest rates, what is the value of the investment at the end?
 //!
-//! For most common usages, we recommend the [`future_value_solution`](./fn.future_value_solution.html) function, which provides a better debugging experience and additional features.
+//! For most common usages, we recommend the [future_value_solution](./fn.future_value_solution.html) function, which provides a better debugging experience and additional features.
 //! 
-//! For more complex scenarios, which involve varying rates in each period, we recommend the [`future_value_schedule_solution`](./fn.future_value_schedule_solution.html) function.
+//! For more complex scenarios, which involve varying rates in each period, we recommend the [future_value_schedule_solution](./fn.future_value_schedule_solution.html) function.
 //! 
-//! To simply return an f64 value of the future value answer, use the [`future_value`](./fn.future_value.html) function.
+//! To simply return an f64 value of the future value answer, use the [future_value](./fn.future_value.html) function.
 //! 
 // ! If you need to calculate the present value given a future value, a number of periods, and one
 // ! or more rates use [`present_value`] or related functions.
@@ -46,22 +46,24 @@ use crate::tvm_simple::*;
 use crate::{rate::*, periods::*, present_value::*};
 use std::ops::Deref;
 
-/// A record of a call to [`future_value_solution`], a Future Value calculation where the rate is
+/// A record of a call to [future_value_solution](./fn.future_value_solution.html), a Future Value calculation where the rate is
 /// fixed. The structure shows details such as the formula and can calculate the period-by-period
 /// details.
 #[derive(Clone, Debug)]
 pub struct FutureValueSolution {
-    tvm_solution: TvmSolution
+    tvm_solution: TvmSolution,
 }
 
-/// A record of a call to [`future_value_schedule`], a Future Value calculation where the rate may
+/// A record of a call to [future_value_schedule_solution](./fn.future_value_schedule_solution.html), a Future Value calculation where the rate may
 /// vary for each period. The structure can calculate the period-by-period details.
 #[derive(Clone, Debug)]
-pub struct FutureValueSchedule(TvmSchedule);
+pub struct FutureValueScheduleSolution {
+    tvm_solution: TvmScheduleSolution,
+}
 
 /// The period-by-period details of a Future Value calculation. This is the result of a call to
 /// ['FutureValueSolution::series`] if the rate is fixed or a call to
-/// [`FutureValueSchedule::series`] if the rate may vary for each period.
+/// [`FutureValueScheduleSolution::series`] if the rate may vary for each period.
 #[derive(Clone, Debug)]
 pub struct FutureValueSeries(TvmSeries);
 
@@ -73,21 +75,7 @@ impl FutureValueSolution {
         }
     }
 
-    pub fn series(&self) -> FutureValueSeries {
-        // For a rate, periods, or future value calculation the the period-by-period values are
-        // calculated the same way.
-        FutureValueSeries::new(self.tvm_solution.series())
-    }
-
-    pub fn print_series_table(&self) {
-        self.series().print_table();
-    }
-
-    pub fn print_series_table_locale(&self, locale: &num_format::Locale, precision: usize) {
-        self.series().print_table_locale(locale, precision);
-    }
-
-    /// Returns true if the value is compounded continuously rather than period-by-period.
+    /// Returns true if the value was compounded continuously rather than period-by-period.
     pub fn continuous_compounding(&self) -> bool {
         self.tvm_solution.continuous_compounding()
     }
@@ -137,6 +125,113 @@ impl FutureValueSolution {
     pub fn symbolic_formula(&self) -> &str {
         &self.tvm_solution.symbolic_formula()
     }
+
+    /// Calculates the period-by-period details of a future value calculation.
+    ///
+    /// # Examples
+    /// Future value calculation with a fixed periodic rate. Uses [`future_value_solution`].
+    /// ```
+    /// // The initial investment is $10,000.12.
+    /// let present_value = 10_000.12;
+    ///
+    /// // The interest rate is 1.5% per month.
+    /// let interest_rate = 0.015;
+    ///
+    /// // The investment will grow for 24 months.
+    /// let periods = 24;
+    ///
+    /// // Calculate the overall solution including the future value.
+    /// let solution = finance::future_value_solution(interest_rate, periods, present_value);
+    /// dbg!(&solution);
+    ///
+    /// // Calculate the value at the end of each period.
+    /// let series = solution.series();
+    /// dbg!(&series);
+    ///
+    /// // Confirm that we have one entry for the initial value and one entry for each period.
+    /// assert_eq!(25, series.len());
+    ///
+    /// // Print the period-by-period numbers in a formatted table.
+    /// series.print_table();
+    ///
+    /// // Create a vector with every fourth period.
+    /// let filtered_series = series
+    ///     .iter()
+    ///     .filter(|x| x.period() % 4 == 0)
+    ///     .collect::<Vec<_>>();
+    /// dbg!(&filtered_series);
+    /// assert_eq!(7, filtered_series.len());
+    /// ```
+    pub fn series(&self) -> FutureValueSeries {
+        // For a rate, periods, or future value calculation the period-by-period values are
+        // calculated the same way.
+        FutureValueSeries::new(self.tvm_solution.series())
+    }
+
+    /// Prints a formatted table with the period-by-period details of a future value calculation.
+    ///
+    /// Money amounts are rounded to four decimal places, rates to six places, and numbers are
+    /// formatted similar to Rust constants such as "10_000.0322". For more control over formatting
+    /// use [`FutureValueSolution::print_series_table_locale'].
+    ///
+    /// # Examples
+    /// ```
+    /// finance::future_value_solution(0.045, 5, 10_000)
+    ///     .print_series_table();
+    /// ```
+    /// Output:
+    /// ```text
+    /// period      rate        value
+    /// ------  --------  -----------
+    ///      0  0.000000  10_000.0000
+    ///      1  0.045000  10_450.0000
+    ///      2  0.045000  10_920.2500
+    ///      3  0.045000  11_411.6612
+    ///      4  0.045000  11_925.1860
+    ///      5  0.045000  12_461.8194
+    /// ```
+    pub fn print_series_table(&self) {
+        self.series().print_table();
+    }
+
+    /// Prints a formatted table with the period-by-period details of a future value calculation.
+    ///
+    /// For a simpler function that doesn't require a locale use
+    /// [`FutureValueSolution::print_series_table'].
+    ///
+    /// # Arguments
+    /// * `locale` - A locale constant from the `num-format` crate such as `Locale::en` for English
+    /// or `Locale::vi` for Vietnamese. The locale determines the thousands separator and decimal
+    /// separator.
+    /// * `precision` - The number of decimal places for money amounts. Rates will appear with at
+    /// least six places regardless of this argument.
+    ///
+    /// # Examples
+    /// ```
+    /// // English formatting with "," for the thousands separator and "." for the decimal
+    /// // separator.
+    /// let locale = finance::num_format::Locale::en;
+    ///
+    /// // Show money amounts to two decimal places.
+    /// let precision = 2;
+    ///
+    /// finance::future_value_solution(0.11, 4, 5_000)
+    ///     .print_series_table_locale(&locale, precision);
+    /// ```
+    /// Output:
+    /// ```text
+    /// period      rate     value
+    /// ------  --------  --------
+    ///      0  0.000000  5,000.00
+    ///      1  0.110000  5,550.00
+    ///      2  0.110000  6,160.50
+    ///      3  0.110000  6,838.16
+    ///      4  0.110000  7,590.35
+    /// ```
+    pub fn print_series_table_locale(&self, locale: &num_format::Locale, precision: usize) {
+        self.series().print_table_locale(locale, precision);
+    }
+
 }
 
 impl TimeValueOfMoneySolution for FutureValueSolution {
@@ -149,16 +244,68 @@ impl TimeValueOfMoneySolution for FutureValueSolution {
     }
 }
 
-impl FutureValueSchedule {
-    fn new (schedule: TvmSchedule) -> Self {
+impl FutureValueScheduleSolution {
+    fn new (tvm_solution: TvmScheduleSolution) -> Self {
         Self {
-            0: schedule,
+            tvm_solution,
         }
     }
 
-    pub fn series(&self) -> FutureValueSeries {
-        assert!(self.calculated_field().is_future_value());
+    /// Returns the periodic rates that were given as an input to the future value calculation.
+    pub fn rates(&self) -> &[f64] {
+        self.tvm_solution.rates()
+    }
 
+    /// Returns the number of periods that were based on the number of rates passed to the future
+    /// value schedule calculation.
+    pub fn periods(&self) -> u32 {
+        self.tvm_solution.periods()
+    }
+
+    /// Returns the present value that was given as an input to the future value calculation.
+    pub fn present_value(&self) -> f64 {
+        self.tvm_solution.present_value()
+    }
+
+    /// Returns the future value that was calculated based on the provided rates and present value.
+    pub fn future_value(&self) -> f64 {
+        self.tvm_solution.future_value()
+    }
+
+    /// Calculate the future value of an investment whose rates vary by year, then find the point
+    /// where the value passes a certain threshold. Uses [`future_value_schedule`].
+    /// ```
+    /// // The rates vary by year: 11.6% followed by 13.4%, 9%, and 8.6%.
+    /// let rates = [0.116, 0.134, -0.09, 0.086];
+    ///
+    /// // The initial investment is $50,000.
+    /// let present_value = 50_000.00;
+    ///
+    /// // Calculate the future value and create a struct with all of the variables
+    /// // and the formula used.
+    /// let solution = finance::future_value_schedule_solution(&rates, present_value);
+    /// dbg!(&solution);
+    /// finance::assert_rounded_4(62534.3257, solution.future_value());
+    ///
+    /// // Calculate the value at the end of each period.
+    /// let series = solution.series();
+    /// dbg!(&series);
+    ///
+    /// // Confirm that there are four periods corresponding to the four interest
+    /// // rates as well as one more for period 0 representing the initial value.
+    /// assert_eq!(5, series.len());
+    ///
+    /// // Confirm that the value of the fourth period is the same as the overall
+    /// // future value.
+    /// finance::assert_rounded_4(solution.future_value(), series.last().unwrap().value());
+    ///
+    /// // Find the first period where the value of the investment was at least
+    /// // $60,000.
+    /// let period = series.iter().find(|x| x.value() >= 60_000.00);
+    /// dbg!(&period);
+    /// assert_eq!(2, period.unwrap().period());
+    /// ```
+    pub fn series(&self) -> FutureValueSeries {
         // After period 0 this will hold the value of the previous period.
         let mut prev_value = None;
 
@@ -187,41 +334,64 @@ impl FutureValueSchedule {
             };
             assert!(value.is_finite());
             prev_value = Some(value);
-            series.push(TvmPeriod::new(period, rate, value, &formula, &symbolic_formula))
+            series.push(TVMPeriod::new(period, rate, value, &formula, &symbolic_formula))
         }
         FutureValueSeries::new(TvmSeries::new(series))
     }
 
+    /// Prints a formatted table with the period-by-period details of a future value calculation.
+    ///
+    /// Money amounts are rounded to four decimal places, rates to six places, and numbers are
+    /// formatted similar to Rust constants such as "10_000.0322". For more control over formatting
+    /// use [`FutureValueScheduleSolution::print_series_table_locale'].
+    ///
+    /// # Examples
+    /// ```
+    /// finance::future_value_schedule_solution(&[0.11, 0.13, 0.14], 50_000)
+    ///     .print_series_table();
+    /// ```
     pub fn print_series_table(&self) {
         self.series().print_table();
     }
 
+    /// Prints a formatted table with the period-by-period details of a future value schedule
+    /// calculation.
+    ///
+    /// For a simpler function that doesn't require a locale use
+    /// [`FutureValueScheduleSolution::print_series_table'].
+    ///
+    /// # Arguments
+    /// * `locale` - A locale constant from the `num-format` crate such as `Locale::en` for English
+    /// or `Locale::vi` for Vietnamese. The locale determines the thousands separator and decimal
+    /// separator.
+    /// * `precision` - The number of decimal places for money amounts. Rates will appear with at
+    /// least six places regardless of this argument.
+    ///
+    /// # Examples
+    /// ```
+    /// // Vietnamese formatting with "." for the thousands separator and "," for the decimal
+    /// // separator.
+    /// let locale = finance::num_format::Locale::vi;
+    ///
+    /// // Round money amounts to whole numbers. Rates will still have six decimal places.
+    /// let precision = 0;
+    ///
+    /// finance::future_value_schedule_solution(&[0.05, 0.043, 0.071], 1_000)
+    ///     .print_series_table_locale(&locale, precision);
+    /// ```
     pub fn print_series_table_locale(&self, locale: &num_format::Locale, precision: usize) {
         self.series().print_table_locale(locale, precision);
     }
 
-    pub fn tvm_solution(&self) -> TvmSchedule {
-        self.clone().into()
-    }
-
-    pub fn tvm_solution_and_series(&self) -> (TvmSchedule, TvmSeries) {
-        let series = self.series();
-        (self.clone().into(), series.into())
-    }
-
 }
 
-impl Deref for FutureValueSchedule {
-    type Target = TvmSchedule;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl TimeValueOfMoneyScheduleSolution for FutureValueScheduleSolution {
+    fn tvm_solution(&self) -> TvmScheduleSolution {
+        self.tvm_solution.clone()
     }
-}
 
-impl Into<TvmSchedule> for FutureValueSchedule {
-    fn into(self) -> TvmSchedule {
-        self.0
+    fn tvm_series(&self) -> TvmSeries {
+        self.series().into()
     }
 }
 
@@ -543,11 +713,11 @@ pub fn future_value_schedule<T>(rates: &[f64], present_value: T) -> f64
 /// let present_value = 4_000.00;
 /// let schedule = future_value_schedule(&rates, present_value);
 /// ```
-pub fn future_value_schedule_solution<T>(rates: &[f64], present_value: T) -> FutureValueSchedule
+pub fn future_value_schedule_solution<T>(rates: &[f64], present_value: T) -> FutureValueScheduleSolution
     where T: Into<f64> + Copy
 {
     let future_value = future_value_schedule(rates, present_value);
-    FutureValueSchedule::new(TvmSchedule::new(TvmVariable::FutureValue, rates, present_value.into(), future_value))
+    FutureValueScheduleSolution::new(TvmScheduleSolution::new(TvmVariable::FutureValue, rates, present_value.into(), future_value))
 }
 
 pub(crate) fn future_value_internal(rate: f64, periods: f64, present_value: f64, continuous_compounding: bool) -> f64 {
@@ -675,4 +845,31 @@ mod tests {
     }
 
 }
+
+/*
+$$\begin{tikzpicture}[scale=1.0544]\small
+\begin{axis}[axis line style=gray,
+	samples=120,
+	width=9.0cm,height=6.4cm,
+	xmin=-1.5, xmax=1.5,
+	ymin=0, ymax=1.8,
+	restrict y to domain=-0.2:2,
+	ytick={1},
+	xtick={-1,1},
+	axis equal,
+	axis x line=center,
+	axis y line=center,
+	xlabel=$x$,ylabel=$y$]
+\addplot[red,domain=-2:1,semithick]{exp(x)};
+\addplot[black]{x+1};
+\addplot[] coordinates {(1,1.5)} node{$y=e^{(rx)}$};
+\addplot[red] coordinates {(-1,0.6)} node{$y=(1+{r \over x})^x$};
+\path (axis cs:0,0) node [anchor=north west,yshift=-0.07cm] {0};
+\end{axis}
+\end{tikzpicture}$$
+
+
+
+*/
+
 

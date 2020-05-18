@@ -3,7 +3,49 @@
 use finance::TimeValueOfMoneySolution;
 
 pub fn main() {
-    try_doc_example_time_value_of_money_tvm_solution_1();
+    // try_future_value_vary_compounding_periods();
+    // try_doc_example_time_value_of_money_tvm_solution_1();
+    try_doc_example_future_value_vary_compounding_periods();
+}
+
+fn try_future_value_vary_compounding_periods() {
+    let solution = finance::future_value_solution(0.2, 4, 10_000);
+    dbg!(&solution);
+
+    let scenarios = solution.future_value_vary_compounding_periods(&[1, 2, 4, 6, 12, 24, 52, 365], true);
+    dbg!(&scenarios);
+    scenarios.print_table();
+}
+
+fn try_doc_example_future_value_vary_compounding_periods() {
+    // The interest rate is 5% per quarter.
+    let rate = 0.05;
+
+    // The interest will be applied once per quarter for one year.
+    let periods = 4;
+
+    // The starting value is $100.00.
+    let present_value = 100;
+
+    let solution = finance::future_value_solution(rate, periods, present_value);
+    dbg!(&solution);
+
+    // We'll experiment with compounding annually, quarterly, monthly, weekly, and daily.
+    let compounding_periods = [1, 4, 12, 52, 365];
+
+    // Add a final scenario with continuous compounding.
+    let include_continuous_compounding = true;
+
+    // Compile a list of the future values with each of the above compounding periods as well as
+    // continous compounding.
+    let scenarios = solution.future_value_vary_compounding_periods(&compounding_periods, include_continuous_compounding);
+    // The description in the `setup` field states that the rate is 20% since that's 5% times the
+    // number of periods in the original calculation. The final entry has `input: inf` indicating
+    // that we used continuous compounding.
+    dbg!(&scenarios);
+
+    // Print the results in a formatted table.
+    scenarios.print_table();
 }
 
 fn try_doc_example_time_value_of_money_tvm_solution_1() {

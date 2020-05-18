@@ -11,47 +11,7 @@ use crate::*;
 use std::ops::Deref;
 use std::fmt::{Display, Formatter, Error};
 
-/// Enumeration used for the `calculated_field` field in [`TvmSolution`] and [`TvmSchedule`] to keep
-/// track of what was calculated, either the periodic rate, the number of periods, the present
-/// value, or the future value.
-#[derive(Clone, Debug, Hash, PartialEq)]
-pub enum TvmVariable {
-    Rate,
-    Periods,
-    PresentValue,
-    FutureValue,
-}
-
-#[derive(Clone, Debug)]
-pub struct TvmSolution {
-    calculated_field: TvmVariable,
-    continuous_compounding: bool,
-    rate: f64,
-    periods: u32,
-    fractional_periods: f64,
-    present_value: f64,
-    future_value: f64,
-    formula: String,
-    symbolic_formula: String,
-}
-
-/// A record of a Time Value of Money calculation where the rate may vary by period.
-///
-/// It's the result of calling [`present_value_schedule`] or [`future_value_schedule`].
-#[derive(Clone, Debug)]
-pub struct TvmSchedule {
-    calculated_field: TvmVariable,
-    rates: Vec<f64>,
-    periods: u32,
-    present_value: f64,
-    future_value: f64,
-}
-
-#[derive(Clone, Debug)]
-pub struct TvmSeries(Vec<TvmPeriod>);
-
 pub trait TimeValueOfMoneySolution {
-
     /// Returns the shared inner structure that holds fields common to any `TimeValueOfMoneySolution`
     /// struct such as [RateSolution](././rate/struct.RateSolution.html) or [PresentValueSolution](././present_value/struct.PresentValueSolution.html).
     /// # Examples
@@ -118,6 +78,161 @@ pub trait TimeValueOfMoneySolution {
         self.tvm_solution().future_value_solution(continuous_compounding, compounding_periods)
     }
 
+    /// <img src="http://i.upmath.me/svg/%24%24%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D100%2C%0A%09width%3D9.0cm%2Cheight%3D6.4cm%2C%0A%09xmin%3D0%2C%20xmax%3D12%2C%0A%09ymin%3D80%2C%20ymax%3D85%2C%0A%09restrict%20y%20to%20domain%3D0%3A1000%2C%0A%09ytick%3D%7B81%2C%2082%2C%2083%2C%2084%7D%2C%0A%09xtick%3D%7B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%7D%2C%0A%09axis%20equal%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24n%24%2Cylabel%3D%24pv%24%5D%0A%5Caddplot%5Bred%2Cdomain%3D1%3A12%2Csemithick%5D%7B100%2F((1%2B(0.2%2Fx))%5Ex)%7D%3B%0A%5Caddplot%5Bblack%2Cdomain%3D1%3A12%5D%7B100%2F(e%5E(0.2))%7D%3B%0A%5Caddplot%5B%5D%20coordinates%20%7B(2.5%2C81.2)%7D%20node%7B%24pv%3D%7B100%20%5Cover%20e%5E%7B0.2%7D%7D%24%7D%3B%0A%5Caddplot%5Bred%5D%20coordinates%20%7B(4.5%2C83.3)%7D%20node%7B%24pv%3D%7B100%20%5Cover%20(1%2B%7B0.2%20%5Cover%20n%7D)%5En%7D%24%7D%3B%0A%5Cpath%20(axis%20cs%3A0%2C83)%20node%20%5Banchor%3Dnorth%20west%2Cyshift%3D-0.07cm%5D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D%24%24" />
+    fn present_value_vary_compounding_periods(&self, compounding_periods: &[u32]) -> Vec<(u32, f64)> {
+        self.tvm_solution().present_value_vary_compounding_periods(compounding_periods)
+    }
+
+    ///
+    /// # Examples
+    /// ```
+    /// use finance::TimeValueOfMoneySolution;
+    ///
+    /// // The interest rate is 5% per quarter.
+    /// let rate = 0.05;
+    ///
+    /// // The interest will be applied once per quarter for one year.
+    /// let periods = 4;
+    ///
+    /// // The starting value is $100.00.
+    /// let present_value = 100;
+    ///
+    /// let solution = finance::future_value_solution(rate, periods, present_value);
+    /// dbg!(&solution);
+    ///
+    /// // We'll experiment with compounding annually, quarterly, monthly, weekly, and daily.
+    /// let compounding_periods = [1, 4, 12, 52, 365];
+    ///
+    /// // Add a final scenario with continuous compounding.
+    /// let include_continuous_compounding = true;
+    ///
+    /// // Compile a list of the future values with each of the above compounding periods as well as
+    /// // continous compounding.
+    /// let scenarios = solution.future_value_vary_compounding_periods(&compounding_periods, include_continuous_compounding);
+    /// // The description in the `setup` field states that the rate is 20% since that's 5% times the
+    /// // number of periods in the original calculation. The final entry has `input: inf` indicating
+    /// // that we used continuous compounding.
+    /// dbg!(&scenarios);
+    ///
+    /// // Print the results in a formatted table.
+    /// scenarios.print_table();
+    /// ```
+    /// Output:
+    /// ```text
+    /// &solution = FutureValueSolution {
+    ///     tvm_solution: TvmSolution {
+    ///     calculated_field: FutureValue,
+    ///     continuous_compounding: false,
+    ///     rate: 0.05,
+    ///     periods: 4,
+    ///     fractional_periods: 4.0,
+    ///     present_value: 100.0,
+    ///     future_value: 121.55062500000003,
+    ///     formula: "121.5506 = 100.0000 * (1.050000 ^ 4)",
+    ///     symbolic_formula: "fv = pv * (1 + r)^n",
+    /// },
+    ///
+    /// &scenarios = ScenarioList {
+    ///     setup: "Compare future values with different compounding periods where the rate is 0.200000 and the present value is 100.0000.",
+    ///     input_variable: Periods,
+    ///     output_variable: FutureValue,
+    ///     entries: [
+    ///         { input: 1, output: 120.0000 },
+    ///         { input: 4, output: 121.5506 },
+    ///         { input: 12, output: 121.9391 },
+    ///         { input: 52, output: 122.0934 },
+    ///         { input: 365, output: 122.1336 },
+    ///         { input: inf, output: 122.1403 },
+    ///     ],
+    /// }
+    ///
+    /// Periods  Future Value
+    /// -------  ------------
+    ///       1      120.0000
+    ///       4      121.5506
+    ///      12      121.9391
+    ///      52      122.0934
+    ///     365      122.1336
+    ///     inf      122.1403
+    /// ```
+    ///
+    /// <img src="http://i.upmath.me/svg/%24%24%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%5Csmall%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D100%2C%0A%09width%3D9.0cm%2Cheight%3D6.4cm%2C%0A%09xmin%3D0%2C%20xmax%3D12%2C%0A%09ymin%3D120%2C%20ymax%3D123%2C%0A%09restrict%20y%20to%20domain%3D0%3A1000%2C%0A%09ytick%3D%7B120%2C%20121%2C%20122%7D%2C%0A%09xtick%3D%7B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%7D%2C%0A%09axis%20equal%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24n%24%2Cylabel%3D%24fv%24%5D%0A%5Caddplot%5Bred%2Cdomain%3D1%3A12%2Csemithick%5D%7B100*((1%2B(0.2%2Fx))%5Ex)%7D%3B%0A%5Caddplot%5Bblack%2Cdomain%3D1%3A12%5D%7B100*(e%5E(0.2))%7D%3B%0A%5Caddplot%5B%5D%20coordinates%20%7B(2.5%2C122.8)%7D%20node%7B%24fv%3D100e%5E%7B0.2%7D%24%7D%3B%0A%5Caddplot%5Bred%5D%20coordinates%20%7B(4%2C120.3)%7D%20node%7B%24fv%3D100(1%2B%7B0.2%20%5Cover%20n%7D)%5En%24%7D%3B%0A%5Cpath%20(axis%20cs%3A0%2C122)%20node%20%5Banchor%3Dnorth%20west%2Cyshift%3D-0.07cm%5D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D%24%24" />
+    fn future_value_vary_compounding_periods(&self, compounding_periods: &[u32], include_continuous_compounding: bool) -> ScenarioList {
+        self.tvm_solution().future_value_vary_compounding_periods(compounding_periods, include_continuous_compounding)
+    }
+
+    fn print_ab_comparison(
+        &self,
+        other: &dyn TimeValueOfMoneySolution)
+    {
+        self.tvm_solution().print_ab_comparison(&other.tvm_solution());
+    }
+
+    fn print_ab_comparison_locale(
+        &self,
+        other: &dyn TimeValueOfMoneySolution,
+        locale: &num_format::Locale,
+        precision: usize)
+    {
+        self.tvm_solution().print_ab_comparison_locale(&other.tvm_solution(), locale, precision);
+    }
+}
+
+pub trait TimeValueOfMoneyScheduleSolution {
+    /// Returns the shared inner structure that holds fields common to any
+    /// `TimeValueOfMoneyScheduleSolution` struct such as [FutureValueScheduleSolution](././future_value/struct.FutureValueScheduleSolution.html)
+    /// or [PresentValueScheduleSolution](././present_value/struct.PresentValueScheduleSolution.html).
+    /// # Examples
+    /// Compare equivalent solutions calculated in different ways. The calculations are done using
+    /// [future_value_schedule_solution](././fn.future_value_schedule_solution.html) and [present_value_schedule_solution](././fn.present_value_schedule_solution.html).
+    /// ```
+    /// use finance::TimeValueOfMoneyScheduleSolution;
+    ///
+    /// // Set up inputs for a variety of calculations that should all be equivalent.
+    /// let rates = [0.011, 0.014, 0.0083, 0.00945];
+    /// let present_value = 20_000.0;
+    /// let future_value = finance::future_value_schedule(&rates, present_value);
+    ///
+    /// // Create a list of solution structs. For simplicity, instead of holding references to a
+    /// // [FutureValueScheduleSolution](././future_value/struct.FutureValueScheduleSolution.html) and a [PresentValueScheduleSolution](././present_value/struct.PresentValueScheduleSolution.html) turn each result
+    /// // into a more general `TvmScheduleSolution`.
+    /// let list = vec![
+    ///     finance::present_value_schedule_solution(&rates, future_value).tvm_solution(),
+    ///     finance::future_value_schedule_solution(&rates, present_value).tvm_solution(),
+    /// ];
+    /// dbg!(&list);
+    ///
+    /// // An alternative would be to create a vector of references to the solutions.
+    /// let _list: Vec<& dyn TimeValueOfMoneyScheduleSolution> = vec![
+    ///     &finance::present_value_schedule_solution(&rates, future_value),
+    ///     &finance::future_value_schedule_solution(&rates, present_value),
+    /// ];
+    /// ```
+    fn tvm_solution(&self) -> TvmScheduleSolution;
+
+    fn tvm_series(&self) -> TvmSeries;
+
+    fn tvm_solution_and_series(&self) -> (TvmScheduleSolution, TvmSeries) {
+        (self.tvm_solution(), self.tvm_series())
+    }
+
+    /*
+    fn rate_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> RateSolution {
+        self.tvm_solution().rate_solution(continuous_compounding, compounding_periods)
+    }
+
+    fn periods_solution(&self, continuous_compounding: bool) -> PeriodsSolution {
+        self.tvm_solution().periods_solution(continuous_compounding)
+    }
+
+    fn present_value_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> PresentValueSolution {
+        self.tvm_solution().present_value_solution(continuous_compounding, compounding_periods)
+    }
+
+    fn future_value_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> FutureValueSolution {
+        self.tvm_solution().future_value_solution(continuous_compounding, compounding_periods)
+    }
+
     fn present_value_vary_compounding_periods(&self, compounding_periods: &[u32]) -> Vec<(u32, f64)> {
         self.tvm_solution().present_value_vary_compounding_periods(compounding_periods)
     }
@@ -141,6 +256,64 @@ pub trait TimeValueOfMoneySolution {
     {
         self.tvm_solution().print_ab_comparison_locale(&other.tvm_solution(), locale, precision);
     }
+    */
+}
+
+/// Enumeration used for the `calculated_field` field in [`TvmSolution`] and [`TvmSchedule`] to keep
+/// track of what was calculated, either the periodic rate, the number of periods, the present
+/// value, or the future value.
+#[derive(Clone, Debug, Hash, PartialEq)]
+pub enum TvmVariable {
+    Rate,
+    Periods,
+    PresentValue,
+    FutureValue,
+}
+
+#[derive(Clone, Debug)]
+pub struct TvmSolution {
+    calculated_field: TvmVariable,
+    continuous_compounding: bool,
+    rate: f64,
+    periods: u32,
+    fractional_periods: f64,
+    present_value: f64,
+    future_value: f64,
+    formula: String,
+    symbolic_formula: String,
+}
+
+/// A record of a Time Value of Money calculation where the rate may vary by period.
+///
+/// It's the result of calling [FutureValueScheduleSolution.tvm_solution](./struct.FutureValueScheduleSolution.html#method.tvm_solution)
+/// or [PresentValueScheduleSolution.tvm_solution](./struct.PresentValueScheduleSolution.html#method.tvm_solution)
+#[derive(Clone, Debug)]
+pub struct TvmScheduleSolution {
+    calculated_field: TvmVariable,
+    rates: Vec<f64>,
+    periods: u32,
+    present_value: f64,
+    future_value: f64,
+}
+
+#[derive(Clone, Debug)]
+pub struct TvmSeries(Vec<TVMPeriod>);
+
+/// The value of an investment at the end of a given period, part of a Time Value of Money
+/// calculation.
+///
+/// This is either:
+/// * Part of [`TvmSolution`] produced by calling [`rate_solution`], [`periods_solution`],
+/// [`present_value_solution`], or [`future_value_solution`].
+/// * Part of [`TvmSchedule`] produced by calling [`present_value_schedule`] or
+/// [`future_value_schedule`].
+#[derive(Clone, Debug)]
+pub struct TVMPeriod {
+    period: u32,
+    rate: f64,
+    value: f64,
+    formula: String,
+    symbolic_formula: String,
 }
 
 impl TvmVariable {
@@ -179,7 +352,22 @@ impl TvmVariable {
             _ => false,
         }
     }
-}
+
+    pub(crate) fn table_column_spec(&self, visible: bool) -> (String, String, bool) {
+        // Return something like ("period", "i") or ("rate", "r") with the column label and data
+        // type needed by a print_table() or similar function.
+        let data_type = match self {
+            TvmVariable::Periods => "i",
+            TvmVariable::Rate => "r",
+            _ => "f",
+        };
+        // We don't do anything with the visible argument except include it in the tuple. This
+        // makes the calling code simpler.
+        (self.to_string(), data_type.to_string(), visible)
+    }
+
+
+    }
 
 impl Display for TvmVariable {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
@@ -227,69 +415,6 @@ impl TvmSolution {
     /// Calculates the value of an investment after each period.
     ///
     /// # Examples
-    /// Future value calculation with a fixed periodic rate. Uses [`future_value_solution`].
-    /// ```
-    /// // The initial investment is $10,000.12.
-    /// let present_value = 10_000.12;
-    ///
-    /// // The interest rate is 1.5% per month.
-    /// let interest_rate = 0.015;
-    ///
-    /// // The investment will grow for 24 months.
-    /// let periods = 24;
-    ///
-    /// // Calculate the overall solution including the future value.
-    /// let solution = finance::future_value_solution(interest_rate, periods, present_value);
-    /// dbg!(&solution);
-    ///
-    /// // Calculate the value at the end of each period.
-    /// let series = solution.series();
-    /// dbg!(&series);
-    ///
-    /// // Confirm that we have one entry for the initial value and one entry for each period.
-    /// assert_eq!(25, series.len());
-    ///
-    /// // Create a reduced vector with every fourth period.
-    /// let filtered_series = series
-    ///     .iter()
-    ///     .filter(|x| x.period() % 4 == 0)
-    ///     .collect::<Vec<_>>();
-    /// dbg!(&filtered_series);
-    /// assert_eq!(7, filtered_series.len());
-    /// ```
-    /// Calculate the future value of an investment whose rates vary by year, then find the point
-    /// where the value passes a certain threshold. Uses [`future_value_schedule`].
-    /// ```
-    /// // The rates vary by year: 11.6% followed by 13.4%, 9%, and 8.6%.
-    /// let rates = [0.116, 0.134, -0.09, 0.086];
-    ///
-    /// // The initial investment is $50,000.
-    /// let present_value = 50_000.00;
-    ///
-    /// // Calculate the future value and create a struct with all of the variables
-    /// // and the formula used.
-    /// let solution = finance::future_value_schedule_solution(&rates, present_value);
-    /// dbg!(&solution);
-    /// finance::assert_rounded_4(62534.3257, solution.future_value());
-    ///
-    /// // Calculate the value at the end of each period.
-    /// let series = solution.series();
-    /// dbg!(&series);
-    ///
-    /// // Confirm that there are four periods corresponding to the four interest
-    /// // rates as well as one more for period 0 representing the initial value.
-    /// assert_eq!(5, series.len());
-    ///
-    /// // Confirm that the value of the fourth period is the same as the overall
-    /// // future value.
-    /// finance::assert_rounded_4(solution.future_value(), series.last().unwrap().value());
-    ///
-    /// // Find the first period where the value of the investment was at least
-    /// // $60,000.
-    /// let period = series.iter().find(|x| x.value() >= 60_000.00);
-    /// dbg!(&period);
-    /// assert_eq!(2, period.unwrap().period());
-    /// ```
     /// Calculate a present value with a fixed rate then examine the period-by-period values. Uses
     /// [`present_value_solution`].
     /// ```
@@ -408,7 +533,7 @@ impl TvmSolution {
             };
             assert!(value.is_finite());
             prev_value = Some(value);
-            series.push(TvmPeriod::new(period, one_rate, value, &formula, symbolic_formula))
+            series.push(TVMPeriod::new(period, one_rate, value, &formula, symbolic_formula))
         }
         TvmSeries::new(series)
     }
@@ -515,7 +640,7 @@ impl TvmSolution {
         future_value_solution_internal(rate, periods, self.present_value, continuous_compounding)
     }
 
-    pub fn present_value_vary_compounding_periods(&self, compounding_periods: &[u32]) -> Vec<(u32, f64)> {
+    fn present_value_vary_compounding_periods(&self, compounding_periods: &[u32]) -> Vec<(u32, f64)> {
         compounding_periods.iter()
             .map(|periods| {
                 let rate = (self.rate * self.fractional_periods) / *periods as f64;
@@ -524,13 +649,24 @@ impl TvmSolution {
             .collect()
     }
 
-    pub fn future_value_vary_compounding_periods(&self, compounding_periods: &[u32]) -> Vec<(u32, f64)> {
-        compounding_periods.iter()
-            .map(|periods| {
-                let rate = (self.rate * self.fractional_periods) / *periods as f64;
-                (*periods, future_value_internal(rate, *periods as f64, self.present_value, self.continuous_compounding))
-            })
-            .collect()
+    fn future_value_vary_compounding_periods(&self, compounding_periods: &[u32], include_continuous_compounding: bool) -> ScenarioList {
+        let rate_for_single_period = self.rate * self.fractional_periods;
+        let mut entries = vec![];
+        for periods in compounding_periods {
+            let rate = rate_for_single_period / *periods as f64;
+            let future_value = future_value_internal(rate, *periods as f64, self.present_value, self.continuous_compounding);
+            entries.push((*periods as f64, future_value));
+        }
+        if include_continuous_compounding {
+            let rate = rate_for_single_period;
+            let periods = 1;
+            let continuous_compounding = true;
+            let future_value = future_value_internal(rate, periods as f64, self.present_value, continuous_compounding);
+            entries.push((std::f64::INFINITY, future_value));
+        }
+
+        let setup = format!("Compare future values with different compounding periods where the rate is {} and the present value is {}.", format_rate(rate_for_single_period), format_float(self.present_value));
+        ScenarioList::new(setup, TvmVariable::Periods, TvmVariable::FutureValue, entries)
     }
 
     pub fn print_ab_comparison(
@@ -586,7 +722,7 @@ impl PartialEq for TvmSolution {
     }
 }
 
-impl TvmSchedule {
+impl TvmScheduleSolution {
     pub(crate) fn new(calculated_field: TvmVariable, rates: &[f64], present_value: f64, future_value: f64) -> Self {
         for rate in rates.iter() {
             assert!(rate.is_finite());
@@ -609,7 +745,7 @@ impl TvmSchedule {
     /// # Examples
     /// ```
     /// let solution = finance::present_value_schedule_solution(&[0.011, 0.012, 0.009], 75_000);
-    /// assert!(solution.calculated_field().is_present_value());
+    /// assert!(solution.tvm_solution().calculated_field().is_present_value());
     /// ```
     pub fn calculated_field(&self) -> &TvmVariable {
         &self.calculated_field
@@ -648,14 +784,14 @@ impl TvmSchedule {
 }
 
 impl TvmSeries {
-    pub(crate) fn new(series: Vec<TvmPeriod>) -> Self {
+    pub(crate) fn new(series: Vec<TVMPeriod>) -> Self {
         Self {
             0: series,
         }
     }
 
     pub fn filter<P>(&self, predicate: P) -> Self
-        where P: Fn(&&TvmPeriod) -> bool
+        where P: Fn(&&TVMPeriod) -> bool
     {
         Self {
             0: self.iter().filter(|x| predicate(x)).map(|x| x.clone()).collect()
@@ -671,7 +807,7 @@ impl TvmSeries {
     }
 
     fn print_table_locale_opt(&self, locale: Option<&num_format::Locale>, precision: Option<usize>) {
-        let columns = vec![("period", "i", true), ("rate", "r", true), ("value", "f", true)];
+        let columns = columns_with_strings(&[("period", "i", true), ("rate", "r", true), ("value", "f", true)]);
         let data = self.iter()
             .map(|entry| vec![entry.period.to_string(), entry.rate.to_string(), entry.value.to_string()])
             .collect::<Vec<_>>();
@@ -700,9 +836,9 @@ impl TvmSeries {
         locale: Option<&num_format::Locale>,
         precision: Option<usize>)
     {
-        let columns = vec![("period", "i", true),
+        let columns = columns_with_strings(&[("period", "i", true),
                            ("rate_a", "r", true), ("rate_b", "r", true),
-                           ("value_a", "f", true), ("value_b", "f", true)];
+                           ("value_a", "f", true), ("value_b", "f", true)]);
         let mut data = vec![];
         let rows = max(self.len(), other.len());
         for row_index in 0..rows {
@@ -720,31 +856,14 @@ impl TvmSeries {
 }
 
 impl Deref for TvmSeries {
-    type Target = Vec<TvmPeriod>;
+    type Target = Vec<TVMPeriod>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-/// The value of an investment at the end of a given period, part of a Time Value of Money
-/// calculation.
-///
-/// This is either:
-/// * Part of [`TvmSolution`] produced by calling [`rate_solution`], [`periods_solution`],
-/// [`present_value_solution`], or [`future_value_solution`].
-/// * Part of [`TvmSchedule`] produced by calling [`present_value_schedule`] or
-/// [`future_value_schedule`].
-#[derive(Clone, Debug)]
-pub struct TvmPeriod {
-    period: u32,
-    rate: f64,
-    value: f64,
-    formula: String,
-    symbolic_formula: String,
-}
-
-impl TvmPeriod {
+impl TVMPeriod {
     pub(crate) fn new(period: u32, rate: f64, value: f64, formula: &str, symbolic_formula: &str) -> Self {
         assert!(rate.is_finite());
         assert!(value.is_finite());

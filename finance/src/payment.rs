@@ -1,9 +1,23 @@
 #![allow(dead_code)]
 
+/*
+fv = pv(1+r)^n\\ \\
+fv = pv(e^{rt})\\ \\
+pmt = {(((pv(1+r)^n)+fv)-r \over (1+r)^n - 1}
+
+//i.upmath.me/svg/fv%20%3D%20pv(1%2Br)%5En%5C%5C%20%5C%5C%0Afv%20%3D%20pv(e%5E%7Brt%7D)%5C%5C%20%5C%5C%20%0Apmt%20%3D%20%7B(((pv(1%2Br)%5En)%2Bfv)-r%20%5Cover%20(1%2Br)%5En%20-%201%7D
+http://i.upmath.me/svg/fv%20%3D%20pv(1%2Br)%5En%5C%5C%20%5C%5C%0Afv%20%3D%20pv(e%5E%7Brt%7D)%5C%5C%20%5C%5C%20%0Apmt%20%3D%20%7B(((pv(1%2Br)%5En)%2Bfv)-r%20%5Cover%20(1%2Br)%5En%20-%201%7D
+*/
+
 //! **Payment calculations.** What is the periodic payment needed for an amortized loan and how much
 //! of that is interest or principal?
 //! 
 //! For most common usages, we recommend the [`payment_solution`](./fn.payment_solution.html) function, which provides a better debugging experience and additional functionality.
+//!
+// ![Payment formulas](url:http://i.upmath.me/svg/fv%20%3D%20pv(1%2Br)%5En%5C%5C%20%5C%5C%0Afv%20%3D%20pv(e%5E%7Brt%7D)%5C%5C%20%5C%5C%20%0Apmt%20%3D%20%7B(((pv(1%2Br)%5En)%2Bfv)-r%20%5Cover%20(1%2Br)%5En%20-%201%7D)
+// <div>
+//! <img src="http://i.upmath.me/svg/fv%20%3D%20pv(1%2Br)%5En%5C%5C%20%5C%5C%0Afv%20%3D%20pv(e%5E%7Brt%7D)%5C%5C%20%5C%5C%20%0Apmt%20%3D%20%7B(((pv(1%2Br)%5En)%2Bfv)-r%20%5Cover%20(1%2Br)%5En%20-%201%7D" />
+// <!div>
 //!
 //! ## Example
 //! ```
@@ -14,17 +28,17 @@
 //! Outputs to terminal:
 //! ```text
 //! {
-//! calculated_field: Payment,
-//! rate: 0.034,
-//! periods: 10,
-//! present_value: 1000.0,
-//! future_value: 0.0,
-//! due_at_beginning: false,
-//! payment: -119.63608534268569,
-//! sum_of_payments: -1196.360853426857,
-//! sum_of_interest: -196.36085342685692,
-//! formula: "-119.6361 = ((1000.0000 * 1.034000^10) * -0.034000) / (1.034000^10 - 1)",
-//! symbolic_formula: "pmt = ((pv * (1 + r)^n) * -r) / ((1 + r)^n - 1)",
+//!     calculated_field: Payment,
+//!     rate: 0.034,
+//!     periods: 10,
+//!     present_value: 1000.0,
+//!     future_value: 0.0,
+//!     due_at_beginning: false,
+//!     payment: -119.63608534268569,
+//!     sum_of_payments: -1196.360853426857,
+//!     sum_of_interest: -196.36085342685692,
+//!     formula: "-119.6361 = ((1000.0000 * 1.034000^10) * -0.034000) / (1.034000^10 - 1)",
+//!     symbolic_formula: "pmt = ((pv * (1 + r)^n) * -r) / ((1 + r)^n - 1)",
 //! }
 //! ```
 //! ```

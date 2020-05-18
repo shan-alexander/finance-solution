@@ -58,6 +58,7 @@ pub mod tvm_convert_rate;
 #[doc(inline)]
 pub use tvm_convert_rate::*;
 use std::cmp::max;
+use std::fmt::{Debug, Formatter, Error};
 
 // use tvm_convert_rate::*;
 // use convert_rate::*;
@@ -188,6 +189,23 @@ fn minus_sign_locale_opt(val: f64, locale: Option<&Locale>) -> String {
     }
 }
 
+pub(crate) fn parse_and_format_int(val: &str) -> String {
+    parse_and_format_int_locale_opt(val, None)
+}
+
+pub(crate) fn parse_and_format_int_locale_opt(val: &str, locale: Option<&Locale>) -> String {
+    let float_val: f64 = val.parse().unwrap();
+    if float_val.is_finite() {
+        let int_val: i128 = val.parse().unwrap();
+        format_int_locale_opt(int_val, locale)
+    } else {
+        // This is a special case where the value was originally a floating point number that we
+        // normally wish to display as an integer, but it might be something like f64::INFINITY in
+        // which case we'd show something like "Inf" rather than try to convert it into an integer.
+        val.to_string()
+    }
+}
+
 pub(crate) fn format_int<T>(val: T) -> String
     where T: ToFormattedString
 {
@@ -207,6 +225,12 @@ pub(crate) fn format_float<T>(val: T) -> String
     where T: Into<f64>
 {
     format_float_locale_opt(val, None, None)
+}
+
+pub(crate) fn format_rate<T>(val: T) -> String
+    where T: Into<f64>
+{
+    format_float_locale_opt(val, None, Some(6))
 }
 
 pub(crate) fn format_float_locale_opt<T>(val: T, locale: Option<&Locale>, precision: Option<usize>) -> String
@@ -229,7 +253,7 @@ pub(crate) fn format_float_locale_opt<T>(val: T, locale: Option<&Locale>, precis
     }
 }
 
-pub(crate) fn print_table_locale_opt(columns: &Vec<(&str, &str, bool)>, mut data: Vec<Vec<String>>, locale: Option<&num_format::Locale>, precision: Option<usize>) {
+pub(crate) fn print_table_locale_opt(columns: &Vec<(String, String, bool)>, mut data: Vec<Vec<String>>, locale: Option<&num_format::Locale>, precision: Option<usize>) {
     if columns.len() == 0 || data.len() == 0 {
         return;
     }
@@ -256,7 +280,8 @@ pub(crate) fn print_table_locale_opt(columns: &Vec<(&str, &str, bool)>, mut data
                             };
                             format_float_locale_opt(data[row_index][col_index].parse::<f64>().unwrap(), locale, precision)
                         } else if col_type == "i" {
-                            format_int_locale_opt(data[row_index][col_index].parse::<i128>().unwrap(), locale)
+                            // format_int_locale_opt(data[row_index][col_index].parse::<i128>().unwrap(), locale)
+                            parse_and_format_int_locale_opt(&data[row_index][col_index], locale)
                         } else {
                             panic!("Unexpected column type = \"{}\"", col_type)
                         }
@@ -481,6 +506,80 @@ impl Schedule {
             }
         }
     }
+}
+
+#[derive(Debug)]
+pub struct ScenarioList {
+    pub setup: String,
+    pub input_variable: TvmVariable,
+    pub output_variable: TvmVariable,
+    pub entries: Vec<ScenarioEntry>,
+}
+
+pub struct ScenarioEntry {
+    pub input: f64,
+    pub output: f64,
+    input_precision: usize,
+    output_precision: usize,
+}
+
+impl ScenarioList {
+
+    pub(crate) fn new(setup: String, input_variable: TvmVariable, output_variable: TvmVariable, entries: Vec<(f64, f64)>) -> Self {
+        let input_precision = match input_variable {
+            TvmVariable::Periods => 0,
+            TvmVariable::Rate => 6,
+            _ => 4,
+        };
+        let output_precision = match output_variable {
+            TvmVariable::Periods => 0,
+            TvmVariable::Rate => 6,
+            _ => 4,
+        };
+        let entries= entries.iter().map(|entry| ScenarioEntry::new(entry.0, entry.1, input_precision, output_precision)).collect();
+        Self {
+            setup,
+            input_variable,
+            output_variable,
+            entries,
+        }
+    }
+
+    pub fn print_table(&self) {
+        self.print_table_locale_opt(None, None);
+    }
+
+    pub fn print_table_locale(&self, locale: &num_format::Locale, precision: usize) {
+        self.print_table_locale_opt(Some(locale), Some(precision));
+    }
+
+    fn print_table_locale_opt(&self, locale: Option<&num_format::Locale>, precision: Option<usize>) {
+        let columns = vec![self.input_variable.table_column_spec(true), self.output_variable.table_column_spec(true)];
+        // let columns = columns_with_strings.iter().map(|x| &x.0[..], &x.1[..], x.2);
+        let data = self.entries.iter()
+            .map(|entry| vec![entry.input.to_string(), entry.output.to_string()])
+            .collect::<Vec<_>>();
+        print_table_locale_opt(&columns, data, locale, precision);
+    }
+
+}
+
+impl ScenarioEntry {
+    pub(crate) fn new(input: f64, output: f64, input_precision: usize, output_precision: usize) -> Self {
+        Self { input, output, input_precision, output_precision }
+    }
+}
+
+impl Debug for ScenarioEntry {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        let input = format_float_locale_opt(self.input, None, Some(self.input_precision));
+        let output = format_float_locale_opt(self.output, None, Some(self.output_precision));
+        write!(f, "{{ input: {}, output: {} }}", input, output)
+    }
+}
+
+pub(crate) fn columns_with_strings(columns: &[(&str, &str, bool)]) -> Vec<(String, String, bool)> {
+    columns.iter().map(|(label, data_type, visible)| (label.to_string(), data_type.to_string(), *visible)).collect()
 }
 
 #[cfg(test)]

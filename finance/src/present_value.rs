@@ -34,7 +34,9 @@ pub struct PresentValueSolution {
 /// A record of a call to [`present_value_schedule`](./fn.present_value_schedule.html), a Present Value calculation where the rate may
 /// vary for each period. The structure can calculate the period-by-period details.
 #[derive(Clone, Debug)]
-pub struct PresentValueSchedule(TvmSchedule);
+pub struct PresentValueScheduleSolution {
+    tvm_solution: TvmScheduleSolution
+}
 
 /// The period-by-period details of a Present Value calculation. This is the result of a call to
 /// [`PresentValueSolution::series`] if the rate is fixed or a call to
@@ -102,7 +104,7 @@ impl PresentValueSolution {
             next_value = Some(value);
             // We want to end up with the periods in order so for each pass through the loop insert the
             // current TvmPeriod at the beginning of the vector.
-            series.insert(0, TvmPeriod::new(period, one_rate, value, &formula, symbolic_formula))
+            series.insert(0, TVMPeriod::new(period, one_rate, value, &formula, symbolic_formula))
         }
 
         PresentValueSeries::new(TvmSeries::new(series))
@@ -177,12 +179,33 @@ impl TimeValueOfMoneySolution for PresentValueSolution {
     }
 }
 
-impl PresentValueSchedule {
-    pub(crate) fn new(schedule: TvmSchedule) -> Self {
-        assert!(schedule.calculated_field().is_present_value());
+impl PresentValueScheduleSolution {
+    pub(crate) fn new(tvm_solution: TvmScheduleSolution) -> Self {
+        assert!(tvm_solution.calculated_field().is_present_value());
         Self {
-            0: schedule,
+            tvm_solution,
         }
+    }
+
+    /// Returns the periodic rates that were given as inputs to the present value calculation.
+    pub fn rates(&self) -> &[f64] {
+        self.tvm_solution.rates()
+    }
+
+    /// Returns the number of periods implied by the number of rates provided to the present value
+    /// calculation.
+    pub fn periods(&self) -> u32 {
+        self.tvm_solution.periods()
+    }
+
+    /// Returns the calculated present value based on the provided rates and future value.
+    pub fn present_value(&self) -> f64 {
+        self.tvm_solution.present_value()
+    }
+
+    /// Returns the future value that was given as an input to the present value calculation.
+    pub fn future_value(&self) -> f64 {
+        self.tvm_solution.future_value()
     }
 
     pub fn series(&self) -> PresentValueSeries {
@@ -193,7 +216,7 @@ impl PresentValueSchedule {
             let value = self.future_value();
             let formula = format!("{:.4}", value);
             let symbolic_formula = "value = fv";
-            series.push(TvmPeriod::new(0, 0.0, value, &formula, symbolic_formula));
+            series.push(TVMPeriod::new(0, 0.0, value, &formula, symbolic_formula));
         } else {
 
             let periods = self.periods();
@@ -236,7 +259,7 @@ impl PresentValueSchedule {
                 next_value = Some(value);
                 // We want to end up with the periods in order starting with period 0, so each time
                 // through the loop we insert the new TvmPeriod object at the beginning of the vector.
-                series.insert(0, TvmPeriod::new(period, rate, value, &formula, &symbolic_formula))
+                series.insert(0, TVMPeriod::new(period, rate, value, &formula, &symbolic_formula))
             };
         }
         PresentValueSeries::new(TvmSeries::new(series))
@@ -250,27 +273,23 @@ impl PresentValueSchedule {
         self.series().print_table_locale(locale, precision);
     }
 
-    pub fn tvm_solution(&self) -> TvmSchedule {
-        self.clone().into()
+    pub fn tvm_solution(&self) -> TvmScheduleSolution {
+        self.tvm_solution.clone()
     }
 
-    pub fn tvm_solution_and_series(&self) -> (TvmSchedule, TvmSeries) {
+    pub fn tvm_solution_and_series(&self) -> (TvmScheduleSolution, TvmSeries) {
         let series = self.series();
-        (self.clone().into(), series.into())
+        (self.tvm_solution().clone(), series.into())
     }
 }
 
-impl Deref for PresentValueSchedule {
-    type Target = TvmSchedule;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl TimeValueOfMoneyScheduleSolution for PresentValueScheduleSolution {
+    fn tvm_solution(&self) -> TvmScheduleSolution {
+        self.tvm_solution.clone()
     }
-}
 
-impl Into<TvmSchedule> for PresentValueSchedule {
-    fn into(self) -> TvmSchedule {
-        self.0
+    fn tvm_series(&self) -> TvmSeries {
+        self.series().into()
     }
 }
 
@@ -583,11 +602,11 @@ pub fn present_value_schedule<T>(rates: &[f64], future_value: T) -> f64
 /// let series = solution.series();
 /// dbg!(&series);
 /// ```
-pub fn present_value_schedule_solution<T>(rates: &[f64], future_value: T) -> PresentValueSchedule
+pub fn present_value_schedule_solution<T>(rates: &[f64], future_value: T) -> PresentValueScheduleSolution
     where T: Into<f64> + Copy
 {
     let present_value = present_value_schedule(rates, future_value);
-    PresentValueSchedule::new(TvmSchedule::new(TvmVariable::PresentValue, rates, present_value, future_value.into()))
+    PresentValueScheduleSolution::new(TvmScheduleSolution::new(TvmVariable::PresentValue, rates, present_value, future_value.into()))
 }
 
 pub(crate) fn present_value_internal(rate: f64, periods: f64, future_value: f64, continuous_compounding: bool) -> f64 {

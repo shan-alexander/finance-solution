@@ -13,7 +13,7 @@ fn main() {
     // verbose::bilbo_baggins::main();
     // verbose::convert_rate::main();
     // verbose::convert_rates::main();
-    verbose::debug::main();
+    // verbose::debug::main();
     // verbose::examples_1::main();
     // verbose::find_rate::main();
     // verbose::future_value::main();
@@ -28,7 +28,7 @@ fn main() {
     // verbose::present_value::main();
     // verbose::present_value_annuity::main();
     // verbose::rate::main();
-    // verbose::tvm_simple::main();
+    verbose::tvm_simple::main();
     // verbose::tvm_solver::main();
     // verbose::weird_enum_solver::main();
 

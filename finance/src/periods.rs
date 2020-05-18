@@ -1,16 +1,25 @@
+/*
+Original:
+t = log(fv / pv, base e) / r
+n = log(fv / pv, base (1 + r))
+
+LaTeX:
+periods = {log_e\left({future\_value \over present\_value}\right) \over rate} \\ \\
+periods = {log_{1+rate}\left({future\_value \over present\_value}\right) \over rate} \\ \\
+t = {log_e\left({fv \over pv}\right) \over r} \\ \\
+n = {log_{1+r}\left({fv \over pv}\right) \over r}
+
+//i.upmath.me/svg/t%20%3D%20%7Blog_e%5Cleft(%7Bfv%20%5Cover%20pv%7D%5Cright)%20%5Cover%20r%7D%20%5C%5C%20%5C%5C%0An%20%3D%20%7Blog_%7B1%2Br%7D%5Cleft(%7Bfv%20%5Cover%20pv%7D%5Cright)%20%5Cover%20r%7D
+
+
+
+*/
+
+
 //! **Number of periods calculations.** Given a periodic rate, present value, and future value, find the
 //! number of periods needed to satisfy the equation.
 //! 
 //! For most common usages, we recommend the ['periods_solution'](fn.periods_solution.html) function.
-//!
-// ! If you need to calculate a fixed rate given a present value, future value, and number of periods
-// ! use [`rate`] or related functions.
-// !
-// ! If you need to calculate the future value given a starting value, a number of periods, and one
-// ! or more rates use [`future_value`] or related functions.
-// !
-// ! If you need to calculate the present value given a future value, a number of periods, and one
-// ! or more rates use [`present_value`] or related functions.
 
 // use log::warn;
 

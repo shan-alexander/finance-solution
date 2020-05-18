@@ -421,7 +421,7 @@ impl NpvSeries {
     }
 
     fn print_table_locale_opt(&self, locale: Option<&num_format::Locale>, precision: Option<usize>) {
-        let columns = vec![("period", "i", true), ("rate", "f", true), ("present_value", "f", true), ("future_value", "f", true), ("investment_value", "f", true)];
+        let columns = columns_with_strings(&[("period", "i", true), ("rate", "f", true), ("present_value", "f", true), ("future_value", "f", true), ("investment_value", "f", true)]);
         let data = self.iter()
             .map(|entry| vec![entry.period.to_string(), entry.rate.to_string(), entry.present_value.to_string(), entry.future_value.to_string(), entry.investment_value.to_string()])
             .collect::<Vec<_>>();
@@ -437,11 +437,12 @@ impl NpvSeries {
     }
 
     fn print_ab_comparison_locale_opt (&self, other: &NpvSeries, locale: Option<&num_format::Locale>, precision: Option<usize>) {
-        let columns = vec![("period", "i", true),
-                           ("rate_a", "f", true), ("rate_b", "f", true),
-                           ("present_value_a", "f", true), ("present_value_b", "f", true),
-                           ("future_value_a", "f", true), ("future_value_b", "f", true),
-                           ("investment_value_a", "f", true), ("investment_value_b", "f", true)];
+        let columns = columns_with_strings(&[
+            ("period", "i", true),
+            ("rate_a", "f", true), ("rate_b", "f", true),
+            ("present_value_a", "f", true), ("present_value_b", "f", true),
+            ("future_value_a", "f", true), ("future_value_b", "f", true),
+            ("investment_value_a", "f", true), ("investment_value_b", "f", true)]);
         let mut data = vec![];
         let rows = max(self.len(), other.len());
         for row_index in 0..rows {

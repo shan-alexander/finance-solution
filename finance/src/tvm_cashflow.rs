@@ -254,10 +254,11 @@ impl TvmCashflowSeries {
         locale: Option<&num_format::Locale>,
         precision: Option<usize>)
     {
-        let columns = vec![("period", "i", true),
-                           ("payments_to_date", "f", include_running_totals), ("payments_remaining", "f", include_remaining_amounts),
-                           ("principal", "f", true), ("principal_to_date", "f", include_running_totals), ("principal_remaining", "f", include_remaining_amounts),
-                           ("interest", "f", true), ("interest_to_date", "f", include_running_totals), ("interest_remaining", "f", include_remaining_amounts)];
+        let columns = columns_with_strings(&[
+            ("period", "i", true),
+            ("payments_to_date", "f", include_running_totals), ("payments_remaining", "f", include_remaining_amounts),
+            ("principal", "f", true), ("principal_to_date", "f", include_running_totals), ("principal_remaining", "f", include_remaining_amounts),
+            ("interest", "f", true), ("interest_to_date", "f", include_running_totals), ("interest_remaining", "f", include_remaining_amounts)]);
         let data = self.iter()
             .map(|entry| vec![entry.period.to_string(), entry.payments_to_date.to_string(), entry.payments_remaining.to_string(),
                               entry.principal.to_string(), entry.principal_to_date.to_string(), entry.principal_remaining.to_string(),
@@ -292,7 +293,7 @@ impl TvmCashflowSeries {
             include_remaining_amounts: bool,
             locale: Option<&num_format::Locale>,
             precision: Option<usize>) {
-        let columns = vec![("period", "i", true),
+        let columns = columns_with_strings(&[("period", "i", true),
                            ("payment_a", "f", true), ("payment_b", "f", true),
                            ("pmt_to_date_a", "f", include_running_totals), ("pmt_to_date_b", "f", include_running_totals),
                            ("pmt_remaining_a", "f", include_remaining_amounts), ("pmt_remaining_b", "f", include_remaining_amounts),
@@ -301,7 +302,7 @@ impl TvmCashflowSeries {
                            ("princ_remaining_a", "f", include_remaining_amounts), ("princ_remaining_b", "f", include_remaining_amounts),
                            ("interest_a", "f", true), ("interest_b", "f", true),
                            ("int_to_date_a", "f", include_running_totals), ("int_to_date_b", "f", include_running_totals),
-                           ("int_remaining_a", "f", include_remaining_amounts), ("int_remaining_b", "f", include_remaining_amounts)];
+                           ("int_remaining_a", "f", include_remaining_amounts), ("int_remaining_b", "f", include_remaining_amounts)]);
         let mut data = vec![];
         let rows = max(self.len(), other.len());
         for row_index in 0..rows {
