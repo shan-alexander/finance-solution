@@ -74,6 +74,7 @@
 //! formula: "9.16 = log(250.0000 / 100.0000, base 2.718282) / 0.100000",
 //! symbolic_formula: "n = log(fv / pv, base e) / r",
 //! ```
+
 // use log::warn;
 
 use crate::tvm_simple::*;
@@ -208,18 +209,19 @@ impl Into<TvmSeries> for PeriodsSeries {
     }
 }
 
-/// Returns the number of periods given a periodic rate along with the present and future values.
-/// This calculatino uses simple compounding.
+/// Returns the number of periods given a periodic rate along with the present and future values,
+/// using simple compounding.
 ///
 /// Note that the returned number of periods will be a floating point number representing fractional
 /// periods.
 ///
+/// See the [periods](./index.html) module page for the formulas.
+///
 /// Related functions:
 /// * To calculate the periods using simple compounding and return a struct that shows the formula
 /// and can be used to produce the the period-by-period values use [periods_solution](fn.periods_solution.html).
-/// * To calculate the periods using continuous compounding use [periods_continuous](fn.periods_solution.html).
-///
-/// See the [periods](./index.html) module page for the formulas.
+/// * To calculate the periods using continuous compounding use [periods_continuous](fn.periods_continuous.html)
+/// or [periods_continuous_solution](fn.periods_continuous_solution.html).
 ///
 /// # Arguments
 /// * `rate` - The rate at which the investment grows or shrinks per period, expressed as a
@@ -230,8 +232,8 @@ impl Into<TvmSeries> for PeriodsSeries {
 /// * `future_value` - The final value of the investment.
 ///
 /// # Panics
-/// The call will fail if either of the rate, the present value, or the future value is
-/// infinite or not a number (NaN).
+/// The call will fail if the rate, the present value, or the future value is infinite or not a
+/// number (NaN).
 ///
 /// The call will also fail in any of the follwing cases because there is no number of periods that
 /// would make the calculation work:
@@ -264,7 +266,7 @@ impl Into<TvmSeries> for PeriodsSeries {
 /// dbg!(&fractional_periods);
 /// finance::assert_rounded_2(4.37, fractional_periods);
 ///
-/// // Round up to get a whole number of yearss.
+/// // Round up to get a whole number of years.
 /// let periods = fractional_periods.ceil() as u32;
 /// dbg!(&periods);
 /// assert_eq!(5, periods);
@@ -278,8 +280,8 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
 }
 
 /// Calculates the number of periods given a periodic rate along with the present and future values
-/// and builds a struct with the input values, an explanation of the formula, and the option to
-/// calculate the period-by-period values. This calculatino uses simple compounding.
+/// using simple compounding; and builds a struct with the input values, an explanation of the
+/// formula, and the option to calculate the period-by-period values.
 ///
 /// Note that the calculated number of periods from [PeriodsSolution::fractional_periods](./struct.PeriodsSolution.html#method.fractional_periods) field will
 /// be a floating point number. To get the periods as a whole number (rounded up) use
@@ -288,7 +290,9 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
 /// See the [periods](./index.html) module page for the formulas.
 ///
 /// Related functions:
-/// * To calculate the periods as a simple number use [periods](fn.periods.html).
+/// * To calculate the periods as a single number with simple compounding use [periods](fn.periods.html).
+/// * To calculate the periods using continuous compounding use [periods_continuous](fn.periods_continuous.html)
+/// or [periods_continuous_solution](fn.periods_continuous_solution.html).
 ///
 /// # Arguments
 /// * `rate` - The rate at which the investment grows or shrinks per period, expressed as a
@@ -299,8 +303,8 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
 /// * `future_value` - The final value of the investment.
 ///
 /// # Panics
-/// The call will fail if either of the rate, the present value, or the future value is
-/// infinite or not a number (NaN).
+/// The call will fail if the rate, the present value, or the future value is infinite or not a
+/// number (NaN).
 ///
 /// The call will also fail in any of the follwing cases because there is no number of periods that
 /// would make the calculation work:
@@ -374,8 +378,8 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
 /// finance::assert_rounded_2(3.61, solution.fractional_periods());
 /// assert_eq!(4, solution.periods());
 ///
-/// // View the period-by-period values.
-/// dbg!(solution.series());
+/// // Print the period-by-period values as a formatted table.
+/// solution.print_series_table();
 /// ```
 pub fn periods_solution<P, F>(rate: f64, present_value: P, future_value: F) -> PeriodsSolution
     where
@@ -385,17 +389,19 @@ pub fn periods_solution<P, F>(rate: f64, present_value: P, future_value: F) -> P
     periods_solution_internal(rate, present_value.into(), future_value.into(), false)
 }
 
-/// Returns the number of periods given a periodic rate along with the present and future values.
-/// This calculatino uses continuous compounding.
+/// Returns the number of periods given a periodic rate along with the present and future values,
+/// using continuous compounding.
 ///
 /// Note that the returned number of periods will be a floating point number representing fractional
 /// periods.
 ///
-/// Related functions:
-/// * To calculate a periods and return a struct that shows the formula and can be used to produce
-/// the the period-by-period values use [periods_solution](fn.periods_solution.html).
-///
 /// See the [periods](./index.html) module page for the formulas.
+///
+/// Related functions:
+/// * To calculate the periods using continuous compounding and return a struct that shows the
+/// formula and can be used to produce the the period-by-period values use [periods_continuous_solution](fn.periods_continuous_solution.html).
+/// * To calculate the periods using single compounding use [periods](fn.periods.html)
+/// or [periods_solution](fn.periods_solution.html).
 ///
 /// # Arguments
 /// * `rate` - The rate at which the investment grows or shrinks per period, expressed as a
@@ -426,24 +432,19 @@ pub fn periods_solution<P, F>(rate: f64, present_value: P, future_value: F) -> P
 ///
 /// # Examples
 /// ```
-/// // The interest rate is 8% per year.
-/// let rate = 0.08;
+/// // The interest rate is 11% per year.
+/// let rate = 0.11;
 ///
-/// // The starting value is $5,000.00.
-/// let present_value = 5_000.00;
+/// // The starting value is $25,000.00.
+/// let present_value = 25_000;
 ///
-/// // The ending value is $7,000.00.
-/// let future_value = 7_000.00;
+/// // The ending value is $45,000.00.
+/// let future_value = 45_000;
 ///
-/// // Calculate the number of years required.
-/// let fractional_periods = finance::periods(rate, present_value, future_value);
+/// // Calculate the number of years required if interest is compounded continuously.
+/// let fractional_periods = finance::periods_continuous(rate, present_value, future_value);
 /// dbg!(&fractional_periods);
-/// finance::assert_rounded_2(4.37, fractional_periods);
-///
-/// // Round up to get a whole number of yearss.
-/// let periods = fractional_periods.ceil() as u32;
-/// dbg!(&periods);
-/// assert_eq!(5, periods);
+/// finance::assert_rounded_2(5.34, fractional_periods);
 /// ```
 pub fn periods_continuous<P, F>(rate: f64, present_value: P, future_value: F) -> f64
     where
@@ -453,6 +454,70 @@ pub fn periods_continuous<P, F>(rate: f64, present_value: P, future_value: F) ->
     periods_internal(rate, present_value.into(), future_value.into(), true)
 }
 
+/// Calculates the number of periods given a periodic rate along with the present and future values
+/// using continuous compounding. Returns a struct with details and with a method for calculating
+/// the period-by-period details.
+///
+/// Note that the returned number of periods will be a floating point number representing fractional
+/// periods.
+///
+/// See the [periods](./index.html) module page for the formulas.
+///
+/// Related functions:
+/// * To calculate the periods as a single number using continuous compounding use [periods_continuous](fn.periods_continuous.html).
+/// * To calculate the periods using single compounding use [periods](fn.periods.html)
+/// or [periods_solution](fn.periods_solution.html).
+///
+/// # Arguments
+/// * `rate` - The rate at which the investment grows or shrinks per period, expressed as a
+/// floating point number. For instance 0.05 would mean 5% growth. Often appears as `r` or `i` in
+/// formulas.
+/// * `present_value` - The starting value of the investment. May appear as `pv` in formulas, or `C`
+/// for cash flow or `P` for principal.
+/// * `future_value` - The final value of the investment.
+///
+/// # Panics
+/// The call will fail if either of the rate, the present value, or the future value is
+/// infinite or not a number (NaN).
+///
+/// The call will also fail in any of the follwing cases because there is no number of periods that
+/// would make the calculation work:
+/// * The periodic rate is less than -1.0.
+/// * The present value is zero and the future value is nonzero.
+/// * The present value is nonzero and the future value is zero, unless the rate is exactly -1.0%.
+/// * The present value is negative and the future value is positive or vice versa.
+/// * The present value and future value are both negative, the future value is less than the
+/// present value, and the periodic rate is zero or negative.
+/// * The present value and future value are both negative, the future value is greater than the
+/// present value, and the periodic rate is zero or positive.
+/// * The present value and future value are both positive, the future value is greater than the
+/// present value, and the periodic rate is zero or negative.
+/// * The present value and future value are both positive, the future value is less than the
+/// present value, and the periodic rate is zero or positive.
+///
+/// # Examples
+/// ```
+/// // The interest rate is 8.5% per year.
+/// let rate = 0.085;
+///
+/// // The starting value is $10,000.00.
+/// let present_value = 10_000;
+///
+/// // The ending value is $30,000.00.
+/// let future_value = 30_000;
+///
+/// // Calculate the number of years required if interest is compounded continuously returning a
+/// // struct that cat be used for further operations.
+/// let solution = finance::periods_continuous_solution(rate, present_value, future_value);
+/// dbg!(&solution);
+/// finance::assert_rounded_2(12.92, solution.fractional_periods());
+///
+/// // Print the period-by-period details in a formatted table.
+/// solution.print_series_table();
+///
+/// // Create a list of period-by-period details.
+/// let series = solution.series();
+/// ```
 pub fn periods_continuous_solution<P, F>(rate: f64, present_value: P, future_value: F) -> PeriodsSolution
     where
         P: Into<f64> + Copy,
@@ -489,7 +554,7 @@ pub(crate) fn periods_internal(rate: f64, present_value: f64, future_value: f64,
     fractional_periods
 }
 
-pub fn periods_solution_internal(rate: f64, present_value: f64, future_value: f64, continuous_compounding: bool) -> PeriodsSolution {
+pub(crate) fn periods_solution_internal(rate: f64, present_value: f64, future_value: f64, continuous_compounding: bool) -> PeriodsSolution {
     let fractional_periods = periods_internal(rate, present_value, future_value, continuous_compounding);
     assert!(fractional_periods >= 0.0);
     let (formula, symbolic_formula) = if continuous_compounding {

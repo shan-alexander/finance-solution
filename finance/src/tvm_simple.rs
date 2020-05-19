@@ -940,7 +940,7 @@ impl TvmSeries {
 
 }
 
-impl Deref for TvmSeries {
+impl Deref for TvmSeries{
     type Target = Vec<TvmPeriod>;
 
     fn deref(&self) -> &Self::Target {
