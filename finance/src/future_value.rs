@@ -334,7 +334,7 @@ impl FutureValueScheduleSolution {
             };
             assert!(value.is_finite());
             prev_value = Some(value);
-            series.push(TVMPeriod::new(period, rate, value, &formula, &symbolic_formula))
+            series.push(TvmPeriod::new(period, rate, value, &formula, &symbolic_formula))
         }
         FutureValueSeries::new(TvmSeries::new(series))
     }

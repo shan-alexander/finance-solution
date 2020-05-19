@@ -104,7 +104,7 @@ impl PresentValueSolution {
             next_value = Some(value);
             // We want to end up with the periods in order so for each pass through the loop insert the
             // current TvmPeriod at the beginning of the vector.
-            series.insert(0, TVMPeriod::new(period, one_rate, value, &formula, symbolic_formula))
+            series.insert(0, TvmPeriod::new(period, one_rate, value, &formula, symbolic_formula))
         }
 
         PresentValueSeries::new(TvmSeries::new(series))
@@ -216,7 +216,7 @@ impl PresentValueScheduleSolution {
             let value = self.future_value();
             let formula = format!("{:.4}", value);
             let symbolic_formula = "value = fv";
-            series.push(TVMPeriod::new(0, 0.0, value, &formula, symbolic_formula));
+            series.push(TvmPeriod::new(0, 0.0, value, &formula, symbolic_formula));
         } else {
 
             let periods = self.periods();
@@ -259,7 +259,7 @@ impl PresentValueScheduleSolution {
                 next_value = Some(value);
                 // We want to end up with the periods in order starting with period 0, so each time
                 // through the loop we insert the new TvmPeriod object at the beginning of the vector.
-                series.insert(0, TVMPeriod::new(period, rate, value, &formula, &symbolic_formula))
+                series.insert(0, TvmPeriod::new(period, rate, value, &formula, &symbolic_formula))
             };
         }
         PresentValueSeries::new(TvmSeries::new(series))

@@ -5,7 +5,8 @@ use finance::TimeValueOfMoneySolution;
 pub fn main() {
     // try_future_value_vary_compounding_periods();
     // try_doc_example_time_value_of_money_tvm_solution_1();
-    try_doc_example_future_value_vary_compounding_periods();
+    // try_doc_example_future_value_vary_compounding_periods();
+    try_doc_example_present_value_vary_compounding_periods();
 }
 
 fn try_future_value_vary_compounding_periods() {
@@ -42,6 +43,35 @@ fn try_doc_example_future_value_vary_compounding_periods() {
     // The description in the `setup` field states that the rate is 20% since that's 5% times the
     // number of periods in the original calculation. The final entry has `input: inf` indicating
     // that we used continuous compounding.
+    dbg!(&scenarios);
+
+    // Print the results in a formatted table.
+    scenarios.print_table();
+}
+
+fn try_doc_example_present_value_vary_compounding_periods() {
+    // Calculate the future value of an investment that starts at $83.33 and grows 20% in one year.
+    // Note that we're going to examine how the present value varies by the number of compounding
+    // periods, but we're starting with a future value calculation. It would have been fine to start
+    // with a rate, periods, or present value calculation as well. It just depends on what
+    // information we have to work with.
+    let solution = finance::future_value_solution(0.20, 1, 83.333);
+    dbg!(&solution);
+
+    // The present value of $83.33 gives us a future value of about $100.00.
+    finance::assert_rounded_2!(100.00, solution.future_value());
+
+    // We'll experiment with compounding annually, quarterly, monthly, weekly, and daily.
+    let compounding_periods = [1, 4, 12, 52, 365];
+
+    // Add a final scenario with continuous compounding.
+    let include_continuous_compounding = true;
+
+    // Compile a list of the present values needed to arrive at the calculated future value of $100
+    // each of the above compounding periods as well a continous compounding.
+    let scenarios = solution.present_value_vary_compounding_periods(&compounding_periods, include_continuous_compounding);
+
+    // The final entry has `input: inf` indicating that we used continuous compounding.
     dbg!(&scenarios);
 
     // Print the results in a formatted table.

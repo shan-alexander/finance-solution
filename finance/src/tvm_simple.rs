@@ -78,11 +78,79 @@ pub trait TimeValueOfMoneySolution {
         self.tvm_solution().future_value_solution(continuous_compounding, compounding_periods)
     }
 
-    /// <img src="http://i.upmath.me/svg/%24%24%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D100%2C%0A%09width%3D9.0cm%2Cheight%3D6.4cm%2C%0A%09xmin%3D0%2C%20xmax%3D12%2C%0A%09ymin%3D80%2C%20ymax%3D85%2C%0A%09restrict%20y%20to%20domain%3D0%3A1000%2C%0A%09ytick%3D%7B81%2C%2082%2C%2083%2C%2084%7D%2C%0A%09xtick%3D%7B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%7D%2C%0A%09axis%20equal%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24n%24%2Cylabel%3D%24pv%24%5D%0A%5Caddplot%5Bred%2Cdomain%3D1%3A12%2Csemithick%5D%7B100%2F((1%2B(0.2%2Fx))%5Ex)%7D%3B%0A%5Caddplot%5Bblack%2Cdomain%3D1%3A12%5D%7B100%2F(e%5E(0.2))%7D%3B%0A%5Caddplot%5B%5D%20coordinates%20%7B(2.5%2C81.2)%7D%20node%7B%24pv%3D%7B100%20%5Cover%20e%5E%7B0.2%7D%7D%24%7D%3B%0A%5Caddplot%5Bred%5D%20coordinates%20%7B(4.5%2C83.3)%7D%20node%7B%24pv%3D%7B100%20%5Cover%20(1%2B%7B0.2%20%5Cover%20n%7D)%5En%7D%24%7D%3B%0A%5Cpath%20(axis%20cs%3A0%2C83)%20node%20%5Banchor%3Dnorth%20west%2Cyshift%3D-0.07cm%5D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D%24%24" />
-    fn present_value_vary_compounding_periods(&self, compounding_periods: &[u32]) -> Vec<(u32, f64)> {
-        self.tvm_solution().present_value_vary_compounding_periods(compounding_periods)
+    /// Returns a struct with a set of what-if scenarios for the present value needed with a variety
+    /// of compounding periods.
+    ///
+    /// # Arguments
+    /// * `compounding_periods` - The compounding periods to include in the scenarios. The result
+    /// will have a computed present value for each compounding period in this list.
+    /// * `include_continuous_compounding` - If true, adds one scenario at the end of the results
+    /// with continuous compounding instead of a given number of compounding periods.
+    ///
+    /// # Examples
+    /// For a more detailed example with a related function see
+    /// [future_value_vary_compounding_periods](./trait.TimeValueOfMoneySolution.html#method.future_value_vary_compounding_periods)
+    /// ```
+    /// use finance::TimeValueOfMoneySolution;
+    ///
+    /// // Calculate the future value of an investment that starts at $83.33 and grows 20% in one year.
+    /// // Note that we're going to examine how the present value varies by the number of compounding
+    /// // periods, but we're starting with a future value calculation. It would have been fine to start
+    /// // with a rate, periods, or present value calculation as well. It just depends on what
+    /// // information we have to work with.
+    /// let solution = finance::future_value_solution(0.20, 1, 83.333);
+    /// dbg!(&solution);
+    ///
+    /// // The present value of $83.33 gives us a future value of about $100.00.
+    /// finance::assert_rounded_2!(100.00, solution.future_value());
+    ///
+    /// // We'll experiment with compounding annually, quarterly, monthly, weekly, and daily.
+    /// let compounding_periods = [1, 4, 12, 52, 365];
+    ///
+    /// // Add a final scenario with continuous compounding.
+    /// let include_continuous_compounding = true;
+    ///
+    /// // Compile a list of the present values needed to arrive at the calculated future value of $100
+    /// // each of the above compounding periods as well a continous compounding.
+    /// let scenarios = solution.present_value_vary_compounding_periods(&compounding_periods, include_continuous_compounding);
+    /// dbg!(&scenarios);
+    ///
+    /// // Print the results in a formatted table.
+    /// scenarios.print_table();
+    ///
+    /// ```
+    /// Output from the last line:
+    /// ```text
+    /// Periods  Present Value
+    /// -------  -------------
+    ///       1        83.3330
+    ///       4        82.2699
+    ///      12        82.0078
+    ///      52        81.9042
+    ///     365        81.8772
+    ///     inf        81.8727
+    /// ```
+    /// As we compound the interest more frequently we need a slightly smaller initial value to
+    /// reach the same final value of $100 in one year. With more frequent compounding the required
+    /// initial value approaches $81.87, the present value needed with continuous compounding.
+    ///
+    /// If we plot this using between 1 and 12 compounding periods it's clear that the required
+    /// present value drops sharply if we go from compounding annually to compounding semiannually
+    /// or quarterly but then is affected less and less as we compound more frequently:
+    ///
+    /// <img src="http://i.upmath.me/svg/%24%24%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D12%2C%0A%09width%3D9.0cm%2Cheight%3D6.4cm%2C%0A%09xmin%3D0%2C%20xmax%3D12%2C%0A%09ymin%3D80.5%2C%20ymax%3D84.5%2C%0A%09restrict%20y%20to%20domain%3D0%3A1000%2C%0A%09ytick%3D%7B81%2C%2082%2C%2083%2C%2084%7D%2C%0A%09xtick%3D%7B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%7D%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24n%24%2Cylabel%3D%24pv%24%5D%0A%5Caddplot%5Bblue%2Cdomain%3D1%3A12%2Csemithick%2C%20only%20marks%5D%7B100%2F((1%2B(0.2%2Fx))%5Ex)%7D%3B%0A%5Caddplot%5Bblack%2Cdomain%3D1%3A12%2C%20thick%5D%7B100%2F(e%5E(0.2))%7D%3B%0A%5Caddplot%5B%5D%20coordinates%20%7B(2.3%2C81.53)%7D%20node%7B%24pv%3D%7B100%20%5Cover%20e%5E%7B0.2%7D%7D%24%7D%3B%0A%5Caddplot%5Bblue%5D%20coordinates%20%7B(4.5%2C82.8)%7D%20node%7B%24pv%3D%7B100%20%5Cover%20(1%2B%7B0.2%20%5Cover%20n%7D)%5En%7D%24%7D%3B%0A%5Cpath%20(axis%20cs%3A0%2C83)%20node%20%5Banchor%3Dnorth%20west%2Cyshift%3D-0.07cm%5D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D%24%24" />
+    fn present_value_vary_compounding_periods(&self, compounding_periods: &[u32], include_continuous_compounding: bool) -> ScenarioList {
+        self.tvm_solution().present_value_vary_compounding_periods(compounding_periods, include_continuous_compounding)
     }
 
+    /// Returns a struct with a set of what-if scenarios for the future value of an investment given
+    /// a variety of compounding periods.
+    ///
+    /// # Arguments
+    /// * `compounding_periods` - The compounding periods to include in the scenarios. The result
+    /// will have a computed future value for each compounding period in this list.
+    /// * `include_continuous_compounding` - If true, adds one scenario at the end of the results
+    /// with continuous compounding instead of a given number of compounding periods.
     ///
     /// # Examples
     /// ```
@@ -155,8 +223,14 @@ pub trait TimeValueOfMoneySolution {
     ///     365      122.1336
     ///     inf      122.1403
     /// ```
+    /// With the same interest rate and overall time period, an amount grows faster if we compound
+    /// the interest more frequently. As the number of compounding periods grows the future value
+    /// approaches the limit of $122.14 that we get with continuous compounding.
     ///
-    /// <img src="http://i.upmath.me/svg/%24%24%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%5Csmall%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D100%2C%0A%09width%3D9.0cm%2Cheight%3D6.4cm%2C%0A%09xmin%3D0%2C%20xmax%3D12%2C%0A%09ymin%3D120%2C%20ymax%3D123%2C%0A%09restrict%20y%20to%20domain%3D0%3A1000%2C%0A%09ytick%3D%7B120%2C%20121%2C%20122%7D%2C%0A%09xtick%3D%7B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%7D%2C%0A%09axis%20equal%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24n%24%2Cylabel%3D%24fv%24%5D%0A%5Caddplot%5Bred%2Cdomain%3D1%3A12%2Csemithick%5D%7B100*((1%2B(0.2%2Fx))%5Ex)%7D%3B%0A%5Caddplot%5Bblack%2Cdomain%3D1%3A12%5D%7B100*(e%5E(0.2))%7D%3B%0A%5Caddplot%5B%5D%20coordinates%20%7B(2.5%2C122.8)%7D%20node%7B%24fv%3D100e%5E%7B0.2%7D%24%7D%3B%0A%5Caddplot%5Bred%5D%20coordinates%20%7B(4%2C120.3)%7D%20node%7B%24fv%3D100(1%2B%7B0.2%20%5Cover%20n%7D)%5En%24%7D%3B%0A%5Cpath%20(axis%20cs%3A0%2C122)%20node%20%5Banchor%3Dnorth%20west%2Cyshift%3D-0.07cm%5D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D%24%24" />
+    /// As a chart it looks like this, here using only 1 through 12
+    /// compounding periods for clarity:
+    ///
+    /// <img src="http://i.upmath.me/svg/%24%24%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%5Csmall%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D12%2C%0A%09width%3D9.0cm%2Cheight%3D6.4cm%2C%0A%09xmin%3D0%2C%20xmax%3D12%2C%0A%09ymin%3D119%2C%20ymax%3D123%2C%0A%09restrict%20y%20to%20domain%3D0%3A1000%2C%0A%09ytick%3D%7B120%2C%20121%2C%20122%7D%2C%0A%09xtick%3D%7B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%7D%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24n%24%2Cylabel%3D%24fv%24%5D%0A%5Caddplot%5Bblue%2Cdomain%3D1%3A12%2Cthick%2C%20only%20marks%5D%7B100*((1%2B(0.2%2Fx))%5Ex)%7D%3B%0A%5Caddplot%5Bblack%2Cdomain%3D1%3A12%2Cthick%5D%7B100*(e%5E(0.2))%7D%3B%0A%5Caddplot%5B%5D%20coordinates%20%7B(2.5%2C122.4)%7D%20node%7B%24fv%3D100e%5E%7B0.2%7D%24%7D%3B%0A%5Caddplot%5Bblue%5D%20coordinates%20%7B(4.8%2C120.7)%7D%20node%7B%24fv%3D100(1%2B%7B0.2%20%5Cover%20n%7D)%5En%24%7D%3B%0A%5Cpath%20(axis%20cs%3A0%2C122)%20node%20%5Banchor%3Dnorth%20west%2Cyshift%3D-0.07cm%5D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D%24%24" />
     fn future_value_vary_compounding_periods(&self, compounding_periods: &[u32], include_continuous_compounding: bool) -> ScenarioList {
         self.tvm_solution().future_value_vary_compounding_periods(compounding_periods, include_continuous_compounding)
     }
@@ -297,7 +371,7 @@ pub struct TvmScheduleSolution {
 }
 
 #[derive(Clone, Debug)]
-pub struct TvmSeries(Vec<TVMPeriod>);
+pub struct TvmSeries(Vec<TvmPeriod>);
 
 /// The value of an investment at the end of a given period, part of a Time Value of Money
 /// calculation.
@@ -308,7 +382,7 @@ pub struct TvmSeries(Vec<TVMPeriod>);
 /// * Part of [`TvmSchedule`] produced by calling [`present_value_schedule`] or
 /// [`future_value_schedule`].
 #[derive(Clone, Debug)]
-pub struct TVMPeriod {
+pub struct TvmPeriod {
     period: u32,
     rate: f64,
     value: f64,
@@ -533,7 +607,7 @@ impl TvmSolution {
             };
             assert!(value.is_finite());
             prev_value = Some(value);
-            series.push(TVMPeriod::new(period, one_rate, value, &formula, symbolic_formula))
+            series.push(TvmPeriod::new(period, one_rate, value, &formula, symbolic_formula))
         }
         TvmSeries::new(series)
     }
@@ -640,13 +714,24 @@ impl TvmSolution {
         future_value_solution_internal(rate, periods, self.present_value, continuous_compounding)
     }
 
-    fn present_value_vary_compounding_periods(&self, compounding_periods: &[u32]) -> Vec<(u32, f64)> {
-        compounding_periods.iter()
-            .map(|periods| {
-                let rate = (self.rate * self.fractional_periods) / *periods as f64;
-                (*periods, present_value_internal(rate, *periods as f64, self.future_value, self.continuous_compounding))
-            })
-            .collect()
+    fn present_value_vary_compounding_periods(&self, compounding_periods: &[u32], include_continuous_compounding: bool) -> ScenarioList {
+        let rate_for_single_period = self.rate * self.fractional_periods;
+        let mut entries = vec![];
+        for periods in compounding_periods {
+            let rate = rate_for_single_period / *periods as f64;
+            let present_value = present_value_internal(rate, *periods as f64, self.future_value, self.continuous_compounding);
+            entries.push((*periods as f64, present_value));
+        }
+        if include_continuous_compounding {
+            let rate = rate_for_single_period;
+            let periods = 1;
+            let continuous_compounding = true;
+            let present_value = present_value_internal(rate, periods as f64, self.future_value, continuous_compounding);
+            entries.push((std::f64::INFINITY, present_value));
+        }
+
+        let setup = format!("Compare present values with different compounding periods where the rate is {} and the future value is {}.", format_rate(rate_for_single_period), format_float(self.future_value));
+        ScenarioList::new(setup, TvmVariable::Periods, TvmVariable::PresentValue, entries)
     }
 
     fn future_value_vary_compounding_periods(&self, compounding_periods: &[u32], include_continuous_compounding: bool) -> ScenarioList {
@@ -784,14 +869,14 @@ impl TvmScheduleSolution {
 }
 
 impl TvmSeries {
-    pub(crate) fn new(series: Vec<TVMPeriod>) -> Self {
+    pub(crate) fn new(series: Vec<TvmPeriod>) -> Self {
         Self {
             0: series,
         }
     }
 
     pub fn filter<P>(&self, predicate: P) -> Self
-        where P: Fn(&&TVMPeriod) -> bool
+        where P: Fn(&&TvmPeriod) -> bool
     {
         Self {
             0: self.iter().filter(|x| predicate(x)).map(|x| x.clone()).collect()
@@ -856,14 +941,14 @@ impl TvmSeries {
 }
 
 impl Deref for TvmSeries {
-    type Target = Vec<TVMPeriod>;
+    type Target = Vec<TvmPeriod>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl TVMPeriod {
+impl TvmPeriod {
     pub(crate) fn new(period: u32, rate: f64, value: f64, formula: &str, symbolic_formula: &str) -> Self {
         assert!(rate.is_finite());
         assert!(value.is_finite());
