@@ -582,6 +582,16 @@ pub(crate) fn columns_with_strings(columns: &[(&str, &str, bool)]) -> Vec<(Strin
     columns.iter().map(|(label, data_type, visible)| (label.to_string(), data_type.to_string(), *visible)).collect()
 }
 
+pub (crate) fn initialized_vector<T>(length: usize, value: T) -> Vec<T>
+    where T: Copy
+{
+    let mut v = vec![];
+    for _ in 0..length {
+        v.push(value);
+    }
+    v
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

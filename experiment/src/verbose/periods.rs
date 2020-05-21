@@ -3,7 +3,7 @@
 pub fn main() {
     // try_edge_cases();
     // try_symmetric_mult_cases();
-    try_numbers_for_module_level_charts();
+    // try_numbers_for_module_level_charts();
     // create_formulas_for_docs();
     // try_doc_example_1();
     // try_doc_example_solution_1();
@@ -11,6 +11,7 @@ pub fn main() {
     // check_formulas();
 }
 
+/*
 fn try_edge_cases() {
     let fractional_periods = finance::periods(-1.0, 10_000.0, 0.0);
     dbg!(&fractional_periods);
@@ -132,6 +133,7 @@ fn check_formulas() {
     let solution = finance::periods_solution(0.11, 100, 200);
     dbg!(&solution, &solution.series());
 }
+*/
 
 /*
 https://i.upmath.me/g/

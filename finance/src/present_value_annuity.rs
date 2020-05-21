@@ -113,7 +113,7 @@ pub fn present_value_annuity_accumulator<T>(rate: f64, periods: u32, annuity: T,
         0.0
     };
     for i in 1..=periods {
-        let present_value = present_value(rate, i as u32, pmt);
+        let present_value = present_value(rate, i as u32, pmt, false);
         pv_accumulator += present_value;
     }
     pv_accumulator
@@ -253,7 +253,7 @@ pub fn present_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T, d
     let formula = format!("-{} * ((1. - (1. / (1. + {})).powf({})) / {}) * (1 + ({} * {}));", annuity, rate, periods, rate, rate, due_at_beginning as u32 as f64);
     let formula_symbolic = format!("-annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate) * (1. + (rate * due));");
     // let fv = future_value_annuity(rate, periods, cashflow);
-    let fv = future_value(rate, periods, pv);
+    let fv = future_value(rate, periods, pv, false);
     TvmCashflowSolution::new(pvann_type, rate, periods, pv, fv, due_at_beginning, annuity, &formula, &formula_symbolic)
 }
 

@@ -207,7 +207,7 @@ pub fn future_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T, du
     let formula = format!("-{} * ((1. - (1. / (1. + {})).powf({})) / {});", annuity, rate, periods, rate);
     let formula_symbolic = format!("-annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate);");
     // let fv = future_value_annuity(rate, periods, cashflow);
-    let pv = present_value(rate, periods, fv);
+    let pv = present_value(rate, periods, fv, false);
     TvmCashflowSolution::new(fvann_type, rate, periods, pv, fv, due_at_beginning, annuity, &formula, &formula_symbolic)
 }
 

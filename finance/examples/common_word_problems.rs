@@ -38,10 +38,10 @@ fn pv_problem_1() {
     let future_value = 140_000;
     let periods = 13;
     let rate = 0.14;
-    let pv_problem_1 = present_value_solution(rate, periods, future_value);
+    let pv_problem_1 = present_value_solution(rate, periods, future_value, false);
     dbg!(&pv_problem_1); // Outputs solution struct.
     dbg!(pv_problem_1.present_value()); // Outputs 25489.71433359101 from solution struct.
-    dbg!(present_value(rate, periods, future_value)); // Outputs 25489.71433359101 from f64 fn.
+    dbg!(present_value(rate, periods, future_value, false)); // Outputs 25489.71433359101 from f64 fn.
     assert_rounded_2(25_489.71, pv_problem_1.present_value());
 }
 
@@ -52,10 +52,10 @@ fn fv_problem_1() {
     let present_value = 247_000;
     let periods = 9;
     let rate = 0.11;
-    let fv_problem_1 = future_value_solution(rate, periods, present_value);
+    let fv_problem_1 = future_value_solution(rate, periods, present_value, false);
     dbg!(&fv_problem_1); // Outputs solution struct.
     dbg!(fv_problem_1.future_value()); // Outputs 631835.1203234661 from solution struct.
-    dbg!(future_value(rate, periods, present_value)); // Outputs 631835.1203234661 from f64 fn.
+    dbg!(future_value(rate, periods, present_value, false)); // Outputs 631835.1203234661 from f64 fn.
     assert_rounded_2(631_835.12, fv_problem_1.future_value());
 }
 
@@ -66,11 +66,11 @@ fn nper_problem_1() {
     let present_value = 136_000;
     let future_value = 468_000;
     let rate = 0.08;
-    let nper_problem_1 = periods_solution(rate, present_value, future_value);
+    let nper_problem_1 = periods_solution(rate, present_value, future_value, false);
     dbg!(&nper_problem_1); // Outputs solution struct.
     dbg!(nper_problem_1.periods()); // Outputs 17 from solution struct.
     dbg!(nper_problem_1.fractional_periods()); // Outputs 16.057649324100133 from solution struct.
-    dbg!(periods(rate, present_value, future_value)); // Outputs 16.057649324100133 from f64 fn.
+    dbg!(periods(rate, present_value, future_value, false)); // Outputs 16.057649324100133 from f64 fn.
     assert_rounded_2(16.06, nper_problem_1.fractional_periods());
 }
 
@@ -81,7 +81,7 @@ fn rate_problem_1() {
     let pv = 137_000;
     let fv = 475_000;
     let periods = 14;
-    let rate_problem_1 = rate_solution(periods, pv, fv);
+    let rate_problem_1 = rate_solution(periods, pv, fv, false);
     dbg!(&rate_problem_1);
     dbg!(&rate_problem_1.rate());
     assert_rounded_4(0.0929, rate_problem_1.rate());
@@ -107,7 +107,7 @@ fn pv_problem_2() {
     // There is one period per year. This works only because we're using the EAR calculated above.
     let periods = years;
 
-    let pv_problem_2_ear = present_value_solution(ear, periods, fv);
+    let pv_problem_2_ear = present_value_solution(ear, periods, fv, false);
     dbg!(&pv_problem_2_ear);
     assert_rounded_2(104_947.03, pv_problem_2_ear.present_value());
 
@@ -124,7 +124,7 @@ fn pv_problem_2() {
     // number of years.
     let periods = years * 2;
 
-    let pv_problem_2_epr = present_value_solution(epr, periods, fv);
+    let pv_problem_2_epr = present_value_solution(epr, periods, fv, false);
     dbg!(&pv_problem_2_epr);
     assert_rounded_2!(104_947.03, pv_problem_2_epr.present_value());
 
@@ -155,7 +155,7 @@ fn periods_problem_2() {
     // periodic rate per month.
     let rate = convert_apr_to_epr(apr, 12);
 
-    let months = periods(rate, present_value, future_value);
+    let months = periods(rate, present_value, future_value, false);
     dbg!(months);
 
     // We know the number of months, which may contain a fractional amount. Convert to years.
@@ -174,7 +174,7 @@ fn rate_problem_2() {
     let periods_per_year = 52;
     let periods = years * periods_per_year;
 
-    let weekly_rate = rate(periods, present_value, future_value);
+    let weekly_rate = rate(periods, present_value, future_value, false);
     dbg!(weekly_rate);
 
     let apr = convert_epr_to_apr(weekly_rate, periods_per_year);
@@ -190,7 +190,7 @@ fn rate_problem_2() {
 
     // Starting with the same present value and compounding once per year using the EAR should give
     // us the future value we started with. If so this means we correctly calculated the rate above.
-    let check_future_value = finance::future_value(ear, years, present_value);
+    let check_future_value = finance::future_value(ear, years, present_value, false);
     dbg!(check_future_value);
     assert_rounded_4(check_future_value, future_value as f64);
 }
@@ -366,7 +366,7 @@ fn retirement_problem_1() {
 
     // What amount of money is needed at the moment of retirement so that it can be invested and
     // eventually grow to $2.5 million at the moment of death?
-    let value_at_retirement_for_inheritance = present_value(rate_after_retire, live_how_many_years_after_retirement, total_inheritance);
+    let value_at_retirement_for_inheritance = present_value(rate_after_retire, live_how_many_years_after_retirement, total_inheritance, false);
     dbg!(value_at_retirement_for_inheritance);
 
     let total_at_retirement = value_at_retirement_for_income + value_at_retirement_for_inheritance;

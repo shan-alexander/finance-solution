@@ -1,7 +1,5 @@
 #![allow(dead_code)]
 
-use crate::fin::TimeValueOfMoneySolution;
-
 pub fn main() {
     // try_present_value_solution();
     // try_present_value_series();
@@ -13,10 +11,11 @@ pub fn main() {
     // try_doc_example_schedule();
     // try_doc_example_schedule_solution();
     // try_doc_example_schedule_series();
-    try_values_for_diagram_1();
+    // try_values_for_diagram_1();
     // dbg!(finance::present_value_solution(0.009, 1, 100_000));
 }
 
+/*
 fn try_present_value_solution() {
     // expect 1047.6190
     let rate_of_return = 0.05f64;
@@ -287,6 +286,7 @@ fn try_values_for_diagram_1() {
 
 
 }
+*/
 
 /*
 

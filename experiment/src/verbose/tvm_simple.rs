@@ -1,14 +1,13 @@
 #![allow(dead_code)]
 
-use finance::TimeValueOfMoneySolution;
-
 pub fn main() {
     // try_future_value_vary_compounding_periods();
     // try_doc_example_time_value_of_money_tvm_solution_1();
     // try_doc_example_future_value_vary_compounding_periods();
-    try_doc_example_present_value_vary_compounding_periods();
+    // try_doc_example_present_value_vary_compounding_periods();
 }
 
+/*
 fn try_future_value_vary_compounding_periods() {
     let solution = finance::future_value_solution(0.2, 4, 10_000);
     dbg!(&solution);
@@ -116,3 +115,4 @@ fn check_formulas() {
     dbg!(&solution, &solution.series());
 }
 
+*/

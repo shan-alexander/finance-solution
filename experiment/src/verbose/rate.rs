@@ -3,10 +3,11 @@
 pub fn main() {
     // try_doc_example();
     // try_doc_example_solution();
-    try_doc_example_series_1();
+    // try_doc_example_series_1();
     // check_formulas();
 }
 
+/*
 fn try_doc_example() {
 
     // The interest will compound for 365 days.
@@ -90,4 +91,4 @@ fn check_formulas() {
     let solution = finance::rate_solution(4, 100, 200);
     dbg!(&solution, &solution.series());
 }
-
+*/

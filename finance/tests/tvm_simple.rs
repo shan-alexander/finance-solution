@@ -37,11 +37,11 @@ mod tests {
         // Calculate the future value given the other three inputs so that we have all four values
         // which we can use in various combinations to confirm that all four basic TVM functions
         // return consistent values.
-        let future_value_calc = future_value(rate_in, periods_in, present_value_in);
+        let future_value_calc = future_value(rate_in, periods_in, present_value_in, false);
         //bg!(future_value_calc);
         //bg!(future_value_calc.is_normal());
 
-        let rate_calc = rate(periods_in, present_value_in, future_value_calc);
+        let rate_calc = rate(periods_in, present_value_in, future_value_calc, false);
         //bg!(rate_calc);
         if periods_in == 0 || present_value_in == 0.0 {
             // With zero periods or zero for the present value, presumably the future value is the
@@ -54,7 +54,7 @@ mod tests {
             assert_approx_equal_symmetry_test!(rate_calc, rate_in);
         }
 
-        let fractional_periods_calc = periods(rate_in, present_value_in, future_value_calc);
+        let fractional_periods_calc = periods(rate_in, present_value_in, future_value_calc, false);
         //bg!(fractional_periods_calc);
         let periods_calc = round_4(fractional_periods_calc).ceil() as u32;
         //bg!(periods_calc);
@@ -75,7 +75,7 @@ mod tests {
         }
 
         if future_value_calc.is_normal() {
-            let present_value_calc = present_value(rate_in, periods_in, future_value_calc);
+            let present_value_calc = present_value(rate_in, periods_in, future_value_calc, false);
             //bg!(present_value_calc);
             assert_approx_equal_symmetry_test!(present_value_calc, present_value_in);
         };
@@ -99,15 +99,15 @@ mod tests {
 
         // Create TvmSolution structs by solving for each of the four possible variables.
         let mut solutions = vec![
-            rate_solution(periods_in, present_value_in, future_value_calc).tvm_solution_and_series(),
-            periods_solution(rate_in, present_value_in, future_value_calc).tvm_solution_and_series(),
-            future_value_solution(rate_in, periods_in, present_value_in).tvm_solution_and_series(),
+            rate_solution(periods_in, present_value_in, future_value_calc, false),
+            periods_solution(rate_in, present_value_in, future_value_calc, false),
+            future_value_solution(rate_in, periods_in, present_value_in, false),
         ];
 
         if future_value_calc.is_normal() {
-            solutions.push(present_value_solution(rate_in, periods_in, future_value_calc).tvm_solution_and_series());
+            solutions.push(present_value_solution(rate_in, periods_in, future_value_calc, false));
         }
-        for (solution, _) in solutions.iter() {
+        for solution in solutions.iter() {
             //bg!(solution);
             if solution.calculated_field().is_rate() {
                 // There are a few special cases in which the calculated rate is arbitrarily set to
@@ -132,13 +132,12 @@ mod tests {
             assert_approx_equal_symmetry_test!(future_value_calc, solution.future_value());
         }
 
-        let mut schedules = vec![future_value_schedule_solution(&rates_in, present_value_in).tvm_solution_and_series()];
-
+        let mut schedules = vec![future_value_schedule_solution(&rates_in, present_value_in)];
         if future_value_calc.is_normal() {
-            schedules.push(present_value_schedule_solution(&rates_in, future_value_calc).tvm_solution_and_series());
+            schedules.push(present_value_schedule_solution(&rates_in, future_value_calc));
         }
 
-        for (schedule, _) in schedules.iter() {
+        for schedule in schedules.iter() {
             //bg!(schedule);
             assert_eq!(periods_in, schedule.rates().len() as u32);
             assert_eq!(periods_in, schedule.periods());
@@ -147,15 +146,15 @@ mod tests {
         }
 
         // Check each series in isolation.
-        for (solution, series) in solutions.iter() {
+        for solution in solutions.iter() {
             let label = format!("Solution for {:?}", solution.calculated_field());
             //bg!(&label);
-            check_series_internal(label, solution.calculated_field(), series, rate_in, periods_in, present_value_in, future_value_calc, rate_calc, periods_calc);
+            check_series_internal(label, solution.calculated_field(), &solution.series(), rate_in, periods_in, present_value_in, future_value_calc, rate_calc, periods_calc);
         }
-        for (solution, series) in schedules.iter() {
+        for solution in schedules.iter() {
             let label = format!("Schedule for {:?}", solution.calculated_field());
             //bg!(&label);
-            check_series_internal(label, solution.calculated_field(), series, rate_in, periods_in, present_value_in, future_value_calc, rate_calc, periods_calc);
+            check_series_internal(label, solution.calculated_field(),  &solution.series(), rate_in, periods_in, present_value_in, future_value_calc, rate_calc, periods_calc);
         }
 
         // Confirm that all of the series have the same values for all periods regardless of how we
@@ -163,18 +162,19 @@ mod tests {
         // future_value_solution(). It would also work to use the result of rate_solution() and
         // present_value_solution() but not periods_solution() since there are some special cases in
         // which this will create fewer periods than the other functions.
-        let (reference_solution, reference_series) = solutions.iter().find(|(solution, _)| solution.calculated_field().is_future_value()).unwrap();
-        for (solution, series) in solutions.iter().filter(|(solution, _)| !solution.calculated_field().is_future_value()) {
+        let reference_solution = solutions.iter().find(|solution| solution.calculated_field().is_future_value()).unwrap();
+        let reference_series = reference_solution.series();
+        for solution in solutions.iter().filter(|solution| !solution.calculated_field().is_future_value()) {
             let label = format!("Solution for {:?}", solution.calculated_field());
-            check_series_same_values(reference_solution, reference_series,label, solution.calculated_field(), series);
+            check_series_same_values(reference_solution, &reference_series,label, solution.calculated_field(), &solution.series());
         }
-        for (schedule, series) in schedules.iter() {
+        for schedule in schedules.iter() {
             let label = format!("Schedule for {:?}", schedule.calculated_field());
-            check_series_same_values(reference_solution, reference_series, label, schedule.calculated_field(), series);
+            check_series_same_values(reference_solution, &reference_series, label, schedule.calculated_field(), &schedule.series());
         }
     }
 
-    fn check_series_internal(_label: String, calculated_field: &TvmVariable, series: &[TvmPeriod], rate_in: f64, periods_in: u32, present_value_in: f64, future_value_calc: f64, rate_calc: f64, periods_calc: u32) {
+    fn check_series_internal(_label: String, calculated_field: &TvmVariable, series: &TvmSeries, rate_in: f64, periods_in: u32, present_value_in: f64, future_value_calc: f64, rate_calc: f64, periods_calc: u32) {
         //bg!(label);
         //bg!(&series);
         if calculated_field.is_periods() {
@@ -326,10 +326,10 @@ mod tests {
         // Calculate the future value given the other three inputs so that we have all four values
         // which we can use in various combinations to confirm that all four continuous TVM
         // functions return consistent values.
-        let future_value_calc = future_value_continuous(rate_in, periods_in, present_value_in);
+        let future_value_calc = future_value(rate_in, periods_in, present_value_in, true);
         dbg!(future_value_calc);
 
-        let rate_calc = rate::rate_continuous(periods_in, present_value_in, future_value_calc);
+        let rate_calc = rate::rate(periods_in, present_value_in, future_value_calc, true);
         dbg!(rate_calc);
         if periods_in == 0 || present_value_in == 0.0 {
             // With zero periods or zero for the present value, presumably the future value is the
@@ -342,7 +342,7 @@ mod tests {
             assert_approx_equal_symmetry_test!(rate_calc, rate_in);
         }
 
-        let fractional_periods_calc = periods_continuous(rate_in, present_value_in, future_value_calc);
+        let fractional_periods_calc = periods(rate_in, present_value_in, future_value_calc, true);
         dbg!(fractional_periods_calc);
         let periods_calc = round_4(fractional_periods_calc).ceil() as u32;
         dbg!(periods_calc);
@@ -363,24 +363,25 @@ mod tests {
         }
 
         if future_value_calc.is_normal() {
-            let present_value_calc = present_value_continuous(rate_in, periods_in, future_value_calc);
+            let present_value_calc = present_value(rate_in, periods_in, future_value_calc, true);
             dbg!(present_value_calc);
             assert_approx_equal_symmetry_test!(present_value_calc, present_value_in);
         };
 
         // Create TvmSolution structs by solving for each of the four possible variables.
         let mut solutions = vec![
-            rate_continuous_solution(periods_in, present_value_in, future_value_calc).tvm_solution_and_series(),
-            periods_continuous_solution(rate_in, present_value_in, future_value_calc).tvm_solution_and_series(),
-            future_value_continuous_solution(rate_in, periods_in, present_value_in).tvm_solution_and_series(),
+            rate_solution(periods_in, present_value_in, future_value_calc, true),
+            periods_solution(rate_in, present_value_in, future_value_calc, true),
+            future_value_solution(rate_in, periods_in, present_value_in, true),
         ];
 
         if future_value_calc.is_normal() {
-            solutions.push(present_value_continuous_solution(rate_in, periods_in, future_value_calc).tvm_solution_and_series());
+            solutions.push(present_value_solution(rate_in, periods_in, future_value_calc, true));
         }
-        for (solution, series) in solutions.iter() {
+        for solution in solutions.iter() {
             dbg!(solution);
-            dbg!(series);
+            // let series = solution.series();
+            // dbg!(&series);
             if solution.calculated_field().is_rate() {
                 // There are a few special cases in which the calculated rate is arbitrarily set to
                 // zero since any value would work. We've already checked rate_calc against those
@@ -415,10 +416,11 @@ mod tests {
         // future_value_solution(). It would also work to use the result of rate_solution() and
         // present_value_solution() but not periods_solution() since there are some special cases in
         // which this will create fewer periods than the other functions.
-        let (reference_solution, reference_series) = solutions.iter().find(|(solution, _)| solution.calculated_field().is_future_value()).unwrap();
-        for (solution, series) in solutions.iter().filter(|(solution, _)| !solution.calculated_field().is_future_value()) {
+        let reference_solution = solutions.iter().find(|solution| solution.calculated_field().is_future_value()).unwrap();
+        let reference_series = reference_solution.series();
+        for solution in solutions.iter().filter(|solution| !solution.calculated_field().is_future_value()) {
             let label = format!("Solution for {:?}", solution.calculated_field());
-            check_series_same_values(reference_solution, reference_series, label, solution.calculated_field(), series);
+            check_series_same_values(reference_solution, &reference_series, label, solution.calculated_field(), &solution.series());
         }
     }
 
@@ -457,15 +459,15 @@ mod tests {
         // Calculate the future value given the other three inputs so that we have all four values
         // which we can use in various combinations to confirm that all four continuous TVM
         // functions return consistent values.
-        let future_value_calc = future_value_continuous(rate_in, periods_in, present_value_in);
+        let future_value_calc = future_value(rate_in, periods_in, present_value_in, true);
         dbg!(future_value_calc);
 
         // Create TvmSolution structs with continuous compounding by solving for each of the four possible variables.
         let continuous_solutions = vec![
-            rate_continuous_solution(periods_in, present_value_in, future_value_calc).tvm_solution_and_series(),
-            periods_continuous_solution(rate_in, present_value_in, future_value_calc).tvm_solution_and_series(),
-            present_value_continuous_solution(rate_in, periods_in, future_value_calc).tvm_solution_and_series(),
-            future_value_continuous_solution(rate_in, periods_in, present_value_in).tvm_solution_and_series(),
+            rate_solution(periods_in, present_value_in, future_value_calc, true),
+            periods_solution(rate_in, present_value_in, future_value_calc, true),
+            present_value_solution(rate_in, periods_in, future_value_calc, true),
+            future_value_solution(rate_in, periods_in, present_value_in, true),
         ];
 
         // For each solution with continuous compounding create a corresponding solution with
@@ -476,15 +478,15 @@ mod tests {
             .collect::<Vec<_>>();
         */
         let simple_solutions = [
-            continuous_solutions[0].0.rate_solution(false, None).tvm_solution_and_series(),
-            continuous_solutions[1].0.periods_solution(false).tvm_solution_and_series(),
-            continuous_solutions[2].0.present_value_solution(false, None).tvm_solution_and_series(),
-            continuous_solutions[3].0.future_value_solution(false, None).tvm_solution_and_series(),
+            continuous_solutions[0].rate_solution(false, None),
+            continuous_solutions[1].periods_solution(false),
+            continuous_solutions[2].present_value_solution(false, None),
+            continuous_solutions[3].future_value_solution(false, None),
         ];
 
         // Compare the continuous solutions to the corresponding simple solutions.
-        for (index, (continuous_solution, _)) in continuous_solutions.iter().enumerate() {
-            let (simple_solution, _) = &simple_solutions[index];
+        for (index, continuous_solution) in continuous_solutions.iter().enumerate() {
+            let simple_solution = &simple_solutions[index];
             println!("\nContinuous compounding vs. simple compounding adjusting {} while keeping the other three values constant.\n", continuous_solution.calculated_field().to_string().to_lowercase());
             dbg!(&continuous_solution, &simple_solution);
             assert_eq!(continuous_solution.calculated_field(), simple_solution.calculated_field());
@@ -542,15 +544,15 @@ mod tests {
             .collect::<Vec<_>>();
         */
         let continuous_solutions_round_trip = [
-            continuous_solutions[0].0.rate_solution(true, None).tvm_solution_and_series(),
-            continuous_solutions[1].0.periods_solution(true).tvm_solution_and_series(),
-            continuous_solutions[2].0.present_value_solution(true, None).tvm_solution_and_series(),
-            continuous_solutions[3].0.future_value_solution(true, None).tvm_solution_and_series(),
+            continuous_solutions[0].rate_solution(true, None),
+            continuous_solutions[1].periods_solution(true),
+            continuous_solutions[2].present_value_solution(true, None),
+            continuous_solutions[3].future_value_solution(true, None),
         ];
 
         // Compare the recently created continuous solutions to the original continuous solutions.
-        for (index, (solution, _)) in continuous_solutions.iter().enumerate() {
-            let (solution_round_trip, _) = &continuous_solutions_round_trip[index];
+        for (index, solution) in continuous_solutions.iter().enumerate() {
+            let solution_round_trip = &continuous_solutions_round_trip[index];
             println!("\nOriginal continuous compounding vs. derived continuous compounding where the calculated field is {}.\n", solution.calculated_field().to_string().to_lowercase());
             dbg!(&solution, &solution_round_trip);
             assert_eq!(solution, solution_round_trip);
@@ -586,12 +588,12 @@ mod tests {
         */
     }
 
-    fn setup_for_compounding_periods() -> (FutureValueSolution, Vec<u32>) {
+    fn setup_for_compounding_periods() -> (TvmSolution, Vec<u32>) {
         let rate = 0.10;
         let periods = 4;
         let present_value = 5_000.00;
         let compounding_periods = vec![1, 2, 4, 6, 12, 24, 52, 365];
-        (future_value_solution(rate, periods, present_value), compounding_periods)
+        (future_value_solution(rate, periods, present_value, false), compounding_periods)
     }
 
     #[test]

@@ -82,132 +82,6 @@ use crate::tvm_simple::*;
 // Needed for the Rustdoc comments.
 #[allow(unused_imports)]
 use crate::{future_value::future_value, present_value::present_value, rate::rate};
-use std::ops::Deref;
-
-/// A record of a periods calculation. The struct shows details such as the formula and can be used
-/// to calculate the period-by-period details.
-///
-/// This is the result of a call to [periods_solution](fn.periods_solution.html) or [periods_continuous_solution](fn.periods_continuous_solution.html).
-#[derive(Clone, Debug)]
-pub struct PeriodsSolution {
-    tvm_solution: TvmSolution,
-}
-
-/// The period-by-period details of a periods calculation showing the value at each step.
-///
-/// This is the result of a call to [PeriodsSolution::series](./struct.PeriodsSolution.html#method.series).
-#[derive(Clone, Debug)]
-pub struct PeriodsSeries(TvmSeries);
-
-impl PeriodsSolution {
-    fn new (tvm_solution: TvmSolution) -> Self {
-        assert!(tvm_solution.calculated_field().is_periods());
-        Self {
-            tvm_solution,
-        }
-    }
-
-    /// Returns the period-by-period details of a periods calculation showing the value at each
-    /// step.
-    pub fn series(&self) -> PeriodsSeries {
-        // For a rate, periods, or future value calculation the the period-by-period values are
-        // calculated the same way.
-        PeriodsSeries::new(self.tvm_solution.series())
-    }
-
-    /// Prints the period-by-period details of a periods calculation using default formatting in
-    /// which numbers appear similar to Rust constants.
-    pub fn print_series_table(&self) {
-        self.series().print_table();
-    }
-
-    /// Prints the period-by-period details of a periods calculation with formatting specified by
-    /// a locale and the number of decimal places.
-    pub fn print_series_table_locale(&self, locale: &num_format::Locale, precision: usize) {
-        self.series().print_table_locale(locale, precision);
-    }
-
-    /// Returns true if the value is compounded continuously rather than once per period. This will
-    /// be true if the solution was created with a call to [periods_continuous_solution](fn.periods_continuous_solution.html)
-    /// and false if it was created by [periods_solution](fn.periods_solution.html).
-    pub fn continuous_compounding(&self) -> bool {
-        self.tvm_solution.continuous_compounding()
-    }
-
-    /// Returns the periodic rate that was given as an input to the periods calculation.
-    pub fn rate(&self) -> f64 {
-        self.tvm_solution.rate()
-    }
-
-    /// Returns the calculated number of periods as a whole number. It's possible that the
-    /// calculated periods were not a whole number in which case [fractional_periods](./struct.PeriodsSolution.html#method.fractional_periods)
-    /// will have the more precise value. To get the whole number of periods we round up.
-    pub fn periods(&self) -> u32 {
-        self.tvm_solution.periods()
-    }
-
-    /// Returns the calculated number of periods as a floating point number. To get a whole number
-    /// of periods (rounded up) use [periods](./struct.PeriodsSolution.html#method.periods).
-    pub fn fractional_periods(&self) -> f64 {
-        self.tvm_solution.fractional_periods()
-    }
-
-    /// Returns the present value that was given as an input to the periods calculation.
-    pub fn present_value(&self) -> f64 {
-        self.tvm_solution.present_value()
-    }
-
-    /// Returns the future value that was given as an input to the periods calculation.
-    pub fn future_value(&self) -> f64 {
-        self.tvm_solution.future_value()
-    }
-
-    /// Returns a text version of the formula used to calculate the periods. The formula includes
-    /// the actual values rather than variable names. For the formula with variables such as "r" for
-    /// rate call [symbolic_formula](./struct.PeriodsSolution.html#method.symbolic_formula).
-    pub fn formula(&self) -> &str {
-        &self.tvm_solution.formula()
-    }
-
-    /// Returns a text version of the formula used to calculate the periods. The formula uses
-    /// variables such as "r" for the rate. For the formula with the actual values rather than
-    /// variables call [formula](./struct.PeriodsSolution.html#method.formula).
-    pub fn symbolic_formula(&self) -> &str {
-        &self.tvm_solution.symbolic_formula()
-    }
-}
-
-impl TimeValueOfMoneySolution for PeriodsSolution {
-    fn tvm_solution(&self) -> TvmSolution {
-        self.tvm_solution.clone()
-    }
-
-    fn tvm_series(&self) -> TvmSeries {
-        self.series().into()
-    }
-}
-
-impl PeriodsSeries {
-    fn new (series: TvmSeries) -> Self {
-        Self {
-            0: series,
-        }
-    }
-}
-
-impl Deref for PeriodsSeries {
-    type Target = TvmSeries;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl Into<TvmSeries> for PeriodsSeries {
-    fn into(self) -> TvmSeries {
-        self.0
-    }
-}
 
 /// Returns the number of periods given a periodic rate along with the present and future values,
 /// using simple compounding.
@@ -230,6 +104,7 @@ impl Into<TvmSeries> for PeriodsSeries {
 /// * `present_value` - The starting value of the investment. May appear as `pv` in formulas, or `C`
 /// for cash flow or `P` for principal.
 /// * `future_value` - The final value of the investment.
+/// * `continuous_compounding` - True for continuous compounding, false for simple compounding.
 ///
 /// # Panics
 /// The call will fail if the rate, the present value, or the future value is infinite or not a
@@ -261,8 +136,10 @@ impl Into<TvmSeries> for PeriodsSeries {
 /// // The ending value is $7,000.00.
 /// let future_value = 7_000.00;
 ///
+/// let continuous_compounding = false;
+///
 /// // Calculate the number of years required.
-/// let fractional_periods = finance::periods(rate, present_value, future_value);
+/// let fractional_periods = finance::periods(rate, present_value, future_value, false);
 /// dbg!(&fractional_periods);
 /// finance::assert_rounded_2(4.37, fractional_periods);
 ///
@@ -271,12 +148,12 @@ impl Into<TvmSeries> for PeriodsSeries {
 /// dbg!(&periods);
 /// assert_eq!(5, periods);
 /// ```
-pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
+pub fn periods<P, F>(rate: f64, present_value: P, future_value: F, continuous_compounding: bool) -> f64
     where
         P: Into<f64> + Copy,
         F: Into<f64> + Copy
 {
-    periods_internal(rate, present_value.into(), future_value.into(), false)
+    periods_internal(rate, present_value.into(), future_value.into(), continuous_compounding)
 }
 
 /// Calculates the number of periods given a periodic rate along with the present and future values
@@ -301,6 +178,7 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
 /// * `present_value` - The starting value of the investment. May appear as `pv` in formulas, or `P`
 /// for principal.
 /// * `future_value` - The final value of the investment.
+/// * `continuous_compounding` - True for continuous compounding, false for simple compounding.
 ///
 /// # Panics
 /// The call will fail if the rate, the present value, or the future value is infinite or not a
@@ -332,10 +210,13 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
 /// // The ending value is $200,000.00.
 /// let future_value = 200_000.00;
 ///
+/// // Use simple compounding.
+/// let continuous_compounding = false;
+///
 /// // Calculate the number of quarters required and build a struct with the
 /// // input values, an explanation of the formula, and an option to calculate
 /// // the quarter-by-quarter values.
-/// let solution = finance::periods_solution(rate, present_value, future_value);
+/// let solution = finance::periods_solution(rate, present_value, future_value, continuous_compounding);
 ///
 /// let fractional_quarters = solution.fractional_periods();
 /// dbg!(&fractional_quarters);
@@ -373,7 +254,7 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
 /// ```
 /// // The interest rate is -6% per year and the value falls from $15,000.00 to
 /// // $12,000.00.
-/// let solution = finance::periods_solution(-0.06, 15_000.00, 12_000.00);
+/// let solution = finance::periods_solution(-0.06, 15_000.00, 12_000.00, false);
 /// dbg!(&solution);
 /// finance::assert_rounded_2(3.61, solution.fractional_periods());
 /// assert_eq!(4, solution.periods());
@@ -381,149 +262,12 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> f64
 /// // Print the period-by-period values as a formatted table.
 /// solution.print_series_table();
 /// ```
-pub fn periods_solution<P, F>(rate: f64, present_value: P, future_value: F) -> PeriodsSolution
+pub fn periods_solution<P, F>(rate: f64, present_value: P, future_value: F, continuous_compounding: bool) -> TvmSolution
     where
         P: Into<f64> + Copy,
         F: Into<f64> + Copy
 {
-    periods_solution_internal(rate, present_value.into(), future_value.into(), false)
-}
-
-/// Returns the number of periods given a periodic rate along with the present and future values,
-/// using continuous compounding.
-///
-/// Note that the returned number of periods will be a floating point number representing fractional
-/// periods.
-///
-/// See the [periods](./index.html) module page for the formulas.
-///
-/// Related functions:
-/// * To calculate the periods using continuous compounding and return a struct that shows the
-/// formula and can be used to produce the the period-by-period values use [periods_continuous_solution](fn.periods_continuous_solution.html).
-/// * To calculate the periods using single compounding use [periods](fn.periods.html)
-/// or [periods_solution](fn.periods_solution.html).
-///
-/// # Arguments
-/// * `rate` - The rate at which the investment grows or shrinks per period, expressed as a
-/// floating point number. For instance 0.05 would mean 5% growth. Often appears as `r` or `i` in
-/// formulas.
-/// * `present_value` - The starting value of the investment. May appear as `pv` in formulas, or `C`
-/// for cash flow or `P` for principal.
-/// * `future_value` - The final value of the investment.
-///
-/// # Panics
-/// The call will fail if either of the rate, the present value, or the future value is
-/// infinite or not a number (NaN).
-///
-/// The call will also fail in any of the follwing cases because there is no number of periods that
-/// would make the calculation work:
-/// * The periodic rate is less than -1.0.
-/// * The present value is zero and the future value is nonzero.
-/// * The present value is nonzero and the future value is zero, unless the rate is exactly -1.0%.
-/// * The present value is negative and the future value is positive or vice versa.
-/// * The present value and future value are both negative, the future value is less than the
-/// present value, and the periodic rate is zero or negative.
-/// * The present value and future value are both negative, the future value is greater than the
-/// present value, and the periodic rate is zero or positive.
-/// * The present value and future value are both positive, the future value is greater than the
-/// present value, and the periodic rate is zero or negative.
-/// * The present value and future value are both positive, the future value is less than the
-/// present value, and the periodic rate is zero or positive.
-///
-/// # Examples
-/// ```
-/// // The interest rate is 11% per year.
-/// let rate = 0.11;
-///
-/// // The starting value is $25,000.00.
-/// let present_value = 25_000;
-///
-/// // The ending value is $45,000.00.
-/// let future_value = 45_000;
-///
-/// // Calculate the number of years required if interest is compounded continuously.
-/// let fractional_periods = finance::periods_continuous(rate, present_value, future_value);
-/// dbg!(&fractional_periods);
-/// finance::assert_rounded_2(5.34, fractional_periods);
-/// ```
-pub fn periods_continuous<P, F>(rate: f64, present_value: P, future_value: F) -> f64
-    where
-        P: Into<f64> + Copy,
-        F: Into<f64> + Copy
-{
-    periods_internal(rate, present_value.into(), future_value.into(), true)
-}
-
-/// Calculates the number of periods given a periodic rate along with the present and future values
-/// using continuous compounding. Returns a struct with details and with a method for calculating
-/// the period-by-period details.
-///
-/// Note that the returned number of periods will be a floating point number representing fractional
-/// periods.
-///
-/// See the [periods](./index.html) module page for the formulas.
-///
-/// Related functions:
-/// * To calculate the periods as a single number using continuous compounding use [periods_continuous](fn.periods_continuous.html).
-/// * To calculate the periods using single compounding use [periods](fn.periods.html)
-/// or [periods_solution](fn.periods_solution.html).
-///
-/// # Arguments
-/// * `rate` - The rate at which the investment grows or shrinks per period, expressed as a
-/// floating point number. For instance 0.05 would mean 5% growth. Often appears as `r` or `i` in
-/// formulas.
-/// * `present_value` - The starting value of the investment. May appear as `pv` in formulas, or `C`
-/// for cash flow or `P` for principal.
-/// * `future_value` - The final value of the investment.
-///
-/// # Panics
-/// The call will fail if either of the rate, the present value, or the future value is
-/// infinite or not a number (NaN).
-///
-/// The call will also fail in any of the follwing cases because there is no number of periods that
-/// would make the calculation work:
-/// * The periodic rate is less than -1.0.
-/// * The present value is zero and the future value is nonzero.
-/// * The present value is nonzero and the future value is zero, unless the rate is exactly -1.0%.
-/// * The present value is negative and the future value is positive or vice versa.
-/// * The present value and future value are both negative, the future value is less than the
-/// present value, and the periodic rate is zero or negative.
-/// * The present value and future value are both negative, the future value is greater than the
-/// present value, and the periodic rate is zero or positive.
-/// * The present value and future value are both positive, the future value is greater than the
-/// present value, and the periodic rate is zero or negative.
-/// * The present value and future value are both positive, the future value is less than the
-/// present value, and the periodic rate is zero or positive.
-///
-/// # Examples
-/// ```
-/// // The interest rate is 8.5% per year.
-/// let rate = 0.085;
-///
-/// // The starting value is $10,000.00.
-/// let present_value = 10_000;
-///
-/// // The ending value is $30,000.00.
-/// let future_value = 30_000;
-///
-/// // Calculate the number of years required if interest is compounded continuously returning a
-/// // struct that cat be used for further operations.
-/// let solution = finance::periods_continuous_solution(rate, present_value, future_value);
-/// dbg!(&solution);
-/// finance::assert_rounded_2(12.92, solution.fractional_periods());
-///
-/// // Print the period-by-period details in a formatted table.
-/// solution.print_series_table();
-///
-/// // Create a list of period-by-period details.
-/// let series = solution.series();
-/// ```
-pub fn periods_continuous_solution<P, F>(rate: f64, present_value: P, future_value: F) -> PeriodsSolution
-    where
-        P: Into<f64> + Copy,
-        F: Into<f64> + Copy
-{
-    periods_solution_internal(rate, present_value.into(), future_value.into(), true)
+    periods_solution_internal(rate, present_value.into(), future_value.into(), continuous_compounding)
 }
 
 pub(crate) fn periods_internal(rate: f64, present_value: f64, future_value: f64, continuous_compounding: bool) -> f64 {
@@ -554,7 +298,7 @@ pub(crate) fn periods_internal(rate: f64, present_value: f64, future_value: f64,
     fractional_periods
 }
 
-pub(crate) fn periods_solution_internal(rate: f64, present_value: f64, future_value: f64, continuous_compounding: bool) -> PeriodsSolution {
+pub(crate) fn periods_solution_internal(rate: f64, present_value: f64, future_value: f64, continuous_compounding: bool) -> TvmSolution {
     let fractional_periods = periods_internal(rate, present_value, future_value, continuous_compounding);
     assert!(fractional_periods >= 0.0);
     let (formula, symbolic_formula) = if continuous_compounding {
@@ -567,7 +311,7 @@ pub(crate) fn periods_solution_internal(rate: f64, present_value: f64, future_va
         let symbolic_formula = "n = log(fv / pv, base (1 + r))";
         (formula, symbolic_formula)
     };
-    PeriodsSolution::new(TvmSolution::new_fractional_periods(TvmVariable::Periods,continuous_compounding, rate, fractional_periods, present_value, future_value, &formula, symbolic_formula))
+    TvmSolution::new_fractional_periods(TvmVariable::Periods,continuous_compounding, rate, fractional_periods, present_value, future_value, &formula, symbolic_formula)
 }
 
 fn check_periods_parameters(rate: f64, present_value: f64, future_value: f64) {
@@ -593,109 +337,109 @@ mod tests {
     #[test]
     fn test_periods_nominal() {
         // The test values come from the Excel nper function.
-        assert_rounded_2(4.37, periods(0.08, 5_000, 7_000));
-        assert_rounded_2(4.04, periods(-0.08, 7000, 5_000));
-        assert_rounded_2(346.92, periods(0.002, 10_000, 20_000));
-        assert_rounded_2(346.23, periods(-0.002, 20000, 10_000));
+        assert_rounded_2(4.37, periods(0.08, 5_000, 7_000, false));
+        assert_rounded_2(4.04, periods(-0.08, 7000, 5_000, false));
+        assert_rounded_2(346.92, periods(0.002, 10_000, 20_000, false));
+        assert_rounded_2(346.23, periods(-0.002, 20000, 10_000, false));
     }
 
     #[test]
     fn test_periods_edge() {
         // Present and future values are the same so no periods are needed.
-        assert_rounded_2(0.0, periods(0.04, 10_000.0, 10_000.0));
+        assert_rounded_2(0.0, periods(0.04, 10_000.0, 10_000.0, false));
 
         // The present value is negative and the future value is zero, which works only if the rate
         // is exactly -1.0%.
-        assert_rounded_6(1.0, periods(-1.0, -10_000.0, 0.0));
+        assert_rounded_6(1.0, periods(-1.0, -10_000.0, 0.0, false));
 
         // The present value is positive and the future value is zero, which works only if the rate
         // is exactly -1.0%.
-        assert_rounded_6(1.0, periods(-1.0, 10_000.0, 0.0));
+        assert_rounded_6(1.0, periods(-1.0, 10_000.0, 0.0, false));
     }
 
     #[should_panic]
     #[test]
     fn test_periods_err_rate_nan() {
-        periods(std::f64::NAN, 1_000.0, 2_000.0);
+        periods(std::f64::NAN, 1_000.0, 2_000.0, false);
     }
 
     #[should_panic]
     #[test]
     fn test_periods_err_rate_inf() {
-        periods(std::f64::NEG_INFINITY, 1_000.0, 2_000.0);
+        periods(std::f64::NEG_INFINITY, 1_000.0, 2_000.0, false);
     }
 
     #[should_panic]
     #[test]
     fn test_periods_err_present_value_nan() {
-        periods(0.04, std::f64::NAN, 1_000.0);
+        periods(0.04, std::f64::NAN, 1_000.0, false);
     }
 
     #[should_panic]
     #[test]
     fn test_periods_err_present_value_inf() {
-        periods(0.04, std::f64::INFINITY, 1_000.0);
+        periods(0.04, std::f64::INFINITY, 1_000.0, false);
     }
 
     #[should_panic]
     #[test]
     fn test_periods_err_future_value_nan() {
-        periods(0.04, 1_000.0, std::f64::NAN);
+        periods(0.04, 1_000.0, std::f64::NAN, false);
     }
 
     #[should_panic]
     #[test]
     fn test_periods_err_future_value_inf() {
-        periods(0.04, 1_000.0, std::f64::NEG_INFINITY);
+        periods(0.04, 1_000.0, std::f64::NEG_INFINITY, false);
     }
 
     #[should_panic]
     #[test]
     fn test_periods_err_future_greater_bad_rate_1() {
         // The future value is greater than the present value and the periodic rate is zero.
-        periods(0.0, 1_000.0, 2_000.0);
+        periods(0.0, 1_000.0, 2_000.0, false);
     }
 
     #[should_panic]
     #[test]
     fn test_periods_err_future_greater_bad_rate_2() {
         // The future value is greater than the present value and the periodic rate is negative.
-        periods(-0.04, 1_000.0, 2_000.0);
+        periods(-0.04, 1_000.0, 2_000.0, false);
     }
 
     #[should_panic]
     #[test]
     fn test_periods_err_future_less_bad_rate_1() {
         // The future value is less than the present value and the periodic rate is zero.
-        periods(0.0, 2_000.0, 1_000.0);
+        periods(0.0, 2_000.0, 1_000.0, false);
     }
 
     #[should_panic]
     #[test]
     fn test_periods_err_future_less_bad_rate_2() {
         // The future value is less than the present value and the periodic rate is positive.
-        periods(0.04, 2_000.0, 1_000.0);
+        periods(0.04, 2_000.0, 1_000.0, false);
     }
 
     #[should_panic]
     #[test]
     fn test_periods_err_present_zero_future_negative() {
         // The present value is zero and the future value is negative.
-        periods(0.04, 0.0, -1_000.0);
+        periods(0.04, 0.0, -1_000.0, false);
     }
 
     #[should_panic]
     #[test]
     fn test_periods_err_present_zero_future_positive() {
         // The present value is zero and the future value is positive.
-        periods(0.04, 0.0, 1_000.0);
+        periods(0.04, 0.0, 1_000.0, false);
     }
 
     #[should_panic]
     #[test]
     fn test_periods_err_present_negative_future_zero() {
         // The present value is negative and the future value is zero.
-        periods(0.04, -1_000.0, 0.0);
+        periods(0.04, -1_000.0, 0.0, false);
     }
 
     #[should_panic]
@@ -703,24 +447,21 @@ mod tests {
     fn test_periods_err_present_positive_future_zero() {
         // The present value is positive and the future value is zero. This will fail unless the
         // rate is exactly -1.0%.
-        periods(-0.04, 1_000.0, 0.0);
+        periods(-0.04, 1_000.0, 0.0, false);
     }
 
     #[should_panic]
     #[test]
     fn test_periods_err_present_negative_future_positive() {
         // The present value is negative and the future value is positive.
-        periods(0.04, -1_000.0, 1_000.0);
+        periods(0.04, -1_000.0, 1_000.0, false);
     }
 
     #[should_panic]
     #[test]
     fn test_periods_err_present_positive_future_negative() {
         // The present value is positive and the future value is negative.
-        periods(0.04, 1_000.0, -1_000.0);
+        periods(0.04, 1_000.0, -1_000.0, false);
     }
 
 }
-
-
-
