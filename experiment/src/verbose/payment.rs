@@ -10,7 +10,7 @@ pub fn main() {
     // try_test_against_excel_ipmt_month_1();
     // try_test_against_excel_ipmt_month_2();
     // try_ab_comparison_table_formatting();
-    try_ab_comparison_field_diffs();
+    // try_ab_comparison_field_diffs();
     // try_payment_doc_example_1();
     // try_payment_due_doc_example_1();
     // try_payment_solution_doc_example_1();
@@ -21,6 +21,7 @@ pub fn main() {
     // dbg!(finance::payment(0.23, 3000, -123_456.7, -12_345.67));
     // try_specify_type_1();
     // show_payment_series_rounding_issue();
+    ab_comparison_for_docs_due_at_beginning_or_end();
 }
 
 fn try_payment_debug() {
@@ -551,5 +552,122 @@ fn show_payment_series_rounding_issue() {
     //finance::print_series_table_locale(&series_filtered[..], &locale, precision);
     */
 }
+
+fn ab_comparison_for_docs_due_at_beginning_or_end() {
+    let (rate, periods, present_value, due_at_beginning) = (0.01, 120, 100_000, false);
+
+    let pmt_positive_present_value = finance::payment(rate, periods, present_value, 0.0, due_at_beginning);
+    finance::assert_rounded_2!(-1_434.71, pmt_positive_present_value);
+
+    let pmt_negative_present_value = finance::payment(rate, periods, -present_value, 0.0, due_at_beginning);
+    finance::assert_rounded_2!(1_434.71, pmt_negative_present_value);
+
+    dbg!(pmt_positive_present_value, pmt_negative_present_value);
+
+    /*
+    let solution_b = finance::payment_solution(rate, periods, present_value, 0.0, true);
+    dbg!(&solution_a, &solution_b);
+    solution_a.print_ab_comparison_locale(&solution_b, false, true, &finance::num_format::Locale::en, 2);
+    */
+}
+
+/*
+/// Related functions:
+/// * To calculate the payment needed at the end of each period and return a struct that shows the
+/// interest, the formula, and optionally the period-by-period values use [`payment_solution`].
+///
+/// In the typical case where there's a present value and the future value is zero, and the payment
+/// is due at the end of the period, the formula is:
+/// > payment = ((present_value * (1 + rate)<sup>periods</sup>) * -rate) / ((1 + rate)<sup>periods</sup> - 1)
+payment = {{present\_value \times \left(1+rate\right)^{periods} \times -rate} \over \left(1+rate\right)^{periods} - 1}
+//i.upmath.me/svg/payment%20%3D%20%7B%7Bpresent%5C_value%20%5Ctimes%20%5Cleft(1%2Brate%5Cright)%5E%7Bperiods%7D%20%5Ctimes%20-rate%7D%20%5Cover%20%5Cleft(1%2Brate%5Cright)%5E%7Bperiods%7D%20-%201%7D
+/// or with the more commonly used variables:
+/// > pmt = ((pv * (1 + r)<sup>n</sup>) * -r) / ((1 + r)<sup>n</sup> - 1)
+pmt = {{pv \times \left(1+r\right)^n \times -r} \over \left(1+r\right)^n - 1}
+//i.upmath.me/svg/pmt%20%3D%20%7B%7Bpv%20%5Ctimes%20%5Cleft(1%2Br%5Cright)%5En%20%5Ctimes%20-r%7D%20%5Cover%20%5Cleft(1%2Br%5Cright)%5En%20-%201%7D
+///
+/// Often the payment is shown as `A` and the present value is `P` for principal.
+///
+Due at beginning:
+payment = {{present\_value \times \left(1+rate\right)^{periods} \times -rate} \over \left[\left(1+rate\right)^{periods} - 1\right] \textcolor{blue}{\times \left(1+rate)}
+//i.upmath.me/svg/payment%20%3D%20%7B%7Bpresent%5C_value%20%5Ctimes%20%5Cleft(1%2Brate%5Cright)%5E%7Bperiods%7D%20%5Ctimes%20-rate%7D%20%5Cover%20%5Cleft%5B%5Cleft(1%2Brate%5Cright)%5E%7Bperiods%7D%20-%201%5Cright%5D%20%5Ctextcolor%7Bblue%7D%7B%5Ctimes%20%5Cleft(1%2Brate)%7D
+pmt = {{pv \times \left(1+r\right)^n \times -r} \over \left[\left(1+r\right)^n - 1\right] \textcolor{blue}{\times \left(1+r)}
+//i.upmath.me/svg/pmt%20%3D%20%7B%7Bpv%20%5Ctimes%20%5Cleft(1%2Br%5Cright)%5En%20%5Ctimes%20-r%7D%20%5Cover%20%5Cleft%5B%5Cleft(1%2Br%5Cright)%5En%20-%201%5Cright%5D%20%5Ctextcolor%7Bblue%7D%7B%5Ctimes%20%5Cleft(1%2Br)%7D
+
+/// If there's a future value and the present value is zero, the formula is:
+/// > payment = (future_value * -rate) / ((1 + rate)<sup>periods</sup> - 1)
+///
+/// or:
+/// > pmt = (fv * -r) / ((1 + r)<sup>n</sup> - 1)
+///
+/// If both present value and future value are nonzero the formula is:
+/// > payment = (((present_value * (1 + rate)<sup>periods</sup>) + future_value) * -rate) / ((1 + rate)<sup>periods</sup> - 1)
+///
+/// or:
+/// > pmt = (((pv * (1 + r)<sup>n</sup>) + fv) * -r) / ((1 + r)<sup>n</sup> - 1)
+///
+/// If the payment is due at the beginning of the period, the only difference is that the payment
+/// is divided by (1 + rate). In our formulas this means multiplying the denominator by (1 + rate)
+/// so in the typical case where there's a present value and the future value is zero, the formula
+/// is:
+/// > payment = ((present_value * (1 + rate)<sup>periods</sup>) * -rate) / (((1 + rate)<sup>periods</sup> - 1) * (1 + rate))
+///
+/// or with the more commonly used variables:
+/// > pmt = ((pv * (1 + r)<sup>n</sup>) * -r) / (((1 + r)<sup>n</sup> - 1) * (1 + r))",
+///
+/// This is nearly the same formula as the one for payments due at the end of the period. The
+/// relationship between the two formulas is that:
+/// > payment_due(x) = payment(x) / (1 + rate)
+payment\_due\_at\_beginning(x) = {payment\_due\_at\_end(x) \over 1 + rate}
+//i.upmath.me/svg/payment%5C_due%5C_at%5C_beginning(x)%20%3D%20%7Bpayment%5C_due%5C_at%5C_end(x)%20%5Cover%201%20%2B%20rate%7D
+
+170,460.53 = {172,165.14 \over 1.01}
+//i.upmath.me/svg/170%2C460.53%20%3D%20%7B172%2C165.14%20%5Cover%201.01%7D
+
+/// Thus the payment is slightly smaller if it's due at the beginning of the month since the
+/// principal is paid down a bit faster.
+///
+/// If there's a future value and the present value is zero, the formula is:
+/// > payment = (future_value * -rate) / (((1 + rate)<sup>periods</sup> - 1) * (1 + rate))
+payment = {future\_value \times -rate \over {\left(1+rate\right)^{periods} - 1}
+//i.upmath.me/svg/payment%20%3D%20%7Bfuture%5C_value%20%5Ctimes%20-rate%20%5Cover%20%7B%5Cleft(1%2Brate%5Cright)%5E%7Bperiods%7D%20-%201%7D
+pmt = {fv \times -r \over \left(1+r\right)^n - 1\right}
+//i.upmath.me/svg/pmt%20%3D%20%7Bfv%20%5Ctimes%20-r%20%5Cover%20%5Cleft(1%2Br%5Cright)%5En%20-%201%5Cright%7D
+///
+/// or:
+/// > pmt = (fv * -r) / (((1 + r)<sup>n</sup> - 1) * (1 + r))
+///
+
+Due at beginning:
+payment = {future\_value \times -rate \over \left[\left(1+rate\right)^{periods} - 1\right] \times (1+rate)}
+//i.upmath.me/svg/payment%20%3D%20%7Bfuture%5C_value%20%5Ctimes%20-rate%20%5Cover%20%5Cleft%5B%5Cleft(1%2Brate%5Cright)%5E%7Bperiods%7D%20-%201%5Cright%5D%20%5Ctimes%20(1%2Brate)%7D
+pmt = {fv \times -r \over \left[\left(1+r\right)^n - 1\right] \textcolor{blue}{\times (1+r)}}
+//i.upmath.me/svg/pmt%20%3D%20%7Bfv%20%5Ctimes%20-r%20%5Cover%20%5Cleft%5B%5Cleft(1%2Br%5Cright)%5En%20-%201%5Cright%5D%20%5Ctextcolor%7Bblue%7D%7B%5Ctimes%20(1%2Br)%7D%7D
+
+
+
+
+/// If both present value and future value are nonzero and the payment is due at the end of the
+/// period the formula is:
+/// > payment = (((present_value * (1 + rate)<sup>periods</sup>) + future_value) * -rate) / (((1 + rate)<sup>periods</sup> - 1) * (1 + rate))
+payment = {\left\{\left[present\_value \times \left(1+rate\right)^{periods}\right]+future\_value\right\} \times -rate \over \left(1+rate\right)^{periods} - 1}
+//i.upmath.me/svg/payment%20%3D%20%7B%5Cleft%5C%7B%5Cleft%5Bpresent%5C_value%20%5Ctimes%20%5Cleft(1%2Brate%5Cright)%5E%7Bperiods%7D%5Cright%5D%2Bfuture%5C_value%5Cright%5C%7D%20%5Ctimes%20-rate%20%5Cover%20%5Cleft(1%2Brate%5Cright)%5E%7Bperiods%7D%20-%201%7D///
+/// or:
+/// > pmt = (((pv * (1 + r)<sup>n</sup>) + fv) * -r) / (((1 + r)<sup>n</sup> - 1) * (1 + r))
+pmt = {\left\{\left[pv \times \left(1+r\right)^n\right]+fv\right\} \times -r \over \left(1+r\right)^n - 1}
+//i.upmath.me/svg/pmt%20%3D%20%7B%5Cleft%5C%7B%5Cleft%5Bpv%20%5Ctimes%20%5Cleft(1%2Br%5Cright)%5En%5Cright%5D%2Bfv%5Cright%5C%7D%20%5Ctimes%20-r%20%5Cover%20%5Cleft(1%2Br%5Cright)%5En%20-%201%7D///
+Due at beginning:
+payment = {\left\{\left[present\_value \times \left(1+rate\right)^{periods}\right]+future\_value\right\} \times -rate \over \left[\left(1+rate\right)^{periods} - 1\right] \times (1+rate)}
+//i.upmath.me/svg/payment%20%3D%20%7B%5Cleft%5C%7B%5Cleft%5Bpresent%5C_value%20%5Ctimes%20%5Cleft(1%2Brate%5Cright)%5E%7Bperiods%7D%5Cright%5D%2Bfuture%5C_value%5Cright%5C%7D%20%5Ctimes%20-rate%20%5Cover%20%5Cleft%5B%5Cleft(1%2Brate%5Cright)%5E%7Bperiods%7D%20-%201%5Cright%5D%20%5Ctimes%20(1%2Brate)%7D
+pmt = {\left\{\left[pv \times \left(1+r\right)^n\right]+fv\right\} \times -r \over \left[\left(1+r\right)^n - 1\right] \textcolor{blue}{\times (1+r)}}
+//i.upmath.me/svg/pmt%20%3D%20%7B%5Cleft%5C%7B%5Cleft%5Bpv%20%5Ctimes%20%5Cleft(1%2Br%5Cright)%5En%5Cright%5D%2Bfv%5Cright%5C%7D%20%5Ctimes%20-r%20%5Cover%20%5Cleft%5B%5Cleft(1%2Br%5Cright)%5En%20-%201%5Cright%5D%20%5Ctextcolor%7Bblue%7D%7B%5Ctimes%20(1%2Br)%7D%7D
+
+
+
+
+
+
+*/
+
 
 

@@ -19,11 +19,11 @@
 //!
 //! With simple compound interest, the present value is calculated with:
 //!
-//! <img src="http://i.upmath.me/svg/present%5C_value%20%3D%20%7Bfuture%5C_value%20%5Cover%20(1%2Brate)%5E%7Bperiods%7D%7D" />
+//! > <img src="http://i.upmath.me/svg/present%5C_value%20%3D%20%7Bfuture%5C_value%20%5Cover%20(1%2Brate)%5E%7Bperiods%7D%7D" />
 //!
 //! Or using some more usual variable names:
 //!
-//! <img src="http://i.upmath.me/svg/pv%20%3D%20%7Bfv%20%5Cover%20(1%2Br)%5En%7D" />
+//! > <img src="http://i.upmath.me/svg/pv%20%3D%20%7Bfv%20%5Cover%20(1%2Br)%5En%7D" />
 //!
 //! `n` is often used for the number of periods, though it may be `t` for time if each period is
 //! assumed to be one year as in continuous compounding. `r` is the periodic rate, though this may
@@ -45,11 +45,11 @@
 //!
 //! With continuous compounding the formula is:
 //!
-//! <img src="http://i.upmath.me/svg/present%5C_value%20%3D%20%7Bfuture%5C_value%20%5Cover%20e%5E%7Brate%20%5Ctimes%20periods%7D%7D" />
+//! > <img src="http://i.upmath.me/svg/present%5C_value%20%3D%20%7Bfuture%5C_value%20%5Cover%20e%5E%7Brate%20%5Ctimes%20periods%7D%7D" />
 //!
 //! or:
 //!
-//! <img src="http:i.upmath.me/svg/pv%20%3D%20%7Bfv%20%5Cover%20e%5E%7Br%20%5Ctimes%20n%7D%7D" />
+//! > <img src="http:i.upmath.me/svg/pv%20%3D%20%7Bfv%20%5Cover%20e%5E%7Br%20%5Ctimes%20n%7D%7D" />
 //!
 //! With continuous compounding the period is assumed to be years and `t` (time) is often used as
 //! the variable name. Within this crate we stick with `n` for the number of periods so that it's

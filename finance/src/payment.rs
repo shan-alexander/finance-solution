@@ -14,16 +14,11 @@ http://i.upmath.me/svg/fv%20%3D%20pv(1%2Br)%5En%5C%5C%20%5C%5C%0Afv%20%3D%20pv(e
 //! 
 //! For most common usages, we recommend the [`payment_solution`](./fn.payment_solution.html) function, which provides a better debugging experience and additional functionality.
 //!
-// ![Payment formulas](url:http://i.upmath.me/svg/fv%20%3D%20pv(1%2Br)%5En%5C%5C%20%5C%5C%0Afv%20%3D%20pv(e%5E%7Brt%7D)%5C%5C%20%5C%5C%20%0Apmt%20%3D%20%7B(((pv(1%2Br)%5En)%2Bfv)-r%20%5Cover%20(1%2Br)%5En%20-%201%7D)
-// <div>
-//! <img src="http://i.upmath.me/svg/fv%20%3D%20pv(1%2Br)%5En%5C%5C%20%5C%5C%0Afv%20%3D%20pv(e%5E%7Brt%7D)%5C%5C%20%5C%5C%20%0Apmt%20%3D%20%7B(((pv(1%2Br)%5En)%2Bfv)-r%20%5Cover%20(1%2Br)%5En%20-%201%7D" />
-// <!div>
-//!
 //! ## Example
 //! ```
-//! let (rate, periods, present_value, future_value, due) = (0.034, 10, 1000, 0, false);
-//! let pmt = finance::payment_solution(rate, periods, present_value, future_value, due);
-//! dbg!(&pmt);
+//! let (rate, periods, present_value, future_value, due_at_beginning) = (0.034, 10, 1000, 0, false);
+//! let solution = finance::payment_solution(rate, periods, present_value, future_value, due_at_beginning);
+//! dbg!(&solution);
 //! ```
 //! Outputs to terminal:
 //! ```text
@@ -43,9 +38,9 @@ http://i.upmath.me/svg/fv%20%3D%20pv(1%2Br)%5En%5C%5C%20%5C%5C%0Afv%20%3D%20pv(e
 //! ```
 //! ```
 //! # use finance::*;
-//! # let (rate, periods, present_value, future_value, due) = (0.034, 10, 1000, 0, false);
-//! # let pmt = payment_solution(rate, periods, present_value, future_value, due);
-//! dbg!(pmt.print_table());
+//! # let (rate, periods, present_value, future_value, due_at_beginning) = (0.034, 10, 1000, 0, false);
+//! # let solution = payment_solution(rate, periods, present_value, future_value, due_at_beginning);
+//! dbg!(solution.print_table());
 //! ```
 //! Outputs to terminal:
 //! ```text
@@ -62,6 +57,122 @@ http://i.upmath.me/svg/fv%20%3D%20pv(1%2Br)%5En%5C%5C%20%5C%5C%0Afv%20%3D%20pv(e
 //!     9       -1_076.7248           -119.6361  -111.8977          -884.2978            -115.7022   -7.7384         -192.4270             -3.9339
 //!     10      -1_196.3609             -0.0000  -115.7022          -999.0000              -0.0000   -3.9339         -196.3609              0.0000
 //! ```
+//! # Payment Due at the Beginning vs. the End of the Period
+//!
+//! In a typical loan the payment is due at the end of each period. All other factors being equal,
+//! if the payment is instead due at the beginning of the period the payment amount will be slightly
+//! smaller. This is justified because it means the outstanding principal at any point during the
+//! loan will be slightly smaller since it was paid down one period earlier.
+//!
+//! To make this concrete, suppose we have an amortized loan for $100,000 at 12% annual interest for
+//! ten years. We can run an A/B test where scenario A has the payments due at the end of the period
+//! and scenario B has them due at the beginning. We'll look at the details of the first five
+//! periods:
+//! ```text
+//! period  payment_a  payment_b  principal_a  principal_b  princ_remaining_a  princ_remaining_b
+//! ------  ---------  ---------  -----------  -----------  -----------------  -----------------
+//!      1   1,434.71   1,420.50       434.71     1,420.50          99,565.29          98,579.50
+//!      2   1,434.71   1,420.50       439.06       434.71          99,126.23          98,144.79
+//!      3   1,434.71   1,420.50       443.45       439.06          98,682.79          97,705.73
+//!      4   1,434.71   1,420.50       447.88       443.45          98,234.91          97,262.28
+//!      5   1,434.71   1,420.50       452.36       447.88          97,782.54          96,814.40
+//! ```
+//!
+//! For scenario A a payment of $1,434.71 is due at the end of the month and for scenario B a
+//! lower payment of $1,420.50 is due at the beginning of the month. Yet in both scenarios the loan
+//! is fully paid off by the end of the 120<sup>th</sup> period.
+//!
+//! The reason is that the first monthly payment in the second case went entirely to paying down the
+//! principal, and from that point on the principal (the last two columns in this table) was
+//! slightly smaller at every point in time. Thus the amount of each payment that went toward the
+//! interest was smaller and the amount left to go to principal was larger.
+//!
+//! The sum of the payments in the first case (due at the end) is $172,165.14 and the sum of the
+//! payments in the second case is $170,460.53, a difference of $1,704.61. The relationship between
+//! these sums (and the monthly payment amounts) is based on the interest rate. Specifically:
+//!
+//! > <img src="http://i.upmath.me/svg/payment%5C_due%5C_at%5C_beginning(x)%20%3D%20%7Bpayment%5C_due%5C_at%5C_end(x)%20%5Cover%201%20%2B%20rate%7D" />
+//!
+//! and indeed it turns out that:
+//!
+//! > <img src="http://i.upmath.me/svg/170%2C460.53%20%3D%20%7B172%2C165.14%20%5Cover%201.01%7D" />
+//!
+//! which is a relief. By the way, A/B comparisons like the table above are built into the crate.
+//! See [TvmCashflowSolution::print_ab_comparison](././tvm_cashflow/struct.TvmCashflowSolution.html#method.print_ab_comparison).
+//!
+//! # Positive and Negative Amounts
+//!
+//! The example above was an amortized loan for $100,000 at 12% annual interest for ten years. Thus
+//! the present value (the original principal of the loan) was $10,000 and the future value (the
+//! amount still owed at the end) was zero. Also the rate was positive. In cases like this if the
+//! present value is entered as a positive number the payment will be negative, and vice versa:
+//! ```
+//! let (rate, periods, present_value, due_at_beginning) = (0.01, 120, 100_000, false);
+//!
+//! let pmt_positive_present_value = finance::payment(rate, periods, present_value, 0.0, due_at_beginning);
+//! finance::assert_rounded_2!(-1_434.71, pmt_positive_present_value);
+//!
+//! let pmt_negative_present_value = finance::payment(rate, periods, -present_value, 0.0, due_at_beginning);
+//! finance::assert_rounded_2!(1_434.71, pmt_negative_present_value);
+//! ```
+//! Either way is fine. It depends on whether we're thinking of the payment as a stream of money
+//! being paid out or coming in. In the period-by-period detail the principal and interest (and
+//! remaining principal and interest and so on) for each period will have the same sign as the
+//! payment.
+//!
+//! # Formulas
+//!
+//! ## Present Value but no Future Value
+//!
+//! In the typical case of an amortized loan the present value will be nonzero and the future value
+//! will be zero. This represents the loan being paid off by the end of the last period.
+//!
+//! If the payment is due at the end of the period the calculation is:
+//!
+//! > <img src="http://i.upmath.me/svg/payment%20%3D%20%7B%7Bpresent%5C_value%20%5Ctimes%20%5Cleft(1%2Brate%5Cright)%5E%7Bperiods%7D%20%5Ctimes%20-rate%7D%20%5Cover%20%5Cleft(1%2Brate%5Cright)%5E%7Bperiods%7D%20-%201%7D" />
+//!
+//! or with some of the more commonly used variables:
+//!
+//! > <img src="http://i.upmath.me/svg/pmt%20%3D%20%7B%7Bpv%20%5Ctimes%20%5Cleft(1%2Br%5Cright)%5En%20%5Ctimes%20-r%7D%20%5Cover%20%5Cleft(1%2Br%5Cright)%5En%20-%201%7D" />
+//!
+//! Often the payment is shown as `A` and the present value is `P` for principal. In this crate we
+//! use the same symbols for present value, rate, etc. across all of the functions.
+//!
+//! If the payment is due at the beginning of the period the only difference is that we have to
+//! divide the above payment by `(1 + rate)`. So the formula is:
+//!
+//! > <img src="http://i.upmath.me/svg/pmt%20%3D%20%7B%7Bpv%20%5Ctimes%20%5Cleft(1%2Br%5Cright)%5En%20%5Ctimes%20-r%7D%20%5Cover%20%5Cleft%5B%5Cleft(1%2Br%5Cright)%5En%20-%201%5Cright%5D%20%5Ctextcolor%7Bblue%7D%7B%5Ctimes%20%5Cleft(1%2Br)%7D" />
+//!
+//! ## Future Value but no Present Value
+//!
+//! If there's a future value and the present value is zero, and the payment is due at the end of
+//! the period, the formula is:
+//!
+//! > <img src="http://i.upmath.me/svg/payment%20%3D%20%7Bfuture%5C_value%20%5Ctimes%20-rate%20%5Cover%20%7B%5Cleft(1%2Brate%5Cright)%5E%7Bperiods%7D%20-%201%7D" />
+//!
+//! or:
+//!
+//! > <img src="http://i.upmath.me/svg/pmt%20%3D%20%7Bfv%20%5Ctimes%20-r%20%5Cover%20%5Cleft(1%2Br%5Cright)%5En%20-%201%5Cright%7D" />
+//!
+//! If the payment is due at the beginning of the period it's:
+//!
+//! > <img src="http://i.upmath.me/svg/pmt%20%3D%20%7Bfv%20%5Ctimes%20-r%20%5Cover%20%5Cleft%5B%5Cleft(1%2Br%5Cright)%5En%20-%201%5Cright%5D%20%5Ctextcolor%7Bblue%7D%7B%5Ctimes%20(1%2Br)%7D%7D" />
+//!
+//! ## Both Present Value and Future Value
+//!
+//! If both present value and future value are nonzero the formula is:
+//!
+//! > <img src="http://i.upmath.me/svg/payment%20%3D%20%7B%5Cleft%5C%7B%5Cleft%5Bpresent%5C_value%20%5Ctimes%20%5Cleft(1%2Brate%5Cright)%5E%7Bperiods%7D%5Cright%5D%2Bfuture%5C_value%5Cright%5C%7D%20%5Ctimes%20-rate%20%5Cover%20%5Cleft(1%2Brate%5Cright)%5E%7Bperiods%7D%20-%201%7D" />
+//!
+//! or:
+//!
+//! > <img src="http://i.upmath.me/svg/pmt%20%3D%20%7B%5Cleft%5C%7B%5Cleft%5Bpv%20%5Ctimes%20%5Cleft(1%2Br%5Cright)%5En%5Cright%5D%2Bfv%5Cright%5C%7D%20%5Ctimes%20-r%20%5Cover%20%5Cleft(1%2Br%5Cright)%5En%20-%201%7D" />
+//!
+//! If the payment is due at the beginning of the period it's:
+//!
+//! > <img src="http://i.upmath.me/svg/pmt%20%3D%20%7B%5Cleft%5C%7B%5Cleft%5Bpv%20%5Ctimes%20%5Cleft(1%2Br%5Cright)%5En%5Cright%5D%2Bfv%5Cright%5C%7D%20%5Ctimes%20-r%20%5Cover%20%5Cleft%5B%5Cleft(1%2Br%5Cright)%5En%20-%201%5Cright%5D%20%5Ctextcolor%7Bblue%7D%7B%5Ctimes%20(1%2Br)%7D%7D" />
+//!
+
 use log::{warn};
 
 // Import needed for the function references in the Rustdoc comments.
@@ -648,11 +759,11 @@ pub fn payment<P, F>(rate: f64, periods: u32, present_value: P, future_value: F,
 /// let formula = solution.formula();
 /// println!();
 /// dbg!(&formula);
-/// assert_eq!(formula, "327.6538 = ((-12500.5000 * 1.009792^48) * -0.009792) / (1.009792^48 - 1)");
+/// assert_eq!(formula, "327.6538 = (-12500.5000 * 1.009792^48 * -0.009792) / (1.009792^48 - 1)");
 /// let symbolic_formula = solution.symbolic_formula();
 /// println!();
 /// dbg!(&symbolic_formula);
-/// assert_eq!(symbolic_formula, "pmt = ((pv * (1 + r)^n) * -r) / ((1 + r)^n - 1)");
+/// assert_eq!(symbolic_formula, "pmt = (pv * (1 + r)^n * -r) / ((1 + r)^n - 1)");
 ///
 /// // Calculate the period-by-period values including the amount of the payment that goes toward
 /// // interest and principle as well as the running tally of the remaining amounts.
@@ -734,7 +845,7 @@ fn payment_formula(rate: f64, periods: u32, present_value: f64, future_value: f6
     } else {
         let (formula_num, symbolic_formula_num) = if future_value == 0.0 {
             // We can slightly simplify the formula by not including the future value term.
-            (format!("(({:.4} * {:.6}^{}) * {:.6})", present_value, rate_multiplier, periods, -rate), "((pv * (1 + r)^n) * -r)".to_string())
+            (format!("({:.4} * {:.6}^{} * {:.6})", present_value, rate_multiplier, periods, -rate), "(pv * (1 + r)^n * -r)".to_string())
         } else {
             if present_value == 0.0 {
                 // We can simplify the formula by not including the present value term.
