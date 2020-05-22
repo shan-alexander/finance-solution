@@ -13,6 +13,53 @@
 // !
 // ! If you need to calculate the number of periods given a fixed rate and a present and future value
 // ! use [`periods`] or related functions.
+//! # Formulas
+//!
+//! ## Simple Compounding
+//!
+//! With simple compound interest, the present value is calculated with:
+//!
+//! <img src="http://i.upmath.me/svg/present%5C_value%20%3D%20%7Bfuture%5C_value%20%5Cover%20(1%2Brate)%5E%7Bperiods%7D%7D" />
+//!
+//! Or using some more usual variable names:
+//!
+//! <img src="http://i.upmath.me/svg/pv%20%3D%20%7Bfv%20%5Cover%20(1%2Br)%5En%7D" />
+//!
+//! `n` is often used for the number of periods, though it may be `t` for time if each period is
+//! assumed to be one year as in continuous compounding. `r` is the periodic rate, though this may
+//! appear as `i` for interest.
+//!
+//! Throughout this crate we use `pv` for present value and `fv` for future value. You may see these
+//! values called `P` for principal in some references.
+//!
+//! Within the [TvmSolution](././tvm_simple/struct.TvmSolution.html) struct we record the formula used for the particular calculation
+//! using both concrete values and symbols. For example if we calculated the present value of an
+//! investment that grows by 1.5% per month for 48 months using simple compounding and reaches a
+//! future value of $50,000 the solution struct would contain these fields:
+//! ```text
+//! formula: "24468.0848 = 50000.0000 / (1.015000 ^ 48)",
+//! symbolic_formula: "pv = fv / (1 + r)^n",
+//! ```
+//!
+//! ## Continuous Compounding
+//!
+//! With continuous compounding the formula is:
+//!
+//! <img src="http://i.upmath.me/svg/present%5C_value%20%3D%20%7Bfuture%5C_value%20%5Cover%20e%5E%7Brate%20%5Ctimes%20periods%7D%7D" />
+//!
+//! or:
+//!
+//! <img src="http:i.upmath.me/svg/pv%20%3D%20%7Bfv%20%5Cover%20e%5E%7Br%20%5Ctimes%20n%7D%7D" />
+//!
+//! With continuous compounding the period is assumed to be years and `t` (time) is often used as
+//! the variable name. Within this crate we stick with `n` for the number of periods so that it's
+//! easier to compare formulas when they're printed as simple text as part of the [TvmSolution](./struct.TvmSolution.html)
+//! struct. Taking the example above but switching to continuous compounding the struct would
+//! contain these fields:
+//! ```text
+//! formula: "24337.6128 = 50000.0000 / 2.718282^(0.015000 * 48)",
+//! symbolic_formula: "pv = fv / e^(rt)",
+//! ```
 
 use log::warn;
 

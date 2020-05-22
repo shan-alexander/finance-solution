@@ -25,10 +25,10 @@ fn main() {
     // verbose::payment_tvm::main();
     // verbose::periods::main();
     // verbose::perpetuity::main();
-    // verbose::present_value::main();
+    verbose::present_value::main();
     // verbose::present_value_annuity::main();
     // verbose::rate::main();
-    verbose::tvm_simple::main();
+    // verbose::tvm_simple::main();
     // verbose::tvm_solver::main();
     // verbose::weird_enum_solver::main();
 

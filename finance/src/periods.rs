@@ -48,7 +48,7 @@
 //! Throughout this crate we use `pv` for present value and `fv` for future value. You may see these
 //! values called `P` for principal in some references.
 //!
-//! Within the [PeriodsSolution](./struct.PeriodsSolution.html) struct we record the formula used for the particular calculation
+//! Within the [TvmSolution](./struct.TvmSolution.html) struct we record the formula used for the particular calculation
 //! using both concrete values and symbols. For the example above with $100 growing at 10%, where we
 //! want to end up with $250 the struct contains:
 //! ```text
@@ -68,7 +68,7 @@
 //!
 //! With continuous compounding the period is assumed to be years and `t` (time) is often used as
 //! the variable name. Within this crate we stick with `n` for the number of periods so that it's
-//! easier to compare formulas when they're printed as simple text as part of the [PeriodsSolution](./struct.PeriodsSolution.html)
+//! easier to compare formulas when they're printed as simple text as part of the [TvmSolution](./struct.TvmSolution.html)
 //! struct, as in:
 //! ```text
 //! formula: "9.16 = log(250.0000 / 100.0000, base 2.718282) / 0.100000",

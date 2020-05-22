@@ -12,6 +12,7 @@ pub fn main() {
     // try_doc_example_schedule_solution();
     // try_doc_example_schedule_series();
     // try_values_for_diagram_1();
+    create_formulas_for_docs();
     // dbg!(finance::present_value_solution(0.009, 1, 100_000));
 }
 
@@ -283,14 +284,39 @@ fn try_values_for_diagram_1() {
     dbg!(finance::present_value_solution(rate, 1, future_value).present_value_vary_compounding_periods(&[1, 2, 4, 6, 12, 24, 52, 365], true));
 
     dbg!(finance::present_value_continuous(rate, 1, future_value));
-
-
 }
 */
+
+fn create_formulas_for_docs() {
+    let (rate, periods, future_value) = (0.015, 48, 50_000);
+    dbg!(finance::present_value_solution(rate, periods, future_value, false));
+    dbg!(finance::present_value_solution(rate, periods, future_value, true));
+}
+
+
 
 /*
 
 https://i.upmath.me/g/
+
+
+Simple:
+present\_value = {future\_value \over (1+rate)^{periods}}
+//i.upmath.me/svg/present%5C_value%20%3D%20%7Bfuture%5C_value%20%5Cover%20(1%2Brate)%5E%7Bperiods%7D%7D
+pv = {fv \over (1+r)^n}
+//i.upmath.me/svg/pv%20%3D%20%7Bfv%20%5Cover%20(1%2Br)%5En%7D
+
+Continuous:
+present\_value = {future\_value \over e^{rate \times periods}}
+//i.upmath.me/svg/present%5C_value%20%3D%20%7Bfuture%5C_value%20%5Cover%20e%5E%7Brate%20%5Ctimes%20periods%7D%7D
+pv = {fv \over e^{r \times n}}
+//i.upmath.me/svg/pv%20%3D%20%7Bfv%20%5Cover%20e%5E%7Br%20%5Ctimes%20n%7D%7D
+
+
+
+
+
+
 
 Plot showing how the present value with increasing numbers of periods approaches the present value
 with continuous compounding.

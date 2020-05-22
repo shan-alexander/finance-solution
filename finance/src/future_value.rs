@@ -37,6 +37,54 @@
 //!     symbolic_formula: "fv = pv * (1 + r)^n",
 //! }
 //! ```
+//! # Formulas
+//!
+//! ## Simple Compounding
+//!
+//! With simple compound interest, the future value is calculated with:
+//!
+//! <img src="http://i.upmath.me/svg/future%5C_value%20%3D%20present%5C_value%20%5Ctimes%20(1%2Brate)%5E%7Bperiods%7D" />
+//!
+//! Or with some more commonly-used variable names:
+//!
+//! <img src="http://i.upmath.me/svg/fv%20%3D%20pv%20%5Ctimes%20(1%2Br)%5En" />
+//!
+//! `n` is often used for the number of periods, though it may be `t` for time if each period is
+//! assumed to be one year as in continuous compounding. `r` is the periodic rate, though this may
+//! appear as `i` for interest.
+//!
+//! Throughout this crate we use `pv` for present value and `fv` for future value. You may see these
+//! values called `P` for principal in some references.
+//!
+//! Within the [TvmSolution](./struct.TvmSolution.html) struct we record the formula used for the particular calculation
+//! using both concrete values and symbols. For example with $1,000 growing at 3.5% per period for
+//! 12 periods using simple compounding the struct contains these fields:
+//! ```text
+//! formula: "1511.0687 = 1000.0000 * (1.035000 ^ 12)",
+//! symbolic_formula: "fv = pv * (1 + r)^n",
+//! ```
+//!
+//! ## Continuous Compounding
+//!
+//! With continuous compounding the formula is:
+//!
+//! <img src="http://i.upmath.me/svg/future%5C_value%20%3D%20%7Bpresent%5C_value%20%5Ctimes%20e%5E%7Brate%20%5Ctimes%20periods%7D" />
+//!
+//! or:
+//!
+//! <img src="http://i.upmath.me/svg/fv%20%3D%20pv%20%5Ctimes%20e%5E%7Br%20%5Ctimes%20n%7D" />
+//!
+//! With continuous compounding the period is assumed to be years and `t` (time) is often used as
+//! the variable name. Within this crate we stick with `n` for the number of periods so that it's
+//! easier to compare formulas when they're printed as simple text as part of the [TvmSolution](./struct.TvmSolution.html)
+//! struct. For example with $1,000 growing at 3.5% per period for 12 periods using continuous
+//! compounding the struct contains these fields:
+//! ```text
+//! formula: "1521.9616 = 1000.0000 * 2.718282^(0.035000 * 12)",
+//! symbolic_formula: "fv = pv * e^(rt)",
+//! ```
+//! This is the same as the example in the previous section except that it uses continuous
+//! compounding.
 
 use log::warn;
 

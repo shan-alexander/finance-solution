@@ -15,6 +15,7 @@ pub fn main() {
     // try_find_rate();
     // try_series_print_table();
     // try_ab_comparison();
+    create_formulas_for_docs();
     // check_formulas();
     // dbg!(finance::future_value_solution(0.012, 8, 200_000));
     // try_continuous();
@@ -329,7 +330,15 @@ fn check_formulas() {
     let schedule = finance::future_value_schedule_solution(&[0.11, 0.09, 0.12], 100);
     dbg!(&schedule, &schedule.series());
 }
+*/
 
+fn create_formulas_for_docs() {
+    let (rate, periods, present_value) = (0.035, 12, 1_000);
+    dbg!(finance::future_value_solution(rate, periods, present_value, false));
+    dbg!(finance::future_value_solution(rate, periods, present_value, true));
+}
+
+/*
 fn solution_for_transformations() -> finance::FutureValueSolution {
     let rate = 0.10;
     let periods = 4;
@@ -409,6 +418,20 @@ fn try_simple_to_continuous(vary_field: &finance::TvmVariable) {
 */
 
 /*
+https://i.upmath.me/g/
+
+Simple:
+future\_value = present\_value \times (1+rate)^{periods}
+//i.upmath.me/svg/future%5C_value%20%3D%20present%5C_value%20%5Ctimes%20(1%2Brate)%5E%7Bperiods%7D
+fv = pv \times (1+r)^n
+//i.upmath.me/svg/fv%20%3D%20pv%20%5Ctimes%20(1%2Br)%5En
+
+Continuous:
+future\_value = present\_value \times e^{rate \times periods}
+//i.upmath.me/svg/future%5C_value%20%3D%20%7Bpresent%5C_value%20%5Ctimes%20e%5E%7Brate%20%5Ctimes%20periods%7D
+fv = pv \times e^{r \times n}
+//i.upmath.me/svg/fv%20%3D%20pv%20%5Ctimes%20e%5E%7Br%20%5Ctimes%20n%7D
+
 Plot showing how the future value with increasing numbers of periods approaches the future value
 with continuous compounding.
 
@@ -456,18 +479,5 @@ $$\begin{tikzpicture}[scale=1.0544]\small
 \end{tikzpicture}$$
 
 //i.upmath.me/svg/%24%24%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%5Csmall%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D12%2C%0A%09width%3D9.0cm%2Cheight%3D6.4cm%2C%0A%09xmin%3D0%2C%20xmax%3D12%2C%0A%09ymin%3D119%2C%20ymax%3D123%2C%0A%09restrict%20y%20to%20domain%3D0%3A1000%2C%0A%09ytick%3D%7B120%2C%20121%2C%20122%7D%2C%0A%09xtick%3D%7B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%7D%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24n%24%2Cylabel%3D%24fv%24%5D%0A%5Caddplot%5Bblue%2Cdomain%3D1%3A12%2Cthick%2C%20only%20marks%5D%7B100*((1%2B(0.2%2Fx))%5Ex)%7D%3B%0A%5Caddplot%5Bblack%2Cdomain%3D1%3A12%2Cthick%5D%7B100*(e%5E(0.2))%7D%3B%0A%5Caddplot%5B%5D%20coordinates%20%7B(2.5%2C122.4)%7D%20node%7B%24fv%3D100e%5E%7B0.2%7D%24%7D%3B%0A%5Caddplot%5Bblue%5D%20coordinates%20%7B(4.8%2C120.7)%7D%20node%7B%24fv%3D100(1%2B%7B0.2%20%5Cover%20n%7D)%5En%24%7D%3B%0A%5Cpath%20(axis%20cs%3A0%2C122)%20node%20%5Banchor%3Dnorth%20west%2Cyshift%3D-0.07cm%5D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D%24%24
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 */
