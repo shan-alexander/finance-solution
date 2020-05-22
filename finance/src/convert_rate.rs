@@ -87,7 +87,7 @@
 //!
 //! // then solve for future value:
 //! let fv = future_value::future_value_solution;
-//! let answer_1 = fv(epr, 12, 500);
+//! let answer_1 = fv(epr, 12, 500, false);
 //! dbg!(&answer_1);
 //! ```
 //! > prints to terminal:
@@ -108,7 +108,7 @@
 //! // using 1 year as the period and the effective annual rate, 
 //! // instead of using 12 monthly periods of the periodic rate.
 //! let rate = apr(0.034, 12);
-//! let answer_2 = future_value::future_value_solution(rate.ear(), 1, 500);
+//! let answer_2 = future_value::future_value_solution(rate.ear(), 1, 500, false);
 //! dbg!(&answer_2.future_value()); // outputs: 517.2674346801449
 //! // assert_approx_equal!(answer_1.future_value, answer_2.future_value); // true
 //! ```
