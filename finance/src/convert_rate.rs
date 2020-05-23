@@ -15,22 +15,22 @@
 //!
 //! ><small>To <i>calculate</i> the Effective Periodic Rate (EPR) of a given rate use the [`convert_apr_to_epr`](./fn.convert_apr_to_epr.html) or [`convert_ear_to_epr`](./fn.convert_ear_to_epr.html) functions.</small>
 //! 
-//! ><small>To convert an Effective Period Rate (EPR) into a different rate, use the [`convert_epr_to_ear`](./fn.convert_epr_to_ear.html) or [`convert_epr_to_apr`](./fn.convert_epr_to_apr.html) functions.</small>
+//! ><small>To _convert_ an Effective Period Rate (EPR) into a different rate, use the [`convert_epr_to_ear`](./fn.convert_epr_to_ear.html) or [`convert_epr_to_apr`](./fn.convert_epr_to_apr.html) functions.</small>
 //! 
 //! **EAR**: **Effective Annual Rate**. The effective rate of a year which (typically) has multiple compounding periods within the year.
 //! 
 //! ><small>For general use, try the [`ear`](./fn.ear.html) function by providing rate and compounding periods per year, for example `ear(0.034, 12)`.</small>
 //!
-//! ><small>To calculate the Effective Annual Rate (EAR) of a given rate use the [`convert_apr_to_ear`](./fn.convert_apr_to_ear.html) or [`convert_epr_to_ear`](./fn.convert_epr_to_ear.html) functions.</small>
+//! ><small>To _calculate_ the Effective Annual Rate (EAR) of a given rate use the [`convert_apr_to_ear`](./fn.convert_apr_to_ear.html) or [`convert_epr_to_ear`](./fn.convert_epr_to_ear.html) functions.</small>
 //!
-//! ><small>To convert an Effective Annual Rate (EAR) into a different rate, use the [`convert_ear_to_apr`](./fn.convert_ear_to_apr.html) or [`convert_ear_to_epr`](./fn.convert_ear_to_epr.html) functions.</small>
+//! ><small>To _convert_ an Effective Annual Rate (EAR) into a different rate, use the [`convert_ear_to_apr`](./fn.convert_ear_to_apr.html) or [`convert_ear_to_epr`](./fn.convert_ear_to_epr.html) functions.</small>
 //! 
 //! # Examples
-//! All functions in this module can be written with the suffix **_solution**, except for the [`apr`](./fn.apr.html), [`ear`](./fn.ear.html), [`epr`](./fn.epr.html) functions which already provide a solution struct. 
+//! All functions in this module can be written with the suffix **_solution**, except for the [`apr`](./fn.apr.html), [`ear`](./fn.ear.html), [`epr`](./fn.epr.html) helper functions which already provide a solution struct. 
 //! The solution functions provide helpful information in the `dbg!()` output, for example:
 //! 
 //! ```
-//! # use finance_solution::*;
+//! use finance_solution::*;
 //! // Example 1: Give the apr function an apr and compounding-periods-per-year. 
 //! let rate = apr(0.034, 12);
 //! dbg!(rate);
@@ -55,7 +55,6 @@
 //! Example 2: explicit call to f64 function
 //! ```
 //! # use finance_solution::*;
-//! 
 //! let apr = convert_apr_to_ear(0.034, 12);
 //! dbg!(apr);
 //! ```
@@ -63,16 +62,28 @@
 //! ```text
 //! 0.03453486936028982
 //! ```
-//! Example 3: explicit call to _solution function
+//! Example 3: explicit call to a `_solution` function
 //! ```
 //! # use finance_solution::*;
-//! 
 //! let apr = convert_rate::convert_apr_to_ear_solution(0.034, 12);  // provides same output as apr! macro                                                       
 //! dbg!(apr.ear());
 //! ```
 //! > prints to terminal: 
 //! ```text
-//!  0.03453486936028982
+//! {
+//! input_name: Apr
+//! input_rate: 0.034
+//! compounds_per_year: 12
+//! apr_in_percent: 3.4000%
+//! epr_in_percent: 0.2833%
+//! ear_in_percent: 3.4535%
+//! apr: 0.034
+//! epr: 0.0028333333333333335
+//! ear: 0.03453486936028982
+//! apr_formula:
+//! epr_formula: 0.034 / 12
+//! ear_formula: (1 + (0.034/12))^12 - 1
+//! }
 //! ```
 //! Here are a few variations of how someone can use the `convert_rate` module functions:
 //! ```
@@ -123,7 +134,7 @@
 //! 
 //! Now you've learned Time-Value-of-Money problems can be
 //! solved using different rates and periods, while providing the same
-//! correct answer. And you've learned how to use this crate for rate conversions!
+//! correct answer. And you've learned how to use this crate for rate conversions! 😊
 
 use log::{warn};
 
@@ -147,7 +158,7 @@ fn assert_inputs(rate:f64, periods:u32, fn_type: ConvertRateVariable) {
 }
 
 
-/// **Helper function** to convert an quoted annual rate (apr) into all possible conversions (ear, epr). Returns a solution struct.
+/// Helper function to convert an quoted annual rate (apr) into all possible conversions (ear, epr). Returns a solution struct.
 pub fn apr(apr:f64, compounding_periods_in_year:u32) -> ConvertRateSolution {
     assert_inputs(apr, compounding_periods_in_year, tvm_convert_rate::ConvertRateVariable::Apr);
     let ear = (1_f64 + (apr/compounding_periods_in_year as f64)).powf(compounding_periods_in_year as f64) - 1_f64;
@@ -161,7 +172,7 @@ pub fn apr(apr:f64, compounding_periods_in_year:u32) -> ConvertRateSolution {
     tvm_convert_rate::ConvertRateSolution::new(tvm_convert_rate::ConvertRateVariable::Apr, apr, compounding_periods_in_year, apr_in_percent, epr_in_percent, ear_in_percent, apr, epr, ear, &apr_formula, &epr_formula, &ear_formula,)
 }
 
-/// **Helper function** to convert an APR into an EAR using continuous compounding. Returns solution struct.
+/// Helper function to convert an APR into an EAR using continuous compounding. Returns solution struct.
 pub fn apr_continuous(apr:f64) -> ConvertRateSolution {
     let compounding_periods_in_year = 1; // not used
     assert_inputs(apr, compounding_periods_in_year, tvm_convert_rate::ConvertRateVariable::AprContinuous);
@@ -184,7 +195,7 @@ pub fn apr_continuous(apr:f64) -> ConvertRateSolution {
     tvm_convert_rate::ConvertRateSolution::new(tvm_convert_rate::ConvertRateVariable::AprContinuous, apr, compounding_periods_in_year, apr_in_percent, epr_in_percent, ear_in_percent, apr, epr, ear, &apr_formula, &epr_formula, &ear_formula,)          
 }
 
-/// **Helper function** to convert an EAR into an APR using continuous compounding. Returns solution struct.
+/// Helper function to convert an EAR into an APR using continuous compounding. Returns solution struct.
 pub fn ear_continuous(ear:f64) -> ConvertRateSolution {
     let compounding_periods_in_year = 1; // not used
     assert_inputs(ear, compounding_periods_in_year, tvm_convert_rate::ConvertRateVariable::EarContinuous);
@@ -206,7 +217,7 @@ pub fn ear_continuous(ear:f64) -> ConvertRateSolution {
     let ear_formula = format!("");
     tvm_convert_rate::ConvertRateSolution::new(tvm_convert_rate::ConvertRateVariable::EarContinuous, ear, compounding_periods_in_year, apr_in_percent, epr_in_percent, ear_in_percent, apr, epr, ear, &apr_formula, &epr_formula, &ear_formula,)          
 }
-/// **Helper function** to convert an effective annual rate (ear) into all possible conversions (apr, epr). Returns a solution struct.
+/// Helper function to convert an effective annual rate (ear) into all possible conversions (apr, epr). Returns a solution struct.
 pub fn ear(ear:f64, compounding_periods_in_year:u32) -> ConvertRateSolution {
     convert_rate::assert_inputs(ear, compounding_periods_in_year, tvm_convert_rate::ConvertRateVariable::Ear);
     let apr = convert_rate::convert_ear_to_apr(ear, compounding_periods_in_year);
@@ -220,7 +231,7 @@ pub fn ear(ear:f64, compounding_periods_in_year:u32) -> ConvertRateSolution {
     tvm_convert_rate::ConvertRateSolution::new(tvm_convert_rate::ConvertRateVariable::Ear, ear, compounding_periods_in_year, apr_in_percent, epr_in_percent, ear_in_percent, apr, epr, ear, &apr_formula, &epr_formula, &ear_formula,)
 }
 
-/// **Helper function** to convert a periodic interest rate (EPR) to all rate conversions. Returns solution struct.
+/// Helper function to convert a periodic interest rate (EPR) to all rate conversions. Returns solution struct.
 /// 
 /// Note: an EPR of 0.99 with a large number of periods can create decimal inaccuracies due to floating point representation. 
 /// The epr conversion method is tested and guaranteed accurate up to 780 periods between rates -0.034 and 0.989 however any rates outside this
@@ -246,8 +257,11 @@ pub fn epr(epr:f64, compounding_periods_in_year:u32) -> ConvertRateSolution {
 /// * [`apr`](./fn.apr.html) to convert APR to all forms of rate conversion, and return a custom type with additional functionality and extra information available in the `dbg!()`.
 /// * [`convert_apr_to_ear_solution`](./fn.convert_apr_to_ear_solution.html) to convert APR to EAR and return a custom type with additional functionality and extra information available in the `dbg!()`.
 /// 
-/// The formula for Apr -> Ear is:
-/// (1 + (apr/periods))<sup>periods</sup> - 1
+/// The formula:
+/// 
+// EAR = (1 + (apr/periods))<sup>periods</sup> - 1
+// Latex formula:  EAR=(1+(APR/periods))\textsuperscript{periods}-1
+/// > <img src="http://i.upmath.me/svg/EAR%3D(1%2B(APR%2Fperiods))%5Ctextsuperscript%7Bperiods%7D-1" />
 /// 
 /// # Arguments
 /// * `rate` - The input rate, expressed as a floating point number. 
@@ -267,7 +281,7 @@ pub fn epr(epr:f64, compounding_periods_in_year:u32) -> ConvertRateSolution {
 ///
 /// let effective_annual_rate = convert_rate::convert_apr_to_ear(nominal_rate, periods);
 /// 
-/// // Confirm that the future value is correct to six decimal places.
+/// // Confirm that the EAR is correct.
 /// assert_approx_equal!(0.034535, effective_annual_rate);
 /// ```
 pub fn convert_apr_to_ear(apr: f64, compounding_periods_in_year: u32) -> f64 {
@@ -281,9 +295,12 @@ pub fn convert_apr_to_ear(apr: f64, compounding_periods_in_year: u32) -> f64 {
 /// * [`apr`](./fn.apr.html) macro to convert APR to all forms of rate conversion, and return a custom type with additional functionality and extra information available in the dbg!().
 /// * [`convert_apr_to_ear`](./fn.convert_apr_to_ear.html) to convert APR to EAR and return the f64 value instead of a solution struct.
 /// 
-/// The formula for Apr -> Ear is:
-/// (1 + (apr/periods))<sup>periods</sup> - 1
+/// The formula:
 /// 
+// EAR = (1 + (apr/periods))<sup>periods</sup> - 1
+// Latex formula:  EAR=(1+(APR/periods))\textsuperscript{periods}-1
+/// > <img src="http://i.upmath.me/svg/EAR%3D(1%2B(APR%2Fperiods))%5Ctextsuperscript%7Bperiods%7D-1" />
+///
 /// # Arguments
 /// * `rate` - The input rate, expressed as a floating point number. 
 /// For instance 0.05 indicates 5%. Often appears as `r` or `i` in formulas.
@@ -292,7 +309,7 @@ pub fn convert_apr_to_ear(apr: f64, compounding_periods_in_year: u32) -> f64 {
 /// # Panics
 /// * `periods` - must be a u32 value greater than 0.
 /// 
-/// # Examples
+/// # Example
 /// /// Convert annual rate to effective annual rate.
 /// ```
 /// use finance_solution::*;
@@ -304,7 +321,7 @@ pub fn convert_apr_to_ear(apr: f64, compounding_periods_in_year: u32) -> f64 {
 ///
 /// let effective_annual_rate = convert_apr_to_ear_solution(nominal_rate, periods).ear();
 /// 
-/// // Confirm that the future value is correct to six decimal places.
+/// // Confirm that the EAR is correct.
 /// assert_approx_equal!(0.034535, effective_annual_rate);
 /// ```
 
@@ -319,8 +336,11 @@ pub fn convert_apr_to_ear_solution(apr: f64, compounding_periods_in_year: u32) -
 /// * [`apr`](./fn.apr.html) macro to convert APR to all forms of rate conversion, and return a custom type with additional functionality and extra information available in the dbg!().
 /// * [`convert_apr_to_epr_solution`](./fn.convert_apr_to_epr_solution.html) to convert APR to EPR and return a custom type with additional functionality and extra information available in the dbg!().
 /// 
-/// The formula is:
-/// Periodic Rate = apr / compounding_periods_in_year
+/// The formula:
+/// 
+// Periodic Rate = apr / compounding_periods_in_year
+// Latex formula: EPR=APR/compounding\_periods\_in\_year
+/// > <img src="http://i.upmath.me/svg/EPR%3DAPR%2Fcompounding%5C_periods%5C_in%5C_year" />
 /// 
 /// # Arguments
 /// * `rate` - The input rate, expressed as a floating point number. 
@@ -330,19 +350,18 @@ pub fn convert_apr_to_ear_solution(apr: f64, compounding_periods_in_year: u32) -
 /// # Panics
 /// * `compounding_periods_in_year` - must be a u32 value greater than 0.
 /// 
-/// # Examples
+/// # Example
 /// Convert annual rate to periodic rate.
 /// ```
 /// use finance_solution::*;
 /// // The annual percentage rate is 3.4%.
-/// let nominal_rate = 0.034;
-///
 /// // There are 12 compounding periods per year.
+/// let nominal_rate = 0.034;
 /// let periods = 12;
 ///
 /// let periodic_rate = convert_apr_to_epr(nominal_rate, periods);
 /// 
-/// // Confirm that the future value is correct to six decimal places.
+/// // Confirm that the periodic value is correct to six decimal places.
 /// assert_approx_equal!(0.00283333, periodic_rate);
 /// ```
 pub fn convert_apr_to_epr(apr: f64, compounding_periods_in_year: u32) -> f64 {
@@ -350,6 +369,39 @@ pub fn convert_apr_to_epr(apr: f64, compounding_periods_in_year: u32) -> f64 {
     apr / compounding_periods_in_year as f64
 }
 /// Convert APR (annual rate) to periodic rate. Returns a custom solution type.
+/// 
+/// Related Functions:
+/// * [`apr`](./fn.apr.html) macro to convert APR to all forms of rate conversion, and return a custom type with additional functionality and extra information available in the dbg!().
+/// * [`convert_apr_to_epr`](./fn.convert_apr_to_epr.html) to convert APR to EPR and return a single f64 value instead of a solution struct.
+/// 
+/// The formula:
+/// 
+// Periodic Rate = apr / compounding_periods_in_year
+// Latex formula: EPR=APR/compounding\_periods\_in\_year
+/// > <img src="http://i.upmath.me/svg/EPR%3DAPR%2Fcompounding%5C_periods%5C_in%5C_year" />
+/// 
+/// # Arguments
+/// * `rate` - The input rate, expressed as a floating point number. 
+/// For instance 0.05 would mean 5%. Often appears as `r` or `i` in formulas.
+/// * `compounding_periods_in_year` - The number of compounding periods in a year. Often appears as `n` or `t`.
+/// 
+/// # Panics
+/// * `compounding_periods_in_year` - must be a u32 value greater than 0.
+/// 
+/// # Example
+/// Convert annual rate to periodic rate.
+/// ```
+/// use finance_solution::*;
+/// // The annual percentage rate is 3.4%.
+/// // There are 12 compounding periods per year.
+/// let nominal_rate = 0.034;
+/// let periods = 12;
+///
+/// let apr_to_epr_solution = convert_apr_to_epr_solution(nominal_rate, periods);
+/// 
+/// // Confirm that the periodic rate is correct to six decimal places.
+/// assert_approx_equal!(0.00283333, apr_to_epr_solution.epr());
+/// ```
 pub fn convert_apr_to_epr_solution(apr: f64, compounding_periods_in_year: u32) -> ConvertRateSolution {
     assert_inputs(apr, compounding_periods_in_year, ConvertRateVariable::Apr);
     self::apr(apr, compounding_periods_in_year)
@@ -364,7 +416,10 @@ pub fn convert_apr_to_epr_solution(apr: f64, compounding_periods_in_year: u32) -
 /// 
 /// The formula is:
 /// 
-/// <small> Note: This formula involves converting the EAR to periodic rate first, and then APR = periodic rate * number of periods.</small>
+//  Latex formula: APR=( (1+ear)\textsuperscript{(1/compounding\_periods\_in\_year)} - 1)\times compounding\_periods\_in\_year
+/// <img src="http://i.upmath.me/svg/APR%3D(%20(1%2Bear)%5Ctextsuperscript%7B(1%2Fcompounding%5C_periods%5C_in%5C_year)%7D%20-%201)%5Ctimes%20compounding%5C_periods%5C_in%5C_year" />
+/// 
+/// <small> Note: This formula involves converting the EAR to EPR first, and then converting the EPR to APR.</small>
 /// 
 /// # Arguments
 /// * `rate` - The input rate, expressed as a floating point number. 
@@ -374,19 +429,18 @@ pub fn convert_apr_to_epr_solution(apr: f64, compounding_periods_in_year: u32) -
 /// # Panics
 /// * `periods` - must be a u32 value greater than 0.
 /// 
-/// # Examples
+/// # Example
 /// Convert effective annual rate (EAR) to annual percentage rate (APR).
 /// ```
 /// use finance_solution::*;
 /// // The effective annual rate is 3.4534%
-/// let effective_annual_rate = 0.03453486936;
-///
 /// // There are 12 compounding periods per year.
+/// let effective_annual_rate = 0.03453486936;
 /// let periods = 12;
 ///
 /// let nominal_rate = convert_rate::convert_ear_to_apr(effective_annual_rate, periods);
 /// 
-/// // Confirm that the future value is correct to six decimal places.
+/// // Confirm that the APR is correct.
 /// assert_approx_equal!(0.034, nominal_rate);
 /// ```
 pub fn convert_ear_to_apr(ear: f64, compounding_periods_in_year: u32) -> f64 {
@@ -401,7 +455,10 @@ pub fn convert_ear_to_apr(ear: f64, compounding_periods_in_year: u32) -> f64 {
 /// 
 /// The formula is:
 /// 
-/// <small> Note: This formula involves converting the EAR to periodic rate first, and then APR = periodic rate * number of periods.</small>
+//  Latex formula: APR=( (1+ear)\textsuperscript{(1/compounding\_periods\_in\_year)} - 1)\times compounding\_periods\_in\_year
+/// <img src="http://i.upmath.me/svg/APR%3D(%20(1%2Bear)%5Ctextsuperscript%7B(1%2Fcompounding%5C_periods%5C_in%5C_year)%7D%20-%201)%5Ctimes%20compounding%5C_periods%5C_in%5C_year" />
+/// 
+/// <small> Note: This formula involves converting the EAR to EPR first, and then converting the EPR to APR.</small>
 /// 
 /// # Arguments
 /// * `rate` - The input rate, expressed as a floating point number. 
@@ -411,7 +468,7 @@ pub fn convert_ear_to_apr(ear: f64, compounding_periods_in_year: u32) -> f64 {
 /// # Panics
 /// * `periods` - must be a u32 value greater than 0.
 /// 
-/// # Examples
+/// # Example
 /// Convert effective annual rate (EAR) to annual percentage rate (APR).
 /// ```
 /// use finance_solution::*;
@@ -421,10 +478,10 @@ pub fn convert_ear_to_apr(ear: f64, compounding_periods_in_year: u32) -> f64 {
 /// // There are 12 compounding periods per year.
 /// let periods = 12;
 ///
-/// let nominal_rate = convert_rate::convert_ear_to_apr_solution(effective_annual_rate, periods).apr();
+/// let ear_to_apr_solution = convert_rate::convert_ear_to_apr_solution(effective_annual_rate, periods);
 /// 
-/// // Confirm that the future value is correct to six decimal places.
-/// assert_approx_equal!(0.034, nominal_rate);
+/// // Confirm that the APR is correct.
+/// assert_approx_equal!(0.034, ear_to_apr_solution.apr());
 /// ```
 pub fn convert_ear_to_apr_solution(ear: f64, compounding_periods_in_year: u32) -> ConvertRateSolution {
     assert_inputs(ear, compounding_periods_in_year, ConvertRateVariable::Ear);
@@ -442,7 +499,10 @@ pub fn convert_ear_to_apr_solution(ear: f64, compounding_periods_in_year: u32) -
 /// * [`convert_ear_to_epr_solution`](./fn.convert_ear_to_epr_solution.html) to convert EAR to EPR and return a custom type with extra information available in the dbg!().
 /// 
 /// The formula is:
-/// Periodic Rate = (1 + ear)<sup>(1 / compounding_periods_in_year)</sup> - 1
+/// 
+// Periodic Rate = (1 + ear)<sup>(1 / compounding_periods_in_year)</sup> - 1
+// Latex formula: EPR = (1 + ear)\textsuperscript{(1 / compounding\_periods\_in\_year)} - 1
+/// > <img src="http://i.upmath.me/svg/EPR%20%3D%20(1%20%2B%20ear)%5Ctextsuperscript%7B(1%20%2F%20compounding%5C_periods%5C_in%5C_year)%7D%20-%201" />
 ///
 /// # Arguments
 /// * `ear` - The input rate (effective annual rate), expressed as a floating point number. 
@@ -452,39 +512,72 @@ pub fn convert_ear_to_apr_solution(ear: f64, compounding_periods_in_year: u32) -
 /// # Panics
 /// * `periods` - must be a u32 value greater than or equal to 1.
 /// 
-/// # Examples
+/// # Example
 /// Convert effective annual rate to periodic rate.
 /// ```
 /// use finance_solution::*;
 /// // The effective annual rate is 3.4534%.
-/// let effective_annual_rate = 0.03453486936;
-///
 /// // There are 12 compounding periods per year.
+/// let effective_annual_rate = 0.03453486936;
 /// let periods = 12;
 ///
 /// let periodic_rate = convert_rate::convert_ear_to_epr(effective_annual_rate, periods);
 /// 
-/// // Confirm that the future value is correct to six decimal places.
+/// // Confirm that the EPR is correct.
 /// assert_approx_equal!(0.00283333, periodic_rate);
 /// ```
 pub fn convert_ear_to_epr(ear: f64, compounding_periods_in_year: u32) -> f64 {
     assert_inputs(ear, compounding_periods_in_year, ConvertRateVariable::Ear);
     (1_f64 + ear).powf(1_f64/compounding_periods_in_year as f64) - 1_f64
 }
-/// Convert an EAR (Effective Annual Rate) to periodic rate (also known as EPR).
+/// Convert an EAR (Effective Annual Rate) to periodic rate (also known as EPR). Returns a solution struct with additional information and functionality.
+/// /// Related Functions:
+/// * [`convert_ear_to_epr`](./fn.convert_ear_to_epr.html) to convert EAR to EPR and return a single f64 value.
+/// 
+/// The formula is:
+/// 
+// Periodic Rate = (1 + ear)<sup>(1 / compounding_periods_in_year)</sup> - 1
+// Latex formula: EPR = (1 + ear)\textsuperscript{(1 / compounding\_periods\_in\_year)} - 1
+/// > <img src="http://i.upmath.me/svg/EPR%20%3D%20(1%20%2B%20ear)%5Ctextsuperscript%7B(1%20%2F%20compounding%5C_periods%5C_in%5C_year)%7D%20-%201" />
+///
+/// # Arguments
+/// * `ear` - The input rate (effective annual rate), expressed as a floating point number. 
+/// For instance 0.05 would mean 5%. Often appears as `r` or `i` in formulas.
+/// * `periods` - The number of compounding periods in a year. Often appears as `n` or `t`.
+/// 
+/// # Panics
+/// * `periods` - must be a u32 value greater than or equal to 1.
+/// 
+/// # Example
+/// Convert effective annual rate to periodic rate.
+/// ```
+/// use finance_solution::*;
+/// // The effective annual rate is 3.4534%.
+/// // There are 12 compounding periods per year.
+/// let effective_annual_rate = 0.03453486936;
+/// let periods = 12;
+///
+/// let ear_to_epr_solution = convert_rate::convert_ear_to_epr_solution(effective_annual_rate, periods);
+/// 
+/// // Confirm that the EPR is correct.
+/// assert_approx_equal!(0.00283333, ear_to_epr_solution.epr());
+/// ```
 pub fn convert_ear_to_epr_solution(ear: f64, compounding_periods_in_year: u32) -> ConvertRateSolution {
     assert_inputs(ear, compounding_periods_in_year, ConvertRateVariable::Ear);
     self::ear(ear, compounding_periods_in_year)
 }
 
 
-/// Convert a periodic rate (aka EPR, effective periodic rate) to EAR (effective annual rate).
+/// Convert a periodic rate (aka EPR, effective periodic rate) to EAR (effective annual rate). Return a single f64 value.
 ///  
 /// Related Functions:
 /// * [`convert_epr_to_ear_solution`](./fn.convert_epr_to_ear_solution.html) to convert EPR to EAR and return a custom type with extra information available in the dbg!().
 /// 
 /// The formula is:
-/// EAR = (1 + epr)<sup>(compounding_periods_in_year)</sup> - 1
+/// 
+// EAR = (1 + epr)<sup>(compounding_periods_in_year)</sup> - 1
+// Latex formula: EAR=(1 + epr)\textsuperscript{(compounding\_periods\_in\_year)}-1
+/// > <img src="//i.upmath.me/svg/EAR%3D(1%20%2B%20epr)%5Ctextsuperscript%7B(compounding%5C_periods%5C_in%5C_year)%7D-1" />
 ///
 /// # Arguments
 /// * `epr` - The input rate (periodic rate), expressed as a floating point number. 
@@ -494,6 +587,18 @@ pub fn convert_ear_to_epr_solution(ear: f64, compounding_periods_in_year: u32) -
 /// # Panics
 /// * `periods` - must be a u32 value greater than or equal to 1.
 /// 
+/// # Example
+/// Convert a periodic rate to effective annual rate.
+/// ```
+/// use finance_solution::*;
+/// // The periodic rate is 3.4534%. There are 12 compounding periods per year.
+/// let (periodic_rate, periods) = (0.034, 12);
+///
+/// let ear = convert_rate::convert_epr_to_ear(periodic_rate, periods);
+/// 
+/// // Confirm that the EAR is correct.
+/// assert_approx_equal!(0.49364182107104493, ear);
+/// ```
 pub fn convert_epr_to_ear(epr: f64, compounding_periods_in_year: u32) -> f64 {
     assert_inputs(epr, compounding_periods_in_year, ConvertRateVariable::Epr);
     (1_f64 + epr).powf(compounding_periods_in_year as f64) - 1_f64
@@ -501,10 +606,13 @@ pub fn convert_epr_to_ear(epr: f64, compounding_periods_in_year: u32) -> f64 {
 /// Convert a periodic rate (EPR) to effective annual rate (EAR), returning a solution struct with additionality information and features.
 ///   
 /// Related Functions:
-/// * [`convert_epr_to_ear`](./fn.convert_epr_to_ear.html) to convert EPR to EAR and return an f64 instead of a full solution struct.
+/// * [`convert_epr_to_ear`](./fn.convert_epr_to_ear.html) to convert EPR to EAR and return a single f64 value.
 /// 
 /// The formula is:
-/// EAR = (1 + epr)<sup>(compounding_periods_in_year)</sup> - 1
+/// 
+// EAR = (1 + epr)<sup>(compounding_periods_in_year)</sup> - 1
+// Latex formula: EAR=(1 + epr)\textsuperscript{(compounding\_periods\_in\_year)}-1
+/// > <img src="//i.upmath.me/svg/EAR%3D(1%20%2B%20epr)%5Ctextsuperscript%7B(compounding%5C_periods%5C_in%5C_year)%7D-1" />
 ///
 /// # Arguments
 /// * `epr` - The input rate (periodic rate), expressed as a floating point number. 
@@ -514,6 +622,18 @@ pub fn convert_epr_to_ear(epr: f64, compounding_periods_in_year: u32) -> f64 {
 /// # Panics
 /// * `periods` - must be a u32 value greater than or equal to 1.
 /// 
+/// # Example
+/// Convert a periodic rate to effective annual rate.
+/// ```
+/// use finance_solution::*;
+/// // The periodic rate is 3.4534%. There are 12 compounding periods per year.
+/// let (periodic_rate, periods) = (0.034, 12);
+///
+/// let epr_to_ear_solution = convert_rate::convert_epr_to_ear_solution(periodic_rate, periods);
+/// 
+/// // Confirm that the EAR is correct.
+/// assert_approx_equal!(0.49364182107104493, epr_to_ear_solution.ear());
+/// ```
 pub fn convert_epr_to_ear_solution(epr: f64, compounding_periods_in_year: u32) -> ConvertRateSolution {
     assert_inputs(epr, compounding_periods_in_year, ConvertRateVariable::Epr);
     self::epr(epr, compounding_periods_in_year)
@@ -527,7 +647,10 @@ pub fn convert_epr_to_ear_solution(epr: f64, compounding_periods_in_year: u32) -
 /// * [`convert_epr_to_apr_solution`](./fn.convert_epr_to_apr_solution.html) to convert EPR to APR and return a solution struct with better debugging and additional information.
 /// 
 /// The formula is:
-/// APR = epr * compounding_periods_per_year
+/// 
+// APR = epr * compounding_periods_per_year
+// Latex formula: APR=periodic\_rate\times compounding\_periods\_per\_year
+/// > <img src="http://i.upmath.me/svg/APR%3Dperiodic%5C_rate%5Ctimes%20compounding%5C_periods%5C_per%5C_year" />
 ///
 /// # Arguments
 /// * `epr` - The input rate (periodic rate), expressed as a floating point number. 
@@ -537,6 +660,18 @@ pub fn convert_epr_to_ear_solution(epr: f64, compounding_periods_in_year: u32) -
 /// # Panics
 /// * `periods` - must be a u32 value greater than or equal to 1.
 /// 
+/// # Example
+/// Convert a periodic rate to the annual rate (APR).
+/// ```
+/// use finance_solution::*;
+/// // The periodic rate is 3.4%. There are 12 compounding periods per year.
+/// let (periodic_rate, periods) = (0.034, 12);
+///
+/// let apr = convert_rate::convert_epr_to_apr(periodic_rate, periods);
+/// 
+/// // Confirm that the APR is correct.
+/// assert_approx_equal!(0.4080, apr);
+/// ```
 pub fn convert_epr_to_apr(epr: f64, compounding_periods_in_year: u32) -> f64 {
     assert_inputs(epr, compounding_periods_in_year, ConvertRateVariable::Epr);
     epr * compounding_periods_in_year as f64
@@ -547,7 +682,10 @@ pub fn convert_epr_to_apr(epr: f64, compounding_periods_in_year: u32) -> f64 {
 /// * [`convert_epr_to_apr`](./fn.convert_epr_to_apr.html) to convert EPR to APR and return an f64 instead of a full solution struct.
 /// 
 /// The formula is:
-/// APR = epr * compounding_periods_per_year
+/// 
+// APR = epr * compounding_periods_per_year
+// Latex formula: APR=periodic\_rate\times compounding\_periods\_per\_year
+/// > <img src="http://i.upmath.me/svg/APR%3Dperiodic%5C_rate%5Ctimes%20compounding%5C_periods%5C_per%5C_year" />
 ///
 /// # Arguments
 /// * `epr` - The input rate (periodic rate), expressed as a floating point number. 
@@ -557,6 +695,18 @@ pub fn convert_epr_to_apr(epr: f64, compounding_periods_in_year: u32) -> f64 {
 /// # Panics
 /// * `periods` - must be a u32 value greater than or equal to 1.
 /// 
+/// # Example
+/// Convert a periodic rate to the annual rate (APR).
+/// ```
+/// use finance_solution::*;
+/// // The periodic rate is 3.4%. There are 12 compounding periods per year.
+/// let (periodic_rate, periods) = (0.034, 12);
+///
+/// let epr_to_apr_solution = convert_rate::convert_epr_to_apr_solution(periodic_rate, periods);
+/// 
+/// // Confirm that the APR is correct.
+/// assert_approx_equal!(0.4080, epr_to_apr_solution.apr());
+/// ```
 pub fn convert_epr_to_apr_solution(epr: f64, compounding_periods_in_year: u32) -> ConvertRateSolution {
     assert_inputs(epr, compounding_periods_in_year, ConvertRateVariable::Epr);
     self::epr(epr, compounding_periods_in_year)
