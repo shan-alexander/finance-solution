@@ -98,7 +98,7 @@ http://i.upmath.me/svg/fv%20%3D%20pv(1%2Br)%5En%5C%5C%20%5C%5C%0Afv%20%3D%20pv(e
 //! > <img src="http://i.upmath.me/svg/170%2C460.53%20%3D%20%7B172%2C165.14%20%5Cover%201.01%7D" />
 //!
 //! which is a relief. By the way, A/B comparisons like the table above are built into the crate.
-//! See [TvmCashflowSolution::print_ab_comparison](././tvm_cashflow/struct.TvmCashflowSolution.html#method.print_ab_comparison).
+//! See [CashflowSolution::print_ab_comparison](././cashflow/struct.CashflowSolution.html#method.print_ab_comparison).
 //!
 //! # Positive and Negative Amounts
 //!
@@ -183,13 +183,13 @@ use std::ops::Deref;
 const RUN_PAYMENT_INVARIANTS: bool = false;
 
 #[derive(Clone, Debug)]
-pub struct PaymentSolution(TvmCashflowSolution);
+pub struct PaymentSolution(CashflowSolution);
 
 #[derive(Clone, Debug)]
-pub struct PaymentSeries(TvmCashflowSeries);
+pub struct PaymentSeries(CashflowSeries);
 
 impl PaymentSolution {
-    pub(crate) fn new(solution: TvmCashflowSolution) -> Self {
+    pub(crate) fn new(solution: CashflowSolution) -> Self {
         Self {
             0: solution,
         }
@@ -249,7 +249,7 @@ impl PaymentSolution {
     pub fn series(&self) -> PaymentSeries {
         let mut series = vec![];
         if self.future_value() != 0.0 {
-            return PaymentSeries::new(TvmCashflowSeries::new(series));
+            return PaymentSeries::new(CashflowSeries::new(series));
         }
         let mut payments_to_date = 0.0;
         let mut principal_to_date = 0.0;
@@ -275,12 +275,12 @@ impl PaymentSolution {
                 let symbolic_formula = "interest = -(principal * rate)".to_string();
                 (formula, symbolic_formula)
             };
-            let entry = TvmCashflowPeriod::new(period, self.rate(), self.due_at_beginning(), self.payment(), payments_to_date,
+            let entry = CashflowPeriod::new(period, self.rate(), self.due_at_beginning(), self.payment(), payments_to_date,
                                                payments_remaining, principal, principal_to_date, principal_remaining, interest,
                                                interest_to_date, interest_remaining, formula, symbolic_formula);
             series.push(entry);
         }
-        let payment_series = PaymentSeries::new(TvmCashflowSeries::new(series));
+        let payment_series = PaymentSeries::new(CashflowSeries::new(series));
         if RUN_PAYMENT_INVARIANTS {
             payment_series.invariant(self);
         }
@@ -372,7 +372,7 @@ impl PaymentSolution {
 }
 
 impl Deref for PaymentSolution {
-    type Target = TvmCashflowSolution;
+    type Target = CashflowSolution;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -380,13 +380,13 @@ impl Deref for PaymentSolution {
 }
 
 impl PaymentSeries {
-    pub(crate) fn new(series: TvmCashflowSeries) -> Self {
+    pub(crate) fn new(series: CashflowSeries) -> Self {
         Self {
             0: series,
         }
     }
 
-    fn invariant(&self, solution: &TvmCashflowSolution) {
+    fn invariant(&self, solution: &CashflowSolution) {
         let periods = solution.periods();
         if solution.future_value() != 0.0 {
             assert_eq!(0, self.len());
@@ -468,7 +468,7 @@ impl PaymentSeries {
 }
 
 impl Deref for PaymentSeries {
-    type Target = TvmCashflowSeries;
+    type Target = CashflowSeries;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -811,7 +811,7 @@ pub fn payment_solution<P, F>(rate: f64, periods: u32, present_value: P, future_
     let future_value = future_value.into();
     let payment = payment(rate, periods, present_value, future_value, due_at_beginning);
     let (formula, symbolic_formula) = payment_formula(rate, periods, present_value, future_value, due_at_beginning, payment);
-    let solution = PaymentSolution::new(TvmCashflowSolution::new(TvmCashflowVariable::Payment, rate, periods, present_value, future_value, due_at_beginning, payment, &formula, &symbolic_formula));
+    let solution = PaymentSolution::new(CashflowSolution::new(CashflowVariable::Payment, rate, periods, present_value, future_value, due_at_beginning, payment, &formula, &symbolic_formula));
     if RUN_PAYMENT_INVARIANTS {
         solution.invariant();
     }

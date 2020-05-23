@@ -11,6 +11,22 @@ use crate::*;
 use std::ops::Deref;
 use std::fmt::{Display, Formatter, Error};
 
+pub mod future_value;
+#[doc(inline)]
+pub use future_value::*;
+
+pub mod present_value;
+#[doc(inline)]
+pub use present_value::*;
+
+pub mod periods;
+#[doc(inline)]
+pub use periods::*;
+
+pub mod rate;
+#[doc(inline)]
+pub use rate::*;
+
 /// Enumeration used for the `calculated_field` field in [`TvmSolution`] and [`TvmSchedule`] to keep
 /// track of what was calculated, either the periodic rate, the number of periods, the present
 /// value, or the future value.

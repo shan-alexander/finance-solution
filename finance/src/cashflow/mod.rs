@@ -11,8 +11,20 @@ use crate::*;
 use std::cmp::max;
 use std::ops::Deref;
 
+pub mod future_value_annuity;
+#[doc(inline)]
+pub use future_value_annuity::*;
+
+pub mod payment;
+#[doc(inline)]
+pub use payment::*;
+
+pub mod present_value_annuity;
+#[doc(inline)]
+pub use present_value_annuity::*;
+
 #[derive(Debug, Clone)]
-pub enum TvmCashflowVariable {
+pub enum CashflowVariable {
     PresentValueAnnuity,
     PresentValueAnnuityDue,
     FutureValueAnnuity,
@@ -21,75 +33,75 @@ pub enum TvmCashflowVariable {
     NetPresentValue,
 }
 
-impl TvmCashflowVariable {
-    /// Returns true if the variant is TvmCashflowVariable::PresentValueAnnuity indicating that the
+impl CashflowVariable {
+    /// Returns true if the variant is CashflowVariable::PresentValueAnnuity indicating that the
     /// solution was created by calculating the present value of an annuity with the payment due at
     /// the end of the month.
     pub fn is_present_value_annuity(&self) -> bool {
         match self {
-            TvmCashflowVariable::PresentValueAnnuity => true,
+            CashflowVariable::PresentValueAnnuity => true,
             _ => false,
         }
     }
 
-    /// Returns true if the variant is TvmCashflowVariable::FutureValueAnnuity indicating that the
+    /// Returns true if the variant is CashflowVariable::FutureValueAnnuity indicating that the
     /// solution was created by calculating the future value of an annuity with the payment due at
     /// the end of the month.
     pub fn is_future_value_annuity(&self) -> bool {
         match self {
-            TvmCashflowVariable::FutureValueAnnuity => true,
+            CashflowVariable::FutureValueAnnuity => true,
             _ => false,
         }
     }
 
-    /// Returns true if the variant is TvmCashflowVariable::Payment indicating that the solution
+    /// Returns true if the variant is CashflowVariable::Payment indicating that the solution
     /// was created in a call to [`payment_solution`].
     pub fn is_payment(&self) -> bool {
         match self {
-            TvmCashflowVariable::Payment => true,
+            CashflowVariable::Payment => true,
             _ => false,
         }
     }
 
-    /// Returns true if the variant is TvmCashflowVariable::PresentValueAnnuityDue indicating that
+    /// Returns true if the variant is CashflowVariable::PresentValueAnnuityDue indicating that
     /// the solution was created by calculating the present value of an annuity with the payment due
     /// at the beginning of the month.
     pub fn is_present_value_annuity_due(&self) -> bool {
         match self {
-            TvmCashflowVariable::PresentValueAnnuityDue => true,
+            CashflowVariable::PresentValueAnnuityDue => true,
             _ => false,
         }
     }
 
-    /// Returns true if the variant is TvmCashflowVariable::FutureValueAnnuityDue indicating that
+    /// Returns true if the variant is CashflowVariable::FutureValueAnnuityDue indicating that
     /// the solution was created by calculating the future value of an annuity with the payment due
     /// at the beginning of the month.
     pub fn is_future_value_annuity_due(&self) -> bool {
         match self {
-            TvmCashflowVariable::FutureValueAnnuityDue => true,
+            CashflowVariable::FutureValueAnnuityDue => true,
             _ => false,
         }
     }
 
-    /// Returns true if the variant is TvmCashflowVariable::NetPresentValue indicating that the
+    /// Returns true if the variant is CashflowVariable::NetPresentValue indicating that the
     /// solution was created by calculating a net present value.
     pub fn is_net_present_value(&self) -> bool {
         match self {
-            TvmCashflowVariable::NetPresentValue => true,
+            CashflowVariable::NetPresentValue => true,
             _ => false,
         }
     }
 }
 
-impl fmt::Display for TvmCashflowVariable {
+impl fmt::Display for CashflowVariable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            TvmCashflowVariable::PresentValueAnnuity => write!(f, "Present Value Annuity"),
-            TvmCashflowVariable::FutureValueAnnuity => write!(f, "Future Value Annuity"),
-            TvmCashflowVariable::Payment => write!(f, "Payment"),
-            TvmCashflowVariable::PresentValueAnnuityDue => write!(f, "Present Value Annuity Due"),
-            TvmCashflowVariable::FutureValueAnnuityDue => write!(f, "Future Value Annuity Due"),
-            TvmCashflowVariable::NetPresentValue => write!(f, "Net Present Value"),
+            CashflowVariable::PresentValueAnnuity => write!(f, "Present Value Annuity"),
+            CashflowVariable::FutureValueAnnuity => write!(f, "Future Value Annuity"),
+            CashflowVariable::Payment => write!(f, "Payment"),
+            CashflowVariable::PresentValueAnnuityDue => write!(f, "Present Value Annuity Due"),
+            CashflowVariable::FutureValueAnnuityDue => write!(f, "Future Value Annuity Due"),
+            CashflowVariable::NetPresentValue => write!(f, "Net Present Value"),
         }
     }
 }
@@ -97,8 +109,8 @@ impl fmt::Display for TvmCashflowVariable {
 /// A record of a cash flow calculation such as payment, net present value, or the present value or
 /// future value of an annuity.
 #[derive(Clone, Debug)]
-pub struct TvmCashflowSolution {
-    calculated_field: TvmCashflowVariable,
+pub struct CashflowSolution {
+    calculated_field: CashflowVariable,
     rate: f64,
     periods: u32,
     present_value: f64,
@@ -112,9 +124,9 @@ pub struct TvmCashflowSolution {
     // pub input_in_percent: String,
 }
 
-impl TvmCashflowSolution {
+impl CashflowSolution {
     pub(crate) fn new(
-        calculated_field: TvmCashflowVariable,
+        calculated_field: CashflowVariable,
         rate: f64,
         periods: u32,
         present_value: f64,
@@ -142,7 +154,7 @@ impl TvmCashflowSolution {
         }
     }
 
-    pub fn calculated_field(&self) -> &TvmCashflowVariable {
+    pub fn calculated_field(&self) -> &CashflowVariable {
         &self.calculated_field
     }
 
@@ -189,7 +201,7 @@ impl TvmCashflowSolution {
 }
 
 /*
-impl Debug for TvmCashflowSolution {
+impl Debug for CashflowSolution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{{{}{}{}{}{}{}{}{}{}{}{}\n}}",
                &format!("\n\tcalculated_field: {}", self.calculated_field.to_string().magenta()),
@@ -213,17 +225,17 @@ impl Debug for TvmCashflowSolution {
 */
 
 #[derive(Clone, Debug)]
-pub struct TvmCashflowSeries(Vec<TvmCashflowPeriod>);
+pub struct CashflowSeries(Vec<CashflowPeriod>);
 
-impl TvmCashflowSeries {
-    pub(crate) fn new(series: Vec<TvmCashflowPeriod>) -> Self {
+impl CashflowSeries {
+    pub(crate) fn new(series: Vec<CashflowPeriod>) -> Self {
         Self {
             0: series,
         }
     }
 
     pub fn filter<P>(&self, predicate: P) -> Self
-        where P: Fn(&&TvmCashflowPeriod) -> bool
+        where P: Fn(&&CashflowPeriod) -> bool
     {
         Self {
             0: self.iter().filter(|x| predicate(x)).map(|x| x.clone()).collect()
@@ -269,7 +281,7 @@ impl TvmCashflowSeries {
 
     pub fn print_ab_comparison(
         &self,
-        other: &TvmCashflowSeries,
+        other: &CashflowSeries,
         include_running_totals: bool,
         include_remaining_amounts: bool)
     {
@@ -278,7 +290,7 @@ impl TvmCashflowSeries {
 
     pub fn print_ab_comparison_locale(
             &self,
-            other: &TvmCashflowSeries,
+            other: &CashflowSeries,
             include_running_totals: bool,
             include_remaining_amounts: bool,
             locale: &num_format::Locale,
@@ -288,7 +300,7 @@ impl TvmCashflowSeries {
 
     pub(crate) fn print_ab_comparison_locale_opt(
             &self,
-            other: &TvmCashflowSeries,
+            other: &CashflowSeries,
             include_running_totals: bool,
             include_remaining_amounts: bool,
             locale: Option<&num_format::Locale>,
@@ -334,8 +346,8 @@ impl TvmCashflowSeries {
 
 }
 
-impl Deref for TvmCashflowSeries {
-    type Target = Vec<TvmCashflowPeriod>;
+impl Deref for CashflowSeries {
+    type Target = Vec<CashflowPeriod>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -343,7 +355,7 @@ impl Deref for TvmCashflowSeries {
 }
 
 #[derive(Clone, Debug)]
-pub struct TvmCashflowPeriod {
+pub struct CashflowPeriod {
     period: u32,
     rate: f64,
     due_at_beginning: bool,
@@ -363,7 +375,7 @@ pub struct TvmCashflowPeriod {
     // pub input_in_percent: String,
 }
 
-impl TvmCashflowPeriod {
+impl CashflowPeriod {
     pub(crate) fn new(
         period: u32,
         rate: f64,
@@ -455,7 +467,7 @@ impl TvmCashflowPeriod {
     }
 
     pub fn print_flat(&self, precision: usize) {
-        println!("TvmCashflowPeriod = {{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} }}",
+        println!("CashflowPeriod = {{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} }}",
                  &format!("period: {}", self.period),
                  &format!("due_at_beginning: {}", self.due_at_beginning),
                  &format!("payment: {:.prec$}", self.payment, prec = precision),
@@ -475,7 +487,7 @@ impl TvmCashflowPeriod {
 // pub fn print_series_filtered(series: &[TvmPeriod], filter: )
 
 /*
-pub fn print_series_table(series: &[TvmCashflowPeriod], precision: usize) {
+pub fn print_series_table(series: &[CashflowPeriod], precision: usize) {
     if series.len() == 0 {
         return;
     }
@@ -512,7 +524,7 @@ pub fn print_series_table(series: &[TvmCashflowPeriod], precision: usize) {
 */
 
 /*
-pub fn print_series_table_locale(series: &[TvmCashflowPeriod], locale: &num_format::Locale, precision: usize) {
+pub fn print_series_table_locale(series: &[CashflowPeriod], locale: &num_format::Locale, precision: usize) {
     if series.len() == 0 {
         return;
     }
@@ -549,8 +561,8 @@ pub fn print_series_table_locale(series: &[TvmCashflowPeriod], locale: &num_form
 */
 
 /*
-pub fn print_series_table_filtered(series: &[TvmCashflowPeriod], predicate: P, precision: usize)
-    where P: FnMut(&TvmCashflowPeriod) -> bool
+pub fn print_series_table_filtered(series: &[CashflowPeriod], predicate: P, precision: usize)
+    where P: FnMut(&CashflowPeriod) -> bool
 {
 
 }

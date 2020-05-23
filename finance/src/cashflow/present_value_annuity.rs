@@ -35,7 +35,7 @@
 // Needed for the Rustdoc comments.
 use crate::present_value::present_value;
 use crate::future_value::future_value;
-use crate::tvm_cashflow::*;
+use crate::cashflow::*;
 
 /// Returns the **present value of an annuity** (series of constant cashflows) at a constant rate. Returns f64.
 ///
@@ -239,22 +239,22 @@ pub fn present_value_annuity_accumulator<T>(rate: f64, periods: u32, annuity: T,
 ///      symbolic_formula: "-annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate) * (1. + (rate * due));",
 ///  }
 /// ```
-pub fn present_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T, due_at_beginning: bool) -> TvmCashflowSolution
+pub fn present_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T, due_at_beginning: bool) -> CashflowSolution
     where T: Into<f64> + Copy
 {
     let annuity = cashflow.into();
     let pv = present_value_annuity(rate, periods, annuity, due_at_beginning);
     let pvann_type = if due_at_beginning {
-        TvmCashflowVariable::PresentValueAnnuityDue
+        CashflowVariable::PresentValueAnnuityDue
     } else {
-        TvmCashflowVariable::PresentValueAnnuity
+        CashflowVariable::PresentValueAnnuity
     };
     // check_present_value__annuity_varying_parameters(rate, periods, cashflow);
     let formula = format!("-{} * ((1. - (1. / (1. + {})).powf({})) / {}) * (1 + ({} * {}));", annuity, rate, periods, rate, rate, due_at_beginning as u32 as f64);
     let formula_symbolic = format!("-annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate) * (1. + (rate * due));");
     // let fv = future_value_annuity(rate, periods, cashflow);
     let fv = future_value(rate, periods, pv, false);
-    TvmCashflowSolution::new(pvann_type, rate, periods, pv, fv, due_at_beginning, annuity, &formula, &formula_symbolic)
+    CashflowSolution::new(pvann_type, rate, periods, pv, fv, due_at_beginning, annuity, &formula, &formula_symbolic)
 }
 
 #[cfg(test)]

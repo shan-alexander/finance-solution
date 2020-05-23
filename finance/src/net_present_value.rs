@@ -44,7 +44,7 @@
 //! ```
 
 
-// use crate::tvm_cashflow::*;
+// use crate::cashflow::*;
 // Needed for the Rustdoc comments.
 #[allow(unused_imports)]
 use crate::present_value_annuity::present_value_annuity;

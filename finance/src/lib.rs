@@ -6,37 +6,9 @@ use itertools::Itertools;
 extern crate float_cmp;
 pub extern crate num_format;
 
-pub mod future_value;
-#[doc(inline)]
-pub use future_value::*;
-
-pub mod payment;
-#[doc(inline)]
-pub use payment::*;
-
-pub mod present_value;
-#[doc(inline)]
-pub use present_value::*;
-
-pub mod present_value_annuity;
-#[doc(inline)]
-pub use present_value_annuity::*;
-
-pub mod future_value_annuity;
-#[doc(inline)]
-pub use future_value_annuity::*;
-
 pub mod net_present_value;
 #[doc(inline)]
 pub use net_present_value::*;
-
-pub mod rate;
-#[doc(inline)]
-pub use rate::*;
-
-pub mod periods;
-#[doc(inline)]
-pub use periods::*;
 
 pub mod convert_rate;
 #[doc(inline)]
@@ -46,13 +18,13 @@ pub mod round;
 #[doc(inline)]
 pub use round::*;
 
-pub mod tvm_cashflow;
+pub mod cashflow;
 #[doc(inline)]
-pub use tvm_cashflow::*;
+pub use cashflow::*;
 
-pub mod tvm_simple;
+pub mod tvm;
 #[doc(inline)]
-pub use tvm_simple::*;
+pub use tvm::*;
 
 pub mod tvm_convert_rate;
 #[doc(inline)]

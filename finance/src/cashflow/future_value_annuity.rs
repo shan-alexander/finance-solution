@@ -34,7 +34,7 @@
 // Needed for the Rustdoc comments and module.
 use crate::future_value::future_value;
 use crate::present_value::present_value;
-use crate::tvm_cashflow::*;
+use crate::cashflow::*;
 use crate::assert_approx_equal;
 
 fn check_future_value_annuity_parameters(rate:f64, periods:u32, cashflow:f64) {
@@ -191,15 +191,15 @@ pub fn future_value_annuity<T>(rate: f64, periods: u32, annuity: T, due_at_begin
 /// let my_annuity = future_value_annuity_solution(rate, periods, cashflow, due_at_beginning);
 /// dbg!(&my_annuity);
 /// ```
-pub fn future_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T, due_at_beginning: bool) -> TvmCashflowSolution
+pub fn future_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T, due_at_beginning: bool) -> CashflowSolution
     where T: Into<f64> + Copy
 {
     let annuity = cashflow.into();
     let fv = future_value_annuity(rate, periods, annuity, due_at_beginning);
     let fvann_type= if due_at_beginning {
-        TvmCashflowVariable::FutureValueAnnuityDue
+        CashflowVariable::FutureValueAnnuityDue
     } else {
-        TvmCashflowVariable::FutureValueAnnuity
+        CashflowVariable::FutureValueAnnuity
     };
     // check_future_value__annuity_varying_parameters(rate, periods, cashflow);
 
@@ -208,7 +208,7 @@ pub fn future_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T, du
     let formula_symbolic = format!("-annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate);");
     // let fv = future_value_annuity(rate, periods, cashflow);
     let pv = present_value(rate, periods, fv, false);
-    TvmCashflowSolution::new(fvann_type, rate, periods, pv, fv, due_at_beginning, annuity, &formula, &formula_symbolic)
+    CashflowSolution::new(fvann_type, rate, periods, pv, fv, due_at_beginning, annuity, &formula, &formula_symbolic)
 }
 
 #[cfg(test)]

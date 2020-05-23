@@ -14,8 +14,6 @@
 
 // use log::warn;
 
-use crate::tvm_simple::*;
-
 // Needed for the Rustdoc comments.
 #[allow(unused_imports)]
 use crate::*;

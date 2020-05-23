@@ -33,13 +33,13 @@
 //!
 //! ## Simple Compounding
 //!
-//! With simple compound interest, the number of periods is calculated with:
+//! With simple compound interest the number of periods is calculated with:
 //!
-//! <img src="http://i.upmath.me/svg/periods%20%3D%20%7Blog_%7B1%2Brate%7D%5Cleft(%7Bfuture%5C_value%20%5Cover%20present%5C_value%7D%5Cright)%20%5Cover%20rate%7D" />
+//! > <img src="http://i.upmath.me/svg/periods%20%3D%20%7Blog_%7B1%2Brate%7D%5Cleft(%7Bfuture%5C_value%20%5Cover%20present%5C_value%7D%5Cright)%20%5Cover%20rate%7D" />
 //!
 //! Or using some more common variable names:
 //!
-//! <img src="http://i.upmath.me/svg/n%20%3D%20%7Blog_%7B1%2Br%7D%5Cleft(%7Bfv%20%5Cover%20pv%7D%5Cright)%20%5Cover%20r%7D" />
+//! > <img src="http://i.upmath.me/svg/n%20%3D%20%7Blog_%7B1%2Br%7D%5Cleft(%7Bfv%20%5Cover%20pv%7D%5Cright)%20%5Cover%20r%7D" />
 //!
 //! `n` is often used for the number of periods, though it may be `t` for time if each period is
 //! assumed to be one year as in continuous compounding. `r` is the periodic rate, though this may
@@ -60,11 +60,11 @@
 //!
 //! With continuous compounding it's:
 //!
-//! <img src="http://i.upmath.me/svg/periods%20%3D%20%7Blog_e%5Cleft(%7Bfuture%5C_value%20%5Cover%20present%5C_value%7D%5Cright)%20%5Cover%20rate%7D" />
+//! > <img src="http://i.upmath.me/svg/periods%20%3D%20%7Blog_e%5Cleft(%7Bfuture%5C_value%20%5Cover%20present%5C_value%7D%5Cright)%20%5Cover%20rate%7D" />
 //!
 //! or:
 //!
-//! <img src="http://i.upmath.me/svg/n%20%3D%20%7Blog_e%5Cleft(%7Bfv%20%5Cover%20pv%7D%5Cright)%20%5Cover%20r%7D" />
+//! > <img src="http://i.upmath.me/svg/n%20%3D%20%7Blog_e%5Cleft(%7Bfv%20%5Cover%20pv%7D%5Cright)%20%5Cover%20r%7D" />
 //!
 //! With continuous compounding the period is assumed to be years and `t` (time) is often used as
 //! the variable name. Within this crate we stick with `n` for the number of periods so that it's
@@ -77,7 +77,7 @@
 
 // use log::warn;
 
-use crate::tvm_simple::*;
+use super::tvm::*;
 
 // Needed for the Rustdoc comments.
 #[allow(unused_imports)]

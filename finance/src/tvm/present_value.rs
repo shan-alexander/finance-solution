@@ -63,7 +63,7 @@
 
 use log::warn;
 
-use crate::tvm_simple::*;
+use super::tvm::*;
 
 // Needed for the Rustdoc comments.
 #[allow(unused_imports)]
