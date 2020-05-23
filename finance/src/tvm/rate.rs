@@ -1,5 +1,5 @@
-//! **Periodic rate calculations.** Given an initial investment amount, a final amount, and a number of
-//! periods such as periods, what does the rate per period need to be?
+//! **Periodic rate calculations.** Given an initial investment amount, a final amount, and a number
+//! of periods what does the rate per period need to be?
 //! 
 //! For most common usages, we recommend the [`rate_solution`](./fn.rate_solution.html) function to provide the best experience with debugging and additional features.
 //!
@@ -11,6 +11,38 @@
 // !
 // ! If you need to calculate the number of periods given a fixed rate and a present and future value
 // ! use [`periods`] or related functions.
+//! # Formulas
+//!
+//! ## Simple Compounding
+//!
+//! With simple compound interest the rate is calculated with:
+//!
+//! > <img src="http://i.upmath.me/svg/rate%20%3D%20%5Csqrt%5Bperiods%5D%7B%5Cfrac%7Bfuture%5C_value%7D%7Bpresent%5C_value%7D%7D%20-%201" />
+//!
+//! Or using a few more common variable names:
+//!
+//! > <img src="http:i.upmath.me/svg/r%20%3D%20%5Csqrt%5Bn%5D%7B%5Cfrac%7Bfv%7D%7Bpv%7D%7D%20-%201" />
+//!
+//! `r` is the periodic rate, though this may appear as `i` for interest. `n` is often used for the
+//! number of periods, though it may be `t` for time if each period is assumed to be one year as in
+//! continuous compounding.
+//!
+//! Throughout this crate we use `pv` for present value and `fv` for future value. You may see these
+//! values called `P` for principal in some references.
+//!
+//! ## Continuous Compounding
+//!
+//! With continuous compounding the formula is:
+//!
+//! > <img src="http://i.upmath.me/svg/rate%20%3D%20%5Cfrac%7B%5Cln%5Cleft(%5Cfrac%7Bfuture%5C_value%7D%7Bpresent%5C_value%7D%5Cright)%7D%7Bperiods%7D" />
+//!
+//! or:
+//!
+//! > <img src="http://i.upmath.me/svg/r%20%3D%20%5Cfrac%7B%5Cln%5Cleft(%5Cfrac%7Bfv%7D%7Bpv%7D%5Cright)%7Dn" />
+//!
+//! With continuous compounding the period is assumed to be years and `t` (time) is often used as
+//! the variable name. Within this crate we stick with `n` for the number of periods so that all of
+//! the functions use the same variables.
 
 // use log::warn;
 
@@ -146,7 +178,7 @@ fn rate_internal(periods: u32, present_value: f64, future_value: f64, continuous
 
     let rate = if continuous_compounding {
         // http://www.edmichaelreggie.com/TMVContent/APR.htm
-        (future_value / present_value).log(std::f64::consts::E) / periods as f64
+        (future_value / present_value).ln() / periods as f64
     } else {
         (future_value / present_value).powf(1.0 / periods as f64) - 1.0
     };
@@ -170,8 +202,8 @@ pub (crate) fn rate_solution_internal(periods: u32, present_value: f64, future_v
 
     let rate = rate_internal(periods, present_value, future_value, continuous_compounding);
     let (formula, symbolic_formula) = if continuous_compounding {
-        let formula = format!("{:.6} = log({:.4} / {:.4}, base {:.6}) / {}", rate, future_value, present_value, std::f64::consts::E, periods);
-        let symbolic_formula = "r = log(fv / pv, base e) / t";
+        let formula = format!("{:.6} = ln({:.4} / {:.4}) / {}", rate, future_value, present_value, periods);
+        let symbolic_formula = "r = ln(fv / pv) / t";
         (formula, symbolic_formula)
     } else {
         let formula = format!("{:.6} = (({:.4} / {:.4}) ^ (1 / {})) - 1", rate, future_value, present_value, periods);

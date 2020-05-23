@@ -92,3 +92,48 @@ fn check_formulas() {
     dbg!(&solution, &solution.series());
 }
 */
+
+/*
+https://i.upmath.me/g/
+
+Simple compounding.
+Original:
+        (future_value / present_value).powf(1.0 / periods as f64) - 1.0
+LaTeX:
+rate = \sqrt[periods]{\frac{future\_value}{present\_value}} - 1
+//i.upmath.me/svg/rate%20%3D%20%5Csqrt%5Bperiods%5D%7B%5Cfrac%7Bfuture%5C_value%7D%7Bpresent%5C_value%7D%7D%20-%201
+r = \sqrt[n]{\frac{fv}{pv}} - 1
+//i.upmath.me/svg/r%20%3D%20%5Csqrt%5Bn%5D%7B%5Cfrac%7Bfv%7D%7Bpv%7D%7D%20-%201
+
+
+Continuous compounding.
+Original:
+        (future_value / present_value).ln() / periods as f64
+LaTeX:
+rate = \frac{\ln\left(\frac{future\_value}{present\_value}\right)}{periods}
+//i.upmath.me/svg/rate%20%3D%20%5Cfrac%7B%5Cln%5Cleft(%5Cfrac%7Bfuture%5C_value%7D%7Bpresent%5C_value%7D%5Cright)%7D%7Bperiods%7D
+r = \frac{\ln\left(\frac{fv}{pv}\right)}n
+//i.upmath.me/svg/r%20%3D%20%5Cfrac%7B%5Cln%5Cleft(%5Cfrac%7Bfv%7D%7Bpv%7D%5Cright)%7Dn
+
+
+
+
+
+
+
+        (future_value / present_value).ln() / periods as f64
+    } else {
+
+
+
+        let symbolic_formula = "r = log(fv / pv, base e) / t";
+        (formula, symbolic_formula)
+    } else {
+        let formula = format!("{:.6} = (({:.4} / {:.4}) ^ (1 / {})) - 1", rate, future_value, present_value, periods);
+        let symbolic_formula = "r = ((fv / pv) ^ (1 / n)) - 1";
+
+
+
+
+*/
+
