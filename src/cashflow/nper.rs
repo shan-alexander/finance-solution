@@ -1,5 +1,5 @@
 //! **Number of periods calculations for scenarios with payments.** Returns the number of periods required for a Present Value to achieve a Future Value with a given set 
-//! of annuities (payments) at a specified periodic rate.
+//! of annuities (payments) at a specified periodic rate. The only module still in beta.
 
 use log::{warn};
 use libm::log10;
@@ -9,7 +9,7 @@ use libm::log10;
 
 // To do in next release: add nper_due functions
 
-/// Returns the number of periods required for an annuity (payments) to reach a future value, at a specified periodic rate.
+/// Returns the number of periods required for an annuity (payments) to reach a future value, at a specified periodic rate. Still in beta.
 ///
 /// Related functions:
 /// * To calculate nper while retaining the input values use
