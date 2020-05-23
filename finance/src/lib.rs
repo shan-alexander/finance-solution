@@ -6,10 +6,6 @@ use itertools::Itertools;
 extern crate float_cmp;
 pub extern crate num_format;
 
-pub mod net_present_value;
-#[doc(inline)]
-pub use net_present_value::*;
-
 pub mod convert_rate;
 #[doc(inline)]
 pub use convert_rate::*;

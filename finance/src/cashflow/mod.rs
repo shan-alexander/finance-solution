@@ -23,6 +23,14 @@ pub mod present_value_annuity;
 #[doc(inline)]
 pub use present_value_annuity::*;
 
+pub mod net_present_value;
+#[doc(inline)]
+pub use net_present_value::*;
+
+pub mod nper;
+#[doc(inline)]
+pub use nper::*;
+
 #[derive(Debug, Clone)]
 pub enum CashflowVariable {
     PresentValueAnnuity,
