@@ -4,6 +4,8 @@
 use super::convert_rate;
 use super::nper::{nper, NperSolution};
 
+use finance_solution::*;
+
 pub fn main() {
     try_problem_1();
     try_problem_2();
@@ -19,12 +21,12 @@ fn try_problem_1() {
     let t = 10;
     let pv = 2500;
     let r = 0.04;
-    let answer_a = finance::future_value(r, pv, t, false);
+    let answer_a = future_value(r, pv, t, false);
     // expect $3,700.61
     dbg!(answer_a);
 
     // Compounded quarterly, thus 4 compounding periods per year
-    let answer_b = finance::future_value(r, pv, t * 4, false);
+    let answer_b = future_value(r, pv, t * 4, false);
     // expect $3,722.16
     dbg!(answer_b);
 }
@@ -41,7 +43,7 @@ fn try_problem_2() {
     let periodic_rate = convert_rate::convert_apr_to_epr(apr, num_compounding_periods_in_year);
     let num_periods = 5 * num_compounding_periods_in_year; // 5 years, 2 compounds per year
     let pv_amount = 10_000;
-    let fv_answer = finance::future_value(periodic_rate, pv_amount, num_periods, false);
+    let fv_answer = future_value(periodic_rate, pv_amount, num_periods, false);
     // expect $14,802.44
     dbg!(fv_answer);
 }
@@ -57,7 +59,7 @@ fn try_problem_3() {
     let apr = 0.05;
     let num_periods = 10;
     let fv_amount = 500_000;
-    let pv_answer = finance::present_value(apr, fv_amount, num_periods, false);
+    let pv_answer = present_value(apr, fv_amount, num_periods, false);
     // expect $306,959.63
     dbg!(pv_answer);
 }

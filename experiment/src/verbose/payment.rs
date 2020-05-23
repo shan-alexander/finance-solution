@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use finance_solution::*;
+
 pub fn main() {
     // try_payment_debug();
     // try_payment_due_debug();
@@ -18,115 +20,115 @@ pub fn main() {
     // generate_scenarios_for_excel();
     // find_numerator_failures();
     // find_calculation_failure_curve();
-    // dbg!(finance::payment(0.23, 3000, -123_456.7, -12_345.67));
+    // dbg!(payment(0.23, 3000, -123_456.7, -12_345.67));
     // try_specify_type_1();
     // show_payment_series_rounding_issue();
     ab_comparison_for_docs_due_at_beginning_or_end();
 }
 
 fn try_payment_debug() {
-    let pv_positive_fv_zero = finance::payment_solution(0.034, 10, 100.0, 0.0, false);
+    let pv_positive_fv_zero = payment_solution(0.034, 10, 100.0, 0.0, false);
     dbg!(pv_positive_fv_zero);
     println!();
 
-    let pv_zero_fv_positive = finance::payment_solution(0.034, 10, 0.0, 100.0, false);
+    let pv_zero_fv_positive = payment_solution(0.034, 10, 0.0, 100.0, false);
     dbg!(pv_zero_fv_positive);
     println!();
 
-    let pv_positive_fv_positive = finance::payment_solution(0.034, 10, 100.0, 25.0, false);
+    let pv_positive_fv_positive = payment_solution(0.034, 10, 100.0, 25.0, false);
     dbg!(pv_positive_fv_positive);
     println!();
 
-    let pv_negative_fv_zero = finance::payment_solution(0.034, 10, -100.0, 0.0, false);
+    let pv_negative_fv_zero = payment_solution(0.034, 10, -100.0, 0.0, false);
     dbg!(pv_negative_fv_zero);
     println!();
 
-    let pv_negative_fv_negative = finance::payment_solution(0.034, 10, -100.0, -25.0, false);
+    let pv_negative_fv_negative = payment_solution(0.034, 10, -100.0, -25.0, false);
     dbg!(pv_negative_fv_negative);
     println!();
 
-    let rate_zero_pv_positive_fv_zero = finance::payment_solution(0.0, 10, 100.0, 0.0, false);
+    let rate_zero_pv_positive_fv_zero = payment_solution(0.0, 10, 100.0, 0.0, false);
     dbg!(rate_zero_pv_positive_fv_zero);
     println!();
 
-    let rate_zero_pv_positive_fv_positive = finance::payment_solution(0.0, 10, 100.0, 25.0, false);
+    let rate_zero_pv_positive_fv_positive = payment_solution(0.0, 10, 100.0, 25.0, false);
     dbg!(rate_zero_pv_positive_fv_positive);
     println!();
 
-    let rate_zero_pv_negative_fv_zero = finance::payment_solution(0.0, 10, -100.0, 0.0, false);
+    let rate_zero_pv_negative_fv_zero = payment_solution(0.0, 10, -100.0, 0.0, false);
     dbg!(rate_zero_pv_negative_fv_zero);
     println!();
 
-    let rate_zero_pv_negative_fv_negative = finance::payment_solution(0.0, 10, -100.0, -25.0, false);
+    let rate_zero_pv_negative_fv_negative = payment_solution(0.0, 10, -100.0, -25.0, false);
     dbg!(rate_zero_pv_negative_fv_negative);
     println!();
 
-    let rate_negative = finance::payment_solution(-0.034, 10, 100.0, 200.0, false);
+    let rate_negative = payment_solution(-0.034, 10, 100.0, 200.0, false);
     dbg!(rate_negative);
     println!();
 
-    let periods_zero = finance::payment_solution(0.034, 0, 100.0, -100.0, false);
+    let periods_zero = payment_solution(0.034, 0, 100.0, -100.0, false);
     dbg!(periods_zero);
     println!();
 }
 
 fn try_payment_due_debug() {
-    let pv_positive_fv_zero = finance::payment_solution(0.034, 10, 100.0, 0.0, false);
+    let pv_positive_fv_zero = payment_solution(0.034, 10, 100.0, 0.0, false);
     dbg!(pv_positive_fv_zero, false);
     println!();
 
-    let pv_zero_fv_positive = finance::payment_solution(0.034, 10, 0.0, 100.0, false);
+    let pv_zero_fv_positive = payment_solution(0.034, 10, 0.0, 100.0, false);
     dbg!(pv_zero_fv_positive, false);
     println!();
 
-    let pv_positive_fv_positive = finance::payment_solution(0.034, 10, 100.0, 25.0, false);
+    let pv_positive_fv_positive = payment_solution(0.034, 10, 100.0, 25.0, false);
     dbg!(pv_positive_fv_positive, false);
     println!();
 
-    let pv_negative_fv_zero = finance::payment_solution(0.034, 10, -100.0, 0.0, false);
+    let pv_negative_fv_zero = payment_solution(0.034, 10, -100.0, 0.0, false);
     dbg!(pv_negative_fv_zero, false);
     println!();
 
-    let pv_negative_fv_negative = finance::payment_solution(0.034, 10, -100.0, -25.0, false);
+    let pv_negative_fv_negative = payment_solution(0.034, 10, -100.0, -25.0, false);
     dbg!(pv_negative_fv_negative, false);
     println!();
 
-    let rate_zero_pv_positive_fv_zero = finance::payment_solution(0.0, 10, 100.0, 0.0, false);
+    let rate_zero_pv_positive_fv_zero = payment_solution(0.0, 10, 100.0, 0.0, false);
     dbg!(rate_zero_pv_positive_fv_zero, false);
     println!();
 
-    let rate_zero_pv_positive_fv_positive = finance::payment_solution(0.0, 10, 100.0, 25.0, false);
+    let rate_zero_pv_positive_fv_positive = payment_solution(0.0, 10, 100.0, 25.0, false);
     dbg!(rate_zero_pv_positive_fv_positive, false);
     println!();
 
-    let rate_zero_pv_negative_fv_zero = finance::payment_solution(0.0, 10, -100.0, 0.0, false);
+    let rate_zero_pv_negative_fv_zero = payment_solution(0.0, 10, -100.0, 0.0, false);
     dbg!(rate_zero_pv_negative_fv_zero, false);
     println!();
 
-    let rate_zero_pv_negative_fv_negative = finance::payment_solution(0.0, 10, -100.0, -25.0, false);
+    let rate_zero_pv_negative_fv_negative = payment_solution(0.0, 10, -100.0, -25.0, false);
     dbg!(rate_zero_pv_negative_fv_negative, false);
     println!();
 
-    let rate_negative = finance::payment_solution(-0.034, 10, 100.0, 200.0, false);
+    let rate_negative = payment_solution(-0.034, 10, 100.0, 200.0, false);
     dbg!(rate_negative, false);
     println!();
 }
 
 fn try_formulas() {
-    let pv_positive_fv_positive = finance::payment_solution(0.034, 10, 100.0, 25.0, false);
+    let pv_positive_fv_positive = payment_solution(0.034, 10, 100.0, 25.0, false);
     dbg!(&pv_positive_fv_positive);
     // The formula is "(((100.0000 * 1.034000^10) + 25.0000) * -0.034000) / (1.034000^10 - 1)".
     let formula_result = (((100.0000 * 1.034000f64.powi(10)) + 25.0000) * -0.034000) / (1.034000f64.powi(10) - 1.0);
     dbg!(formula_result);
-    finance::assert_rounded_6!(formula_result, pv_positive_fv_positive.payment());
+    assert_rounded_6!(formula_result, pv_positive_fv_positive.payment());
     println!();
 
-    let pv_positive_fv_zero = finance::payment_solution(0.034, 10, 100.0, 0.0, false);
+    let pv_positive_fv_zero = payment_solution(0.034, 10, 100.0, 0.0, false);
     dbg!(&pv_positive_fv_zero);
     // The formula is "((100.0000 * 1.034000^10) * -0.034000) / (1.034000^10 - 1)".
     let formula_result = ((100.0000 * 1.034000f64.powi(10)) * -0.034000) / (1.034000f64.powi(10) - 1.0);
     dbg!(formula_result);
-    finance::assert_rounded_6!(formula_result, pv_positive_fv_zero.payment());
+    assert_rounded_6!(formula_result, pv_positive_fv_zero.payment());
     println!();
 }
 
@@ -136,7 +138,7 @@ fn try_payment_series() {
     let periods = years * 12;
     let present_value = 100_000.0;
     let future_value = 0.0;
-    let solution = finance::payment_solution(rate, periods, present_value, future_value, false);
+    let solution = payment_solution(rate, periods, present_value, future_value, false);
     dbg!(&solution);
     let series = solution.series();
     dbg!(&series);
@@ -150,7 +152,7 @@ fn try_payment_due_at_beginning_series() {
     let periods = 12;
     let present_value = 20_000.0;
     let future_value = 0.0;
-    let solution = finance::payment_solution(rate, periods, present_value, future_value, true);
+    let solution = payment_solution(rate, periods, present_value, future_value, true);
     dbg!(&solution);
     dbg!(&solution.series());
 }
@@ -160,7 +162,7 @@ fn try_test_combination_examples() {
     let periods = 1;
     let present_value = -10;
     let future_value = -10;
-    let solution = finance::payment_solution(rate, periods, present_value, future_value, false);
+    let solution = payment_solution(rate, periods, present_value, future_value, false);
     dbg!(&solution);
     dbg!(&solution.series());
 }
@@ -181,11 +183,11 @@ fn try_test_against_excel_ipmt_month_1() {
     let future_value = 0.0;
     let exp_payment = -1_727.95439349254;
 
-    let payment_1 = finance::payment(rate, periods, present_value, future_value, false);
-    finance::assert_approx_equal!(exp_payment, payment_1);
-    let solution = finance::payment_solution(rate, periods, present_value, future_value, false);
+    let payment_1 = payment(rate, periods, present_value, future_value, false);
+    assert_approx_equal!(exp_payment, payment_1);
+    let solution = payment_solution(rate, periods, present_value, future_value, false);
     dbg!(&solution);
-    finance::assert_approx_equal!(exp_payment, solution.payment());
+    assert_approx_equal!(exp_payment, solution.payment());
 }
 
 fn try_test_against_excel_ipmt_month_2() {
@@ -194,13 +196,13 @@ fn try_test_against_excel_ipmt_month_2() {
     let present_value = 20_000.0;
     let future_value = 0.0;
     let exp_payment = -1_718.11298960604;
-    let solution = finance::payment_solution(rate, periods, present_value, future_value, true);
+    let solution = payment_solution(rate, periods, present_value, future_value, true);
     dbg!(&solution);
-    finance::assert_approx_equal!(exp_payment, solution.payment());
+    assert_approx_equal!(exp_payment, solution.payment());
 }
 
 fn try_ab_comparison_table_formatting() {
-    let locale = finance::num_format::Locale::en;
+    let locale = num_format::Locale::en;
     let _precision = 2;
 
     let years = 1;
@@ -208,8 +210,8 @@ fn try_ab_comparison_table_formatting() {
     let periods = years * 12;
     let present_value = -10_000.0;
     let future_value = 0.0;
-    let solution_due_at_start = finance::payment_solution(rate, periods, present_value, future_value, true);
-    let solution_due_at_end = finance::payment_solution(rate, periods, present_value, future_value, false);
+    let solution_due_at_start = payment_solution(rate, periods, present_value, future_value, true);
+    let solution_due_at_end = payment_solution(rate, periods, present_value, future_value, false);
 
     solution_due_at_start.print_ab_comparison_locale(&solution_due_at_end, true, true, &locale, 0);
     solution_due_at_start.print_ab_comparison_locale(&solution_due_at_end, true, false, &locale, 2);
@@ -218,16 +220,16 @@ fn try_ab_comparison_table_formatting() {
 }
 
 fn try_ab_comparison_field_diffs() {
-    let locale_en = finance::num_format::Locale::en;
-    let locale_vi = finance::num_format::Locale::vi;
+    let locale_en = num_format::Locale::en;
+    let locale_vi = num_format::Locale::vi;
 
     let years = 1;
     let rate = 0.11 / 12.0;
     let periods = years * 12;
     let present_value = -10_000.0;
     let future_value = 0.0;
-    let solution_a = finance::payment_solution(rate, periods, present_value + 1_000.0, future_value, false);
-    let solution_b = finance::payment_solution(rate, periods -3, present_value, future_value, false);
+    let solution_a = payment_solution(rate, periods, present_value + 1_000.0, future_value, false);
+    let solution_b = payment_solution(rate, periods -3, present_value, future_value, false);
 
     // Try the comparison with two different locales and with the default Rust-style formatting.
     solution_a.print_ab_comparison_locale(&solution_b, true, true, &locale_en, 2);
@@ -254,12 +256,12 @@ fn try_payment_doc_example_1() {
     let future_value = 0;
 
     // Call payment() instead of payment_due() because the payment is due at the end of the month.
-    let payment = finance::payment(rate, periods, present_value, future_value, false);
+    let payment = payment(rate, periods, present_value, future_value, false);
     dbg!(payment);
 
     // The payment is $212.47/month. Since the principal/present value was positive the payment is
     // negative.
-    finance::assert_rounded_4(payment, -212.4704);
+    assert_rounded_4(payment, -212.4704);
 }
 
 fn try_payment_solution_doc_example_1() {
@@ -279,21 +281,21 @@ fn try_payment_solution_doc_example_1() {
 
     // Call payment_solution() instead of payment_due_solution() because the payment is due at the
     // end of each month.
-    let solution = finance::payment_solution(rate, periods, present_value, future_value, false);
+    let solution = payment_solution(rate, periods, present_value, future_value, false);
     // Display the inputs, payment amount, formulas, sum of interest, etc.
     dbg!(&solution);
 
     // The payment is $327.65/month. Since the principal/present value was negative the payment is
     // positive.
-    finance::assert_rounded_4(solution.payment(), 327.6538);
+    assert_rounded_4(solution.payment(), 327.6538);
 
     // The sum of payments is simply the monthly payment times the number of months.
-    finance::assert_rounded_4(solution.sum_of_payments(), 15_727.3820);
+    assert_rounded_4(solution.sum_of_payments(), 15_727.3820);
 
     // The sum of interest is the portion of the sum of payments that is over and above the original
     // loan amount. Here we add the present value since it has the opposite sign of the payments.
-    finance::assert_rounded_4(solution.sum_of_interest(), solution.sum_of_payments() + solution.present_value());
-    finance::assert_rounded_4(solution.sum_of_interest(), 3_226.8820);
+    assert_rounded_4(solution.sum_of_interest(), solution.sum_of_payments() + solution.present_value());
+    assert_rounded_4(solution.sum_of_interest(), 3_226.8820);
 
     // Examine the formulas. Since the future value is zero we expect to see a slightly simplified
     // formula.
@@ -318,7 +320,7 @@ fn try_payment_solution_doc_example_1() {
     // Show all columns including running totals and remaining amounts.
     let include_running_totals = true;
     let include_remaining_amounts = true;
-    series.print_table_locale(include_running_totals, include_remaining_amounts, &finance::num_format::Locale::en, 2);
+    series.print_table_locale(include_running_totals, include_remaining_amounts, &num_format::Locale::en, 2);
 
     // Print a table with only the last period of each year, that is all of the periods that can be
     // divided by 12. Include the running totals columns but not remaining amounts.
@@ -326,7 +328,7 @@ fn try_payment_solution_doc_example_1() {
     let include_remaining_amounts = false;
     series
         .filter(|entry| entry.period() % 12 == 0)
-        .print_table_locale(include_running_totals, include_remaining_amounts, &finance::num_format::Locale::en, 2);
+        .print_table_locale(include_running_totals, include_remaining_amounts, &num_format::Locale::en, 2);
 
     // Print a table starting at the first period where at least 95% of the interest has been paid
     // off, and round all dollar amounts to whole numbers by passing zero as the second argument to
@@ -335,14 +337,14 @@ fn try_payment_solution_doc_example_1() {
     let include_remaining_amounts = true;
     series
         .filter(|entry| entry.interest_to_date() >= solution.sum_of_interest() * 0.95)
-        .print_table_locale(include_running_totals, include_remaining_amounts, &finance::num_format::Locale::en, 0);
+        .print_table_locale(include_running_totals, include_remaining_amounts, &num_format::Locale::en, 0);
 }
 
 fn try_payment_series_doc_example_1() {
     let years = 5;
 
     // The annual percentage rate is 15% and the interest will compound monthly.
-    let rate = finance::convert_apr_to_epr(0.15, 12);
+    let rate = convert_apr_to_epr(0.15, 12);
 
     // Each period will be one month.
     let periods = years * 12;
@@ -358,7 +360,7 @@ fn try_payment_series_doc_example_1() {
 
     // Calculate the payment, creating a struct that contains additional information and the option
     // to generate period-by-period details.
-    let solution = finance::payment_solution(rate, periods, present_value, future_value, due_at_beginning);
+    let solution = payment_solution(rate, periods, present_value, future_value, due_at_beginning);
     dbg!(&solution);
 
     // Calculate the month-by-month details including the principal and interest paid every month.
@@ -371,7 +373,7 @@ fn try_payment_series_doc_example_1() {
     // Print the period detail numbers as a formatted table.
     let include_running_totals = true;
     let include_remaining_amounts = true;
-    let locale = finance::num_format::Locale::en;
+    let locale = num_format::Locale::en;
     let precision = 2; // Two decimal places.
     series.print_table_locale(include_running_totals, include_remaining_amounts, &locale, precision);
 
@@ -393,7 +395,7 @@ fn generate_scenarios_for_excel() {
             for present_value in value_list.iter() {
                 for future_value in value_list.iter() {
                     if !(*periods == 0 && *present_value != *future_value) {
-                        // dbg!(finance::payment_solution(*rate, *periods, *present_value, *future_value));
+                        // dbg!(payment_solution(*rate, *periods, *present_value, *future_value));
                         for due_at_beginning in [0, 1].iter() {
                             if counter % ratio == 0 {
                                 println!("{}\t{}\t{}\t{}\t{}", *rate, *periods, *present_value, *future_value, *due_at_beginning);
@@ -511,8 +513,8 @@ fn try_specify_type_1() {
 }
 
 fn show_payment_series_rounding_issue() {
-    let locale = finance::num_format::Locale::en;
-    // let locale = finance::num_format::Locale::vi;
+    let locale = num_format::Locale::en;
+    // let locale = num_format::Locale::vi;
     let precision = 12;
 
     let rate = 0.05;
@@ -521,53 +523,53 @@ fn show_payment_series_rounding_issue() {
     let future_value = 0.0;
 
     let periods = 12;
-    let solution = finance::payment_solution(rate, periods, present_value, future_value, false);
+    let solution = payment_solution(rate, periods, present_value, future_value, false);
     println!();
     dbg!(&solution);
     let series = solution.series();
-    // finance::print_series_table(&series, precision);
+    // print_series_table(&series, precision);
     series.print_table_locale(true, true, &locale, precision);
 
-    finance::payment_solution(rate, periods, present_value, future_value, false)
+    payment_solution(rate, periods, present_value, future_value, false)
         .series()
         .print_table_locale(true, false, &locale, precision);
 
-    finance::payment_solution(rate, periods, present_value, future_value, false)
+    payment_solution(rate, periods, present_value, future_value, false)
         .series()
         .filter(|x| x.period() % 4 == 0)
         .print_table_locale(false, true, &locale, precision);
 
     /*
     let periods = 1_200;
-    let solution = finance::payment_solution(rate, periods, present_value, future_value);
+    let solution = payment_solution(rate, periods, present_value, future_value);
     println!();
     dbg!(&solution);
     let series = solution.series();
-    let series_filtered: Vec<finance::TvmCashflowPeriod> = series.iter()
+    let series_filtered: Vec<TvmCashflowPeriod> = series.iter()
         .filter(|x| x.period() <= 5 || x.period() >= (periods - 5) || x.period() % 50 == 0)
         // .filter(|x| x.period() >= (periods - 5))
         .map(|x| x.clone())
         .collect::<Vec<_>>();
-    finance::print_series_table(&series_filtered[..], precision);
-    //finance::print_series_table_locale(&series_filtered[..], &locale, precision);
+    print_series_table(&series_filtered[..], precision);
+    //print_series_table_locale(&series_filtered[..], &locale, precision);
     */
 }
 
 fn ab_comparison_for_docs_due_at_beginning_or_end() {
     let (rate, periods, present_value, due_at_beginning) = (0.01, 120, 100_000, false);
 
-    let pmt_positive_present_value = finance::payment(rate, periods, present_value, 0.0, due_at_beginning);
-    finance::assert_rounded_2!(-1_434.71, pmt_positive_present_value);
+    let pmt_positive_present_value = payment(rate, periods, present_value, 0.0, due_at_beginning);
+    assert_rounded_2!(-1_434.71, pmt_positive_present_value);
 
-    let pmt_negative_present_value = finance::payment(rate, periods, -present_value, 0.0, due_at_beginning);
-    finance::assert_rounded_2!(1_434.71, pmt_negative_present_value);
+    let pmt_negative_present_value = payment(rate, periods, -present_value, 0.0, due_at_beginning);
+    assert_rounded_2!(1_434.71, pmt_negative_present_value);
 
     dbg!(pmt_positive_present_value, pmt_negative_present_value);
 
     /*
-    let solution_b = finance::payment_solution(rate, periods, present_value, 0.0, true);
+    let solution_b = payment_solution(rate, periods, present_value, 0.0, true);
     dbg!(&solution_a, &solution_b);
-    solution_a.print_ab_comparison_locale(&solution_b, false, true, &finance::num_format::Locale::en, 2);
+    solution_a.print_ab_comparison_locale(&solution_b, false, true, &num_format::Locale::en, 2);
     */
 }
 

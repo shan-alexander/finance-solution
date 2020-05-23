@@ -30,7 +30,7 @@
 //! The solution functions provide helpful information in the `dbg!()` output, for example:
 //! 
 //! ```
-//! # use finance::*;
+//! # use finance_solution::*;
 //! // Example 1: Give the apr function an apr and compounding-periods-per-year. 
 //! let rate = apr(0.034, 12);
 //! dbg!(rate);
@@ -54,7 +54,7 @@
 //! ```
 //! Example 2: explicit call to f64 function
 //! ```
-//! # use finance::*;
+//! # use finance_solution::*;
 //! 
 //! let apr = convert_apr_to_ear(0.034, 12);
 //! dbg!(apr);
@@ -65,7 +65,7 @@
 //! ```
 //! Example 3: explicit call to _solution function
 //! ```
-//! # use finance::*;
+//! # use finance_solution::*;
 //! 
 //! let apr = convert_rate::convert_apr_to_ear_solution(0.034, 12);  // provides same output as apr! macro                                                       
 //! dbg!(apr.ear());
@@ -76,7 +76,7 @@
 //! ```
 //! Here are a few variations of how someone can use the `convert_rate` module functions:
 //! ```
-//! # use finance::*;
+//! # use finance_solution::*;
 //! // What is the future value of $500 in 1 year 
 //! // if the APR is 3.4% and it's compounded monthly?
 //! // Solve twice, first using EPR and then using EAR.
@@ -103,7 +103,7 @@
 //! ```
 //! Now let's doublecheck the previous answer.
 //! ```
-//! # use finance::*;
+//! # use finance_solution::*;
 //! // Double-check the previous answer_1 by solving the future_value
 //! // using 1 year as the period and the effective annual rate, 
 //! // instead of using 12 monthly periods of the periodic rate.
@@ -260,7 +260,7 @@ pub fn epr(epr:f64, compounding_periods_in_year:u32) -> ConvertRateSolution {
 /// # Examples
 /// Convert annual rate to effective annual rate.
 /// ```
-/// use finance::*;
+/// use finance_solution::*;
 /// // The annual percentage rate is 3.4% and 12 compounding periods per year.
 /// let nominal_rate = 0.034;
 /// let periods = 12;
@@ -295,7 +295,7 @@ pub fn convert_apr_to_ear(apr: f64, compounding_periods_in_year: u32) -> f64 {
 /// # Examples
 /// /// Convert annual rate to effective annual rate.
 /// ```
-/// use finance::*;
+/// use finance_solution::*;
 /// // The annual percentage rate is 3.4%.
 /// let nominal_rate = 0.034;
 ///
@@ -333,7 +333,7 @@ pub fn convert_apr_to_ear_solution(apr: f64, compounding_periods_in_year: u32) -
 /// # Examples
 /// Convert annual rate to periodic rate.
 /// ```
-/// use finance::*;
+/// use finance_solution::*;
 /// // The annual percentage rate is 3.4%.
 /// let nominal_rate = 0.034;
 ///
@@ -377,7 +377,7 @@ pub fn convert_apr_to_epr_solution(apr: f64, compounding_periods_in_year: u32) -
 /// # Examples
 /// Convert effective annual rate (EAR) to annual percentage rate (APR).
 /// ```
-/// use finance::*;
+/// use finance_solution::*;
 /// // The effective annual rate is 3.4534%
 /// let effective_annual_rate = 0.03453486936;
 ///
@@ -414,7 +414,7 @@ pub fn convert_ear_to_apr(ear: f64, compounding_periods_in_year: u32) -> f64 {
 /// # Examples
 /// Convert effective annual rate (EAR) to annual percentage rate (APR).
 /// ```
-/// use finance::*;
+/// use finance_solution::*;
 /// // The effective annual rate is 3.453486936028982%
 /// let effective_annual_rate = 0.03453486936028982;
 ///
@@ -455,7 +455,7 @@ pub fn convert_ear_to_apr_solution(ear: f64, compounding_periods_in_year: u32) -
 /// # Examples
 /// Convert effective annual rate to periodic rate.
 /// ```
-/// use finance::*;
+/// use finance_solution::*;
 /// // The effective annual rate is 3.4534%.
 /// let effective_annual_rate = 0.03453486936;
 ///

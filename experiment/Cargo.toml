@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 # num-traits = "0.2"
 # ordered-float = "0.5.0"
-finance = { path = "../finance" }
+finance-solution = { path = "../finance" }
 float-cmp = "0.6.0"
 log = "0.4.8"
 env_logger = "0.7.1"

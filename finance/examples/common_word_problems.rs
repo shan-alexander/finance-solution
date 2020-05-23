@@ -9,8 +9,8 @@
 // https://www.studocu.com/en-us/document/wichita-state-university/financial-management-ii/assignments/time-value-of-money-practice-problems-and-solutions/1915379/view
 // http://mupfc.marshall.edu/~brozik/timevalueweb.pdf
 
-// use finance::{present_value_solution, future_value_solution, future_value, periods_solution, periods};
-use finance::*;
+// use finance_solution::{present_value_solution, future_value_solution, future_value, periods_solution, periods};
+use finance_solution::*;
 use num_format::{Locale};
 
 pub fn main() {
@@ -190,7 +190,7 @@ fn rate_problem_2() {
 
     // Starting with the same present value and compounding once per year using the EAR should give
     // us the future value we started with. If so this means we correctly calculated the rate above.
-    let check_future_value = finance::future_value(ear, years, present_value, false);
+    let check_future_value = finance_solution::future_value(ear, years, present_value, false);
     dbg!(check_future_value);
     assert_rounded_4(check_future_value, future_value as f64);
 }

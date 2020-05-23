@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use finance_solution::*;
+
 pub fn main() {
     // try_present_value_solution();
     // try_present_value_series();
@@ -289,8 +291,8 @@ fn try_values_for_diagram_1() {
 
 fn create_formulas_for_docs() {
     let (rate, periods, future_value) = (0.015, 48, 50_000);
-    dbg!(finance::present_value_solution(rate, periods, future_value, false));
-    dbg!(finance::present_value_solution(rate, periods, future_value, true));
+    dbg!(present_value_solution(rate, periods, future_value, false));
+    dbg!(present_value_solution(rate, periods, future_value, true));
 }
 
 

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     // use super::*;
-    use finance::*;
+    use finance_solution::*;
 
     #[test]
     fn test_symmetry_one() {

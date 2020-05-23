@@ -10,7 +10,7 @@
 //! 
 //! **Simple Usage:**
 //! ```
-//! # use finance::net_present_value_solution;
+//! # use finance_solution::net_present_value_solution;
 //! let (rate, periods, initial_investment, cashflow) = (0.034, 3, -1000, 400);
 //! let npv = net_present_value_solution(rate, periods, initial_investment, cashflow);
 //! dbg!(npv.print_table());
@@ -27,7 +27,7 @@
 //! 
 //! **More typical usage (varying cashflows):**
 //! ```
-//! # use finance::net_present_value_schedule_solution;
+//! # use finance_solution::net_present_value_schedule_solution;
 //! let rates = vec![0.034, 0.034, 0.034];
 //! let cashflows = vec![-1000, 300, 400, 500];
 //! let npv = net_present_value_schedule_solution(&rates, &cashflows);
@@ -79,7 +79,7 @@ use std::ops::Deref;
 /// # Examples
 /// Net Present Value of a series of -$1000 investment which will payback $500 yearly for 10 years.
 /// ```
-/// use finance::*;
+/// use finance_solution::*;
 /// let (rate, periods, initial_investment, cashflow) = (0.034, 10, -1000, 500);
 ///
 /// // Find the present value of this scenario.
@@ -135,7 +135,7 @@ where I: Into<f64> + Copy, C: Into<f64> + Copy
 /// # Examples
 /// Net Present Value of a series of -$1000 investment which will payback $500 yearly for 10 years.
 /// ```
-/// use finance::*;
+/// use finance_solution::*;
 /// let (rates, cashflows) = (vec![0.034, 0.089, 0.055], vec![-1000, 200, 300, 500]);
 ///
 /// // Find the present value of this scenario.
@@ -265,7 +265,7 @@ where C: Into<f64> + Copy
 /// ```
 /// let rates = vec![0.034, 0.034, 0.034];
 /// let cashflows = vec![-1000, 300, 400, 500];
-/// let npv = finance::net_present_value_schedule_solution(&rates, &cashflows);
+/// let npv = finance_solution::net_present_value_schedule_solution(&rates, &cashflows);
 /// dbg!(npv.print_table());
 /// ```
 /// > outputs to terminal:

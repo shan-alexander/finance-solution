@@ -76,6 +76,8 @@ use crate::*;
 ///
 /// # Examples
 /// ```
+/// use finance_solution::*;
+///
 /// // The interest will compound for 365 days.
 /// let periods = 365;
 ///
@@ -88,10 +90,10 @@ use crate::*;
 /// let continuous_compounding = false;
 ///
 /// // Calculate the periodic rate needed.
-/// let rate = finance::rate(periods, present_value, future_value, continuous_compounding);
+/// let rate = rate(periods, present_value, future_value, continuous_compounding);
 /// dbg!(&rate);
 /// // The rate is 0.0261% per day.
-/// finance::assert_rounded_6(0.000261, rate);
+/// assert_rounded_6(0.000261, rate);
 /// ```
 pub fn rate<P, F>(periods: u32, present_value: P, future_value: F, continuous_compounding: bool) -> f64
     where
@@ -127,6 +129,7 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F, continuous_co
 /// # Examples
 /// Calculate a periodic rate and examine the period-by-period values.
 /// ```
+/// use finance_solution::*;
 /// // The interest will compound for ten periods.
 /// // The starting value is $10,000.
 /// // The ending value is $15,000.
@@ -137,13 +140,13 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F, continuous_co
 /// /// // Calculate the periodic rate and create a struct with a record of the
 /// // inputs, a description of the formula, and an option to calculate the
 /// // period-by-period values.
-/// let solution = finance::rate_solution(periods, present_value, future_value, continuous_compounding);
+/// let solution = rate_solution(periods, present_value, future_value, continuous_compounding);
 /// dbg!(&solution);
 ///
 /// let rate = solution.rate();
 /// dbg!(&rate);
 /// // The rate is 4.138% per period.
-/// finance::assert_rounded_6(0.041380, rate);
+/// assert_rounded_6(0.041380, rate);
 ///
 /// // Examine the formulas.
 /// let formula = solution.formula();

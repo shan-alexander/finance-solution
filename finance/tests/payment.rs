@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use finance::*;
+    use finance_solution::*;
 
     #[test]
     fn test_against_excel_ipmt_month_1() {

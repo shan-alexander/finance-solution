@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use finance_solution::*;
+
 #[doc(hidden)]
 pub fn main() {
     // try_future_value();
@@ -334,8 +336,8 @@ fn check_formulas() {
 
 fn create_formulas_for_docs() {
     let (rate, periods, present_value) = (0.035, 12, 1_000);
-    dbg!(finance::future_value_solution(rate, periods, present_value, false));
-    dbg!(finance::future_value_solution(rate, periods, present_value, true));
+    dbg!(future_value_solution(rate, periods, present_value, false));
+    dbg!(future_value_solution(rate, periods, present_value, true));
 }
 
 /*

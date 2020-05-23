@@ -17,7 +17,7 @@ http://i.upmath.me/svg/fv%20%3D%20pv(1%2Br)%5En%5C%5C%20%5C%5C%0Afv%20%3D%20pv(e
 //! ## Example
 //! ```
 //! let (rate, periods, present_value, future_value, due_at_beginning) = (0.034, 10, 1000, 0, false);
-//! let solution = finance::payment_solution(rate, periods, present_value, future_value, due_at_beginning);
+//! let solution = finance_solution::payment_solution(rate, periods, present_value, future_value, due_at_beginning);
 //! dbg!(&solution);
 //! ```
 //! Outputs to terminal:
@@ -37,7 +37,7 @@ http://i.upmath.me/svg/fv%20%3D%20pv(1%2Br)%5En%5C%5C%20%5C%5C%0Afv%20%3D%20pv(e
 //! }
 //! ```
 //! ```
-//! # use finance::*;
+//! # use finance_solution::*;
 //! # let (rate, periods, present_value, future_value, due_at_beginning) = (0.034, 10, 1000, 0, false);
 //! # let solution = payment_solution(rate, periods, present_value, future_value, due_at_beginning);
 //! dbg!(solution.print_table());
@@ -107,13 +107,15 @@ http://i.upmath.me/svg/fv%20%3D%20pv(1%2Br)%5En%5C%5C%20%5C%5C%0Afv%20%3D%20pv(e
 //! amount still owed at the end) was zero. Also the rate was positive. In cases like this if the
 //! present value is entered as a positive number the payment will be negative, and vice versa:
 //! ```
+//! use finance_solution::*;
+//!
 //! let (rate, periods, present_value, due_at_beginning) = (0.01, 120, 100_000, false);
 //!
-//! let pmt_positive_present_value = finance::payment(rate, periods, present_value, 0.0, due_at_beginning);
-//! finance::assert_rounded_2!(-1_434.71, pmt_positive_present_value);
+//! let pmt_positive_present_value = payment(rate, periods, present_value, 0.0, due_at_beginning);
+//! assert_rounded_2!(-1_434.71, pmt_positive_present_value);
 //!
-//! let pmt_negative_present_value = finance::payment(rate, periods, -present_value, 0.0, due_at_beginning);
-//! finance::assert_rounded_2!(1_434.71, pmt_negative_present_value);
+//! let pmt_negative_present_value = payment(rate, periods, -present_value, 0.0, due_at_beginning);
+//! assert_rounded_2!(1_434.71, pmt_negative_present_value);
 //! ```
 //! Either way is fine. It depends on whether we're thinking of the payment as a stream of money
 //! being paid out or coming in. In the period-by-period detail the principal and interest (and
@@ -204,10 +206,12 @@ impl PaymentSolution {
     /// # Examples
     /// An amortized loan. Uses [`payment`].
     /// ```
+    /// use finance_solution::*;
+    ///
     /// let years = 5;
     ///
     /// // The annual percentage rate is 15% and the interest will compound monthly.
-    /// let rate = finance::convert_apr_to_epr(0.15, 12);
+    /// let rate = convert_apr_to_epr(0.15, 12);
     ///
     /// // Each period will be one month.
     /// let periods = years * 12;
@@ -223,7 +227,7 @@ impl PaymentSolution {
     ///
     /// // Calculate the payment, creating a struct that contains additional information and the option
     /// // to generate period-by-period details.
-    /// let solution = finance::payment_solution(rate, periods, present_value, future_value, due_at_beginning);
+    /// let solution = payment_solution(rate, periods, present_value, future_value, due_at_beginning);
     /// dbg!(&solution);
     ///
     /// // Calculate the month-by-month details including the principal and interest paid every month.
@@ -236,7 +240,7 @@ impl PaymentSolution {
     /// // Print the period detail numbers as a formatted table.
     /// let include_running_totals = true;
     /// let include_remaining_amounts = true;
-    /// let locale = finance::num_format::Locale::en;
+    /// let locale = num_format::Locale::en;
     /// let precision = 2; // Two decimal places.
     /// series.print_table_locale(include_running_totals, include_remaining_amounts, &locale, precision);
     ///
@@ -552,7 +556,7 @@ impl Deref for PaymentSeries {
 /// # Examples
 /// A simple amortized loan with the payment due at the end of the month.
 /// ```
-/// # use finance::*;
+/// # use finance_solution::*;
 /// // The loan will be paid off in five years.
 /// let years = 5;
 ///
@@ -721,7 +725,7 @@ pub fn payment<P, F>(rate: f64, periods: u32, present_value: P, future_value: F,
 /// then examine the formulas and the period-by-period details such as the amount of the payment
 /// that goes to principal and interest.
 /// ```
-/// # use finance::*;
+/// # use finance_solution::*;
 /// // The interest rate is 11.75% per year. Each period is one month so we need to divide the rate
 /// // by the number of months in a year.
 /// let rate = 0.1175 / 12.0;
@@ -776,7 +780,7 @@ pub fn payment<P, F>(rate: f64, periods: u32, present_value: P, future_value: F,
 /// // Print the period-by-period values in a table with two decimal places and the numbers aligned,
 /// // with Vietnamese formatting for the thousands and decimal separators. Show all columns
 /// // including running totals and remaining amounts.
-/// let locale = &finance::num_format::Locale::vi;
+/// let locale = &num_format::Locale::vi;
 /// let include_running_totals = true;
 /// let include_remaining_amounts = true;
 /// println!();

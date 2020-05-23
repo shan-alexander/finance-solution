@@ -127,6 +127,8 @@ use crate::{future_value::future_value, present_value::present_value, rate::rate
 ///
 /// # Examples
 /// ```
+/// use finance_solution::*;
+///
 /// // The interest rate is 8% per year.
 /// let rate = 0.08;
 ///
@@ -139,9 +141,9 @@ use crate::{future_value::future_value, present_value::present_value, rate::rate
 /// let continuous_compounding = false;
 ///
 /// // Calculate the number of years required.
-/// let fractional_periods = finance::periods(rate, present_value, future_value, false);
+/// let fractional_periods = periods(rate, present_value, future_value, false);
 /// dbg!(&fractional_periods);
-/// finance::assert_rounded_2(4.37, fractional_periods);
+/// assert_rounded_2(4.37, fractional_periods);
 ///
 /// // Round up to get a whole number of years.
 /// let periods = fractional_periods.ceil() as u32;
@@ -201,6 +203,8 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F, continuous_co
 ///
 /// # Examples
 /// ```
+/// use finance_solution::*;
+///
 /// // The interest rate is 3.5% per quarter.
 /// let rate = 0.035;
 ///
@@ -216,11 +220,11 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F, continuous_co
 /// // Calculate the number of quarters required and build a struct with the
 /// // input values, an explanation of the formula, and an option to calculate
 /// // the quarter-by-quarter values.
-/// let solution = finance::periods_solution(rate, present_value, future_value, continuous_compounding);
+/// let solution = periods_solution(rate, present_value, future_value, continuous_compounding);
 ///
 /// let fractional_quarters = solution.fractional_periods();
 /// dbg!(&fractional_quarters);
-/// finance::assert_rounded_2(20.15, fractional_quarters);
+/// assert_rounded_2(20.15, fractional_quarters);
 ///
 /// // Get the whole number of quarters.
 /// let quarters = solution.periods();
@@ -240,7 +244,7 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F, continuous_co
 ///
 /// let last_entry = series.last().unwrap();
 /// dbg!(&last_entry);
-/// finance::assert_rounded_4(200_000.0, last_entry.value());
+/// assert_rounded_4(200_000.0, last_entry.value());
 ///
 /// // Create a reduced series with the value at the end of each year.
 /// let filtered_series = series
@@ -254,9 +258,10 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F, continuous_co
 /// ```
 /// // The interest rate is -6% per year and the value falls from $15,000.00 to
 /// // $12,000.00.
-/// let solution = finance::periods_solution(-0.06, 15_000.00, 12_000.00, false);
+/// # use finance_solution::*;
+/// let solution = periods_solution(-0.06, 15_000.00, 12_000.00, false);
 /// dbg!(&solution);
-/// finance::assert_rounded_2(3.61, solution.fractional_periods());
+/// assert_rounded_2(3.61, solution.fractional_periods());
 /// assert_eq!(4, solution.periods());
 ///
 /// // Print the period-by-period values as a formatted table.

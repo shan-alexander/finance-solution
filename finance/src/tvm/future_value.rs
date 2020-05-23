@@ -20,7 +20,7 @@
 //! 
 //! ```
 //! let (rate, periods, present_value, continuous_compounding) = (0.034, 10, 1_000, false);
-//! let fv = finance::future_value_solution(rate, periods, present_value, continuous_compounding);
+//! let fv = finance_solution::future_value_solution(rate, periods, present_value, continuous_compounding);
 //! dbg!(fv);
 //! ```
 //! Outputs to terminal:
@@ -119,7 +119,8 @@ use crate::{rate::*, periods::*, present_value::*};
 /// # Examples
 /// Investment that grows quarter by quarter.
 /// ```
-/// # use finance::*;
+/// use finance_solution::*;
+///
 /// // The investment grows by 3.4% per quarter.
 /// let rate = 0.034;
 ///
@@ -138,7 +139,7 @@ use crate::{rate::*, periods::*, present_value::*};
 /// ```
 /// Investment that loses money each year.
 /// ```
-/// # use finance::*;
+/// # use finance_solution::*;
 /// // The investment loses 5% per year.
 /// let rate = -0.05;
 ///
@@ -157,7 +158,7 @@ use crate::{rate::*, periods::*, present_value::*};
 /// Error case: The investment loses 105% per year. There's no way to work out
 /// what this means so the call will panic.
 /// ```should_panic
-/// # use finance::future_value;
+/// # use finance_solution::future_value;
 /// let (rate, periods, present_value, continuous_compounding) = (-1.05, 6, 10_000.75, false);
 /// let future_value = future_value(rate, periods, present_value, continuous_compounding);
 /// ```
@@ -195,7 +196,7 @@ pub fn future_value<T>(rate: f64, periods: u32, present_value: T, continuous_com
 /// # Examples
 /// Calculate a future value and examine the period-by-period values.
 /// ```
-/// # use finance::*;
+/// use finance_solution::*;
 /// // The rate is 1.2% per month.
 /// let rate = 0.012;
 ///
@@ -227,6 +228,8 @@ pub fn future_value<T>(rate: f64, periods: u32, present_value: T, continuous_com
 /// ```
 /// Create a collection of future value calculations ranging over several interest rates.
 /// ```
+/// # use finance_solution::*;
+///
 /// // The initial investment is $100,000.
 /// let present_value = 100_000;
 ///
@@ -242,7 +245,7 @@ pub fn future_value<T>(rate: f64, periods: u32, present_value: T, continuous_com
 /// // The rate is between 2% and 15% per year.
 ///     let rate = i as f64 / 100.0;
 ///     // Calculate the future value for this periodic rate and add the details to the collection.
-///     scenarios.push(finance::future_value_solution(rate, periods, present_value, continuous_compounding));
+///     scenarios.push(future_value_solution(rate, periods, present_value, continuous_compounding));
 /// }
 /// dbg!(&scenarios);
 /// assert_eq!(14, scenarios.len());
@@ -284,7 +287,7 @@ pub fn future_value_solution<T>(rate: f64, periods: u32, present_value: T, conti
 /// # Examples
 /// Calculate the value of an investment whose rates vary by year.
 /// ```
-/// # use finance::*;
+/// use finance_solution::*;
 /// // The rates vary by year: 4% followed by -3.9%, 10.6%, and -5.7%.
 /// let rates = [0.04, -0.039, 0.106, -0.057];
 ///
@@ -298,7 +301,7 @@ pub fn future_value_solution<T>(rate: f64, periods: u32, present_value: T, conti
 /// Error case: One of the rates shows a drop of over 100%. There's no way to work out what this
 /// means so the call will panic.
 /// ```should_panic
-/// # use finance::future_value_schedule;
+/// # use finance_solution::future_value_schedule;
 /// let rates = [0.116, -100.134, -0.09, 0.086];
 /// let present_value = 4_000.00;
 /// let schedule = future_value_schedule(&rates, present_value);
@@ -342,7 +345,7 @@ pub fn future_value_schedule<T>(rates: &[f64], present_value: T) -> f64
 /// # Examples
 /// Calculate the value of an investment whose rates vary by year.
 /// ```
-/// use finance::*;
+/// use finance_solution::*;
 /// // The rates vary by year: 8.1% followed by 11%, 4%, and -2.3%.
 /// let rates = [0.081, 0.11, 0.04, -0.023];
 ///
@@ -363,7 +366,7 @@ pub fn future_value_schedule<T>(rates: &[f64], present_value: T) -> f64
 /// Error case: One of the rates shows a drop of over 100%. There's no way to work out what this
 /// means so the call will panic.
 /// ```should_panic
-/// use finance::*;
+/// # use finance_solution::*;
 /// let rates = [0.116, -100.134, -0.09, 0.086];
 /// let present_value = 4_000.00;
 /// let schedule = future_value_schedule(&rates, present_value);

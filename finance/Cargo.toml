@@ -1,6 +1,6 @@
 [package]
-name = "finance"
-version = "0.1.0"
+name = "finance-solution"
+version = "0.0.1"
 authors = ["Shan Newton <shan.alexander2020@gmail.com>", "David Thureson <David.G.Thureson@gmail.com>"]
 edition = "2018"
 

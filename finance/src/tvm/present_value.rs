@@ -95,6 +95,8 @@ use crate::{future_value::future_value, rate::rate, periods::periods};
 /// # Examples
 /// Investment that grows month by month.
 /// ```
+/// use finance_solution::*;
+///
 /// // The investment will grow by 1.1% per month.
 /// let rate = 0.011;
 ///
@@ -107,11 +109,11 @@ use crate::{future_value::future_value, rate::rate, periods::periods};
 /// let continuous_compounding = false;
 ///
 /// // Find the current value.
-/// let present_value = finance::present_value(rate, periods, future_value, continuous_compounding);
+/// let present_value = present_value(rate, periods, future_value, continuous_compounding);
 /// dbg!(&present_value);
 ///
 /// // Confirm that the present value is correct to four decimal places (one hundredth of a cent).
-/// finance::assert_rounded_4(43_848.6409, present_value);
+/// assert_rounded_4(43_848.6409, present_value);
 /// ```
 /// Error case: The investment loses 105% per year. There's no way to work out what this means so
 /// the call to present_value() will panic.
@@ -120,7 +122,7 @@ use crate::{future_value::future_value, rate::rate, periods::periods};
 /// let periods = 6;
 /// let present_value = 10_000.75;
 /// let continuous_compounding = false;
-/// let present_value = finance::present_value(rate, periods, present_value, continuous_compounding);
+/// let present_value = finance_solution::present_value(rate, periods, present_value, continuous_compounding);
 /// ```
 pub fn present_value<T>(rate: f64, periods: u32, future_value: T, continuous_compounding: bool) -> f64
     where T: Into<f64> + Copy
@@ -155,6 +157,8 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T, continuous_com
 /// # Examples
 /// Calculate a present value and examine the period-by-period values.
 /// ```
+/// use finance_solution::*;
+///
 /// // The rate is 8.45% per year.
 /// let rate = 0.0845;
 ///
@@ -168,11 +172,11 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T, continuous_com
 ///
 /// // Calculate the present value and create a struct with the input values and
 /// // the formula used.
-/// let solution= finance::present_value_solution(rate, periods, future_value, continuous_compounding);
+/// let solution = present_value_solution(rate, periods, future_value, continuous_compounding);
 /// dbg!(&solution);
 ///
 /// let present_value = solution.present_value();
-/// finance::assert_rounded_4(present_value, 30_732.1303);
+/// assert_rounded_4(present_value, 30_732.1303);
 ///
 /// // Examine the formulas.
 /// let formula = solution.formula();
@@ -190,6 +194,7 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T, continuous_com
 /// fixed but the number of periods varies, then filter the results.
 /// ```
 /// // The rate is 0.9% per month.
+/// # use finance_solution::*;
 /// let rate = 0.009;
 ///
 /// // The final value is $100,000.
@@ -204,7 +209,7 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T, continuous_com
 /// for periods in 1..=36 {
 ///     // Calculate the future value for this number of months and add the details to the
 ///     // collection.
-///     scenarios.push(finance::present_value_solution(rate, periods, future_value, continuous_compounding));
+///     scenarios.push(present_value_solution(rate, periods, future_value, continuous_compounding));
 /// }
 /// dbg!(&scenarios);
 /// assert_eq!(36, scenarios.len());
@@ -233,11 +238,12 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T, continuous_com
 /// Error case: The investment loses 111% per year. There's no way to work out what this means so
 /// the call to present_value() will panic.
 /// ```should_panic
+/// # use finance_solution::*;
 /// let rate = -1.11;
 /// let periods = 12;
 /// let present_value = 100_000.85;
 /// let continuous_compounding = false;
-/// let present_value = finance::present_value_solution(rate, periods, present_value, continuous_compounding);
+/// let present_value = present_value_solution(rate, periods, present_value, continuous_compounding);
 /// ```
 pub fn present_value_solution<T>(rate: f64, periods: u32, future_value: T, continuous_compounding: bool) -> TvmSolution
     where T: Into<f64> + Copy
@@ -272,7 +278,7 @@ pub fn present_value_solution<T>(rate: f64, periods: u32, future_value: T, conti
 /// let future_value = 30_000.00;
 ///
 /// // Calculate the present value.
-/// let present_value = finance::present_value_schedule(&rates, future_value);
+/// let present_value = finance_solution::present_value_schedule(&rates, future_value);
 /// dbg!(&present_value);
 /// ```
 pub fn present_value_schedule<T>(rates: &[f64], future_value: T) -> f64
@@ -316,6 +322,8 @@ pub fn present_value_schedule<T>(rates: &[f64], future_value: T) -> f64
 /// Calculate the value of an investment whose rates vary by year, then view only those periods
 /// where the rate is negative.
 /// ```
+/// use finance_solution::*;
+///
 /// // The quarterly rate varies from -0.5% to 4%.
 /// let rates = [0.04, 0.008, 0.0122, -0.005];
 ///
@@ -325,11 +333,11 @@ pub fn present_value_schedule<T>(rates: &[f64], future_value: T) -> f64
 ///
 /// // Calculate the present value and keep track of the inputs and the formula
 /// // in a struct.
-/// let solution = finance::present_value_schedule_solution(&rates, future_value);
+/// let solution = present_value_schedule_solution(&rates, future_value);
 /// dbg!(&solution);
 ///
 /// let present_value = solution.present_value();
-/// finance::assert_rounded_4(present_value, 23_678.6383);
+/// assert_rounded_4(present_value, 23_678.6383);
 ///
 /// // Calculate the value for each period.
 /// let series = solution.series();

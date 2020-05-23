@@ -188,7 +188,7 @@ impl TvmSolution {
     /// ```
     /// // The initial investment is $10,000.12, the interest rate is 1.5% per month, and the
     /// // investment will grow for 24 months using simple compounding.
-    /// let solution = finance::future_value_solution(0.015, 24, 10_000.12, false);
+    /// let solution = finance_solution::future_value_solution(0.015, 24, 10_000.12, false);
     ///
     /// // Calculate the value at the end of each period.
     /// let series = solution.series();
@@ -213,7 +213,7 @@ impl TvmSolution {
     /// ```
     /// // The interest rate is 7.8% per year, the investment will grow for 10 years using simple
     /// // compounding, and the final value will be 8_112.75.
-    /// let solution = finance::present_value_solution(0.078, 10, 8_112.75, false);
+    /// let solution = finance_solution::present_value_solution(0.078, 10, 8_112.75, false);
     ///
     /// // Calculate the value at the end of each period.
     /// let series = solution.series();
@@ -245,7 +245,7 @@ impl TvmSolution {
     ///
     /// // Calculate the present value and keep track of the inputs and the formula
     /// // in a struct.
-    /// let solution = finance::present_value_schedule_solution(&rates, future_value);
+    /// let solution = finance_solution::present_value_schedule_solution(&rates, future_value);
     /// dbg!(&solution);
     ///
     /// // Calculate the value at the end of each period.
@@ -277,7 +277,7 @@ impl TvmSolution {
     ///
     /// # Examples
     /// ```
-    /// finance::future_value_solution(0.045, 5, 10_000, false)
+    /// finance_solution::future_value_solution(0.045, 5, 10_000, false)
     ///     .print_series_table();
     /// ```
     /// Output:
@@ -312,12 +312,12 @@ impl TvmSolution {
     /// ```
     /// // English formatting with "," for the thousands separator and "." for the decimal
     /// // separator.
-    /// let locale = finance::num_format::Locale::en;
+    /// let locale = finance_solution::num_format::Locale::en;
     ///
     /// // Show money amounts to two decimal places.
     /// let precision = 2;
     ///
-    /// finance::future_value_solution(0.11, 4, 5_000, false)
+    /// finance_solution::future_value_solution(0.11, 4, 5_000, false)
     ///     .print_series_table_locale(&locale, precision);
     /// ```
     /// Output:
@@ -341,7 +341,7 @@ impl TvmSolution {
     /// # Examples
     /// ```
     /// // Calculate the future value of $25,000 that grows at 5% for 12 yeors.
-    /// let solution = finance::future_value_solution(0.05, 12, 25_000, false);
+    /// let solution = finance_solution::future_value_solution(0.05, 12, 25_000, false);
     /// assert!(solution.calculated_field().is_future_value());
     /// ```
     pub fn calculated_field(&self) -> &TvmVariable {
@@ -445,11 +445,11 @@ impl TvmSolution {
     /// // varies by the number of compounding periods but we're starting with a future value
     /// // calculation. It would have been fine to start with a rate, periods, or present value
     /// // calculation as well. It just depends on what information we have to work with.
-    /// let solution = finance::future_value_solution(0.20, 1, 83.333, false);
+    /// let solution = finance_solution::future_value_solution(0.20, 1, 83.333, false);
     /// dbg!(&solution);
     ///
     /// // The present value of $83.33 gives us a future value of about $100.00.
-    /// finance::assert_rounded_2!(100.00, solution.future_value());
+    /// finance_solution::assert_rounded_2!(100.00, solution.future_value());
     ///
     /// // We'll experiment with compounding annually, quarterly, monthly, weekly, and daily.
     /// let compounding_periods = [1, 4, 12, 52, 365];
@@ -528,7 +528,7 @@ impl TvmSolution {
     ///
     /// let continuous_compounding = false;
     ///
-    /// let solution = finance::future_value_solution(rate, periods, present_value, continuous_compounding);
+    /// let solution = finance_solution::future_value_solution(rate, periods, present_value, continuous_compounding);
     /// dbg!(&solution);
     ///
     /// // We'll experiment with compounding annually, quarterly, monthly, weekly, and daily.
@@ -689,7 +689,7 @@ impl TvmScheduleSolution {
     ///
     /// # Examples
     /// ```
-    /// let solution = finance::present_value_schedule_solution(&[0.011, 0.012, 0.009], 75_000);
+    /// let solution = finance_solution::present_value_schedule_solution(&[0.011, 0.012, 0.009], 75_000);
     /// assert!(solution.calculated_field().is_present_value());
     /// ```
     pub fn calculated_field(&self) -> &TvmVariable {
@@ -706,7 +706,7 @@ impl TvmScheduleSolution {
     ///
     /// # Examples
     /// ```
-    /// let solution = finance::future_value_schedule_solution(&[0.05, 0.07, 0.05], 100_000);
+    /// let solution = finance_solution::future_value_schedule_solution(&[0.05, 0.07, 0.05], 100_000);
     /// assert_eq!(3, solution.periods());
     /// ```
     pub fn periods(&self) -> u32 {
@@ -735,7 +735,7 @@ impl TvmScheduleSolution {
     /// ```
     /// // The initial investment is $10,000.12, the interest rate is 1.5% per month, and the
     /// // investment will grow for 24 months using simple compounding.
-    /// let solution = finance::future_value_solution(0.015, 24, 10_000.12, false);
+    /// let solution = finance_solution::future_value_solution(0.015, 24, 10_000.12, false);
     /// dbg!(&solution);
     ///
     /// // Calculate the period-by-period details.
