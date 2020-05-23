@@ -243,7 +243,7 @@ pub fn future_value<T>(rate: f64, periods: u32, present_value: T, continuous_com
 ///
 /// for i in 2..=15 {
 /// // The rate is between 2% and 15% per year.
-///     let rate = i as f64 / 100.0;
+///     let rate = f64::from(i) / 100.0;
 ///     // Calculate the future value for this periodic rate and add the details to the collection.
 ///     scenarios.push(future_value_solution(rate, periods, present_value, continuous_compounding));
 /// }
@@ -403,7 +403,7 @@ pub(crate) fn future_value_solution_internal(rate: f64, periods: f64, present_va
         let symbolic_formula = "fv = pv * (1 + r)^n";
         (formula, symbolic_formula)
     };
-    TvmSolution::new_fractional_periods(TvmVariable::FutureValue, continuous_compounding, rate, periods, present_value.into(), future_value, &formula, symbolic_formula)
+    TvmSolution::new_fractional_periods(TvmVariable::FutureValue, continuous_compounding, rate, periods, present_value, future_value, &formula, symbolic_formula)
 }
 
 fn check_future_value_parameters(rate: f64, _periods: f64, present_value: f64) {
@@ -503,31 +503,3 @@ mod tests {
     }
 
 }
-
-/*
-$$\begin{tikzpicture}[scale=1.0544]\small
-\begin{axis}[axis line style=gray,
-	samples=120,
-	width=9.0cm,height=6.4cm,
-	xmin=-1.5, xmax=1.5,
-	ymin=0, ymax=1.8,
-	restrict y to domain=-0.2:2,
-	ytick={1},
-	xtick={-1,1},
-	axis equal,
-	axis x line=center,
-	axis y line=center,
-	xlabel=$x$,ylabel=$y$]
-\addplot[red,domain=-2:1,semithick]{exp(x)};
-\addplot[black]{x+1};
-\addplot[] coordinates {(1,1.5)} node{$y=e^{(rx)}$};
-\addplot[red] coordinates {(-1,0.6)} node{$y=(1+{r \over x})^x$};
-\path (axis cs:0,0) node [anchor=north west,yshift=-0.07cm] {0};
-\end{axis}
-\end{tikzpicture}$$
-
-
-
-*/
-
-

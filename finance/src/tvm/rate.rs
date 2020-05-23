@@ -44,10 +44,6 @@
 //! the variable name. Within this crate we stick with `n` for the number of periods so that all of
 //! the functions use the same variables.
 
-// use log::warn;
-
-// Needed for the Rustdoc comments.
-#[allow(unused_imports)]
 use crate::*;
 
 /// Returns the periodic rate of an investment given the number of periods along with the present
@@ -213,7 +209,7 @@ pub (crate) fn rate_solution_internal(periods: u32, present_value: f64, future_v
         let symbolic_formula = "r = ((fv / pv) ^ (1 / n)) - 1";
         (formula, symbolic_formula)
     };
-    TvmSolution::new(TvmVariable::Rate, continuous_compounding, rate, periods, present_value.into(), future_value, &formula, symbolic_formula)
+    TvmSolution::new(TvmVariable::Rate, continuous_compounding, rate, periods, present_value, future_value, &formula, symbolic_formula)
 }
 
 fn check_rate_parameters(periods: u32, present_value: f64, future_value: f64) {

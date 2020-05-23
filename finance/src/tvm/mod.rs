@@ -1,11 +1,5 @@
 //! The internal module which supports the solution struct for the family of Time-value-of-money equations
 //! which do not involve payments. For example, future value, present value, rate, and periods.
-#[allow(unused_imports)]
-
-// use std::fmt::Debug;
-// use std::fmt;
-
-// Import needed for the function references in the Rustdoc comments.
 
 use crate::*;
 use std::ops::Deref;
@@ -155,8 +149,8 @@ impl TvmSolution {
         assert!(rate.is_finite());
         assert!(present_value.is_finite());
         assert!(future_value.is_finite());
-        assert!(formula.len() > 0);
-        assert!(symbolic_formula.len() > 0);
+        assert!(!formula.is_empty());
+        assert!(!symbolic_formula.is_empty());
         Self::new_fractional_periods(calculated_field, continuous_compounding, rate, periods as f64, present_value, future_value, formula, symbolic_formula)
     }
 
@@ -773,7 +767,7 @@ impl TvmSeries {
         where P: Fn(&&TvmPeriod) -> bool
     {
         Self {
-            0: self.iter().filter(|x| predicate(x)).map(|x| x.clone()).collect()
+            0: self.iter().filter(|x| predicate(x)).cloned().collect()
         }
     }
 
@@ -846,8 +840,8 @@ impl TvmPeriod {
     pub(crate) fn new(period: u32, rate: f64, value: f64, formula: &str, symbolic_formula: &str) -> Self {
         assert!(rate.is_finite());
         assert!(value.is_finite());
-        assert!(formula.len() > 0);
-        assert!(symbolic_formula.len() > 0);
+        assert!(!formula.is_empty());
+        assert!(!symbolic_formula.is_empty());
         Self {
             period,
             rate,
@@ -994,28 +988,26 @@ fn series_internal(
                 let formula = format!("{:.4}", value);
                 let symbolic_formula = "value = pv";
                 (value, formula, symbolic_formula)
+            } else if calculated_field.is_periods() && period == periods {
+                // We calculated periods and this may not be a whole number, so for the last
+                // period use the future value. If instead we multiplied the previous
+                // period's value by (1 + rate) we could overshoot the future value.
+                let value = future_value;
+                let formula = format!("{:.4}", value);
+                let symbolic_formula = "value = fv";
+                (value, formula, symbolic_formula)
             } else {
-                if calculated_field.is_periods() && period == periods {
-                    // We calculated periods and this may not be a whole number, so for the last
-                    // period use the future value. If instead we multiplied the previous
-                    // period's value by (1 + rate) we could overshoot the future value.
-                    let value = future_value;
-                    let formula = format!("{:.4}", value);
-                    let symbolic_formula = "value = fv";
+                // The usual case.
+                if continuous_compounding {
+                    let value = prev_value.unwrap() * std::f64::consts::E.powf(one_rate);
+                    let formula = format!("{:.4} = {:.4} * ({:.6} ^ {:.6})", value, prev_value.unwrap(), std::f64::consts::E, one_rate);
+                    let symbolic_formula = "fv = pv * e^r";
                     (value, formula, symbolic_formula)
                 } else {
-                    // The usual case.
-                    if continuous_compounding {
-                        let value = prev_value.unwrap() * std::f64::consts::E.powf(one_rate);
-                        let formula = format!("{:.4} = {:.4} * ({:.6} ^ {:.6})", value, prev_value.unwrap(), std::f64::consts::E, one_rate);
-                        let symbolic_formula = "fv = pv * e^r";
-                        (value, formula, symbolic_formula)
-                    } else {
-                        let value = prev_value.unwrap() * rate_multiplier;
-                        let formula = format!("{:.4} = {:.4} * {:.6}", value, prev_value.unwrap(), rate_multiplier);
-                        let symbolic_formula = "value = {previous period value} * (1 + r)";
-                        (value, formula, symbolic_formula)
-                    }
+                    let value = prev_value.unwrap() * rate_multiplier;
+                    let formula = format!("{:.4} = {:.4} * {:.6}", value, prev_value.unwrap(), rate_multiplier);
+                    let symbolic_formula = "value = {previous period value} * (1 + r)";
+                    (value, formula, symbolic_formula)
                 }
             };
             assert!(value.is_finite());

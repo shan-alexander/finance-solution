@@ -1,14 +1,3 @@
-#![allow(dead_code)]
-
-/*
-fv = pv(1+r)^n\\ \\
-fv = pv(e^{rt})\\ \\
-pmt = {(((pv(1+r)^n)+fv)-r \over (1+r)^n - 1}
-
-//i.upmath.me/svg/fv%20%3D%20pv(1%2Br)%5En%5C%5C%20%5C%5C%0Afv%20%3D%20pv(e%5E%7Brt%7D)%5C%5C%20%5C%5C%20%0Apmt%20%3D%20%7B(((pv(1%2Br)%5En)%2Bfv)-r%20%5Cover%20(1%2Br)%5En%20-%201%7D
-http://i.upmath.me/svg/fv%20%3D%20pv(1%2Br)%5En%5C%5C%20%5C%5C%0Afv%20%3D%20pv(e%5E%7Brt%7D)%5C%5C%20%5C%5C%20%0Apmt%20%3D%20%7B(((pv(1%2Br)%5En)%2Bfv)-r%20%5Cover%20(1%2Br)%5En%20-%201%7D
-*/
-
 //! **Payment calculations.** What is the periodic payment needed for an amortized loan and how much
 //! of that is interest or principal?
 //! 
@@ -322,7 +311,7 @@ impl PaymentSolution {
         println!();
         // print_ab_comparison_values_string("calculated_field", &self.calculated_field().to_string(), &other.calculated_field.to_string());
         print_ab_comparison_values_rate("rate", self.rate(), other.rate(), locale, precision);
-        print_ab_comparison_values_int("periods", self.periods() as i128, other.periods() as i128, locale);
+        print_ab_comparison_values_int("periods", i128::from(self.periods()), i128::from(other.periods()), locale);
         print_ab_comparison_values_float("present_value", self.present_value(), other.present_value(), locale, precision);
         print_ab_comparison_values_float("future_value", self.future_value(), other.future_value(), locale, precision);
         print_ab_comparison_values_bool("due_at_beginning", self.due_at_beginning(), other.due_at_beginning());
@@ -369,8 +358,8 @@ impl PaymentSolution {
             assert!(sum_of_interest.abs() < sum_of_payments.abs());
         }
         assert_approx_equal!(sum_of_interest, sum_of_payments + present_and_future_value);
-        assert!(formula.len() > 0);
-        assert!(symbolic_formula.len() > 0);
+        assert!(!formula.is_empty());
+        assert!(!symbolic_formula.is_empty());
     }
 
 }
@@ -424,17 +413,15 @@ impl PaymentSeries {
             if present_value == 0.0 || rate == 0.0 || (due_at_beginning && index == 0) {
                 assert_eq!(payment, entry.principal());
                 assert_eq!(0.0, entry.interest());
+            } else if present_value > 0.0 {
+                assert!(entry.principal() < 0.0);
+                assert!(entry.interest() < 0.0);
             } else {
-                if present_value > 0.0 {
-                    assert!(entry.principal() < 0.0);
-                    assert!(entry.interest() < 0.0);
-                } else {
-                    // if entry.principal() <= 0.0 {
-                    //     bg!(&solution, &series[..10]);
-                    // }
-                    assert!(entry.principal() > 0.0);
-                    assert!(entry.interest() > 0.0);
-                }
+                // if entry.principal() <= 0.0 {
+                //     bg!(&solution, &series[..10]);
+                // }
+                assert!(entry.principal() > 0.0);
+                assert!(entry.interest() > 0.0);
             }
             if index > 0 && previous_interest.unwrap() != 0.0 {
                 // Compared to the previous period the principal should be further from zero and the
@@ -459,8 +446,8 @@ impl PaymentSeries {
                 assert_approx_equal!(0.0, entry.principal_remaining());
                 assert_approx_equal!(0.0, entry.interest_remaining());
             }
-            assert!(entry.formula().len() > 0);
-            assert!(entry.symbolic_formula().len() > 0);
+            assert!(!entry.formula().is_empty());
+            assert!(!entry.symbolic_formula().is_empty());
 
             previous_principal = Some(entry.principal());
             previous_interest = Some(entry.interest());
@@ -850,19 +837,17 @@ fn payment_formula(rate: f64, periods: u32, present_value: f64, future_value: f6
         let (formula_num, symbolic_formula_num) = if future_value == 0.0 {
             // We can slightly simplify the formula by not including the future value term.
             (format!("({:.4} * {:.6}^{} * {:.6})", present_value, rate_multiplier, periods, -rate), "(pv * (1 + r)^n * -r)".to_string())
+        } else if present_value == 0.0 {
+            // We can simplify the formula by not including the present value term.
+            (format!("({:.4} * {:.6})", future_value, -rate), "(fv * -r)".to_string())
         } else {
-            if present_value == 0.0 {
-                // We can simplify the formula by not including the present value term.
-                (format!("({:.4} * {:.6})", future_value, -rate), "(fv * -r)".to_string())
+            // We have both a present and future value.
+            let add_future_value = if future_value > 0.0 {
+                format!(" + {:.4}", future_value)
             } else {
-                // We have both a present and future value.
-                let add_future_value = if future_value > 0.0 {
-                    format!(" + {:.4}", future_value)
-                } else {
-                    format!(" - {:.4}", 0.0 - future_value)
-                };
-                (format!("((({:.4} * {:.6}^{}){}) * {:.6})", present_value, rate_multiplier, periods, add_future_value, -rate), "(((pv * (1 + r)^n) + fv) * -r)".to_string())
-            }
+                format!(" - {:.4}", 0.0 - future_value)
+            };
+            (format!("((({:.4} * {:.6}^{}){}) * {:.6})", present_value, rate_multiplier, periods, add_future_value, -rate), "(((pv * (1 + r)^n) + fv) * -r)".to_string())
         };
         let mut formula_denom = format!("({:.6}^{} - 1)", rate_multiplier, periods);
         let mut symbolic_formula_denom = "((1 + r)^n - 1)".to_string();
