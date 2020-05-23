@@ -117,7 +117,8 @@ dbg!(answer.series().print_table(&Locale::en, 4));
 ```
 In the table above, you can specify the locale, if you prefer a different format for the money values. For example, your country may prefer `8.532,11` instead of `8,532.11`.
 
-The `.print_table()` function can be especially helpful when analyzing `payment` information.
+The `.print_table()` function can be especially helpful when analyzing `payment` and `cashflow` information.
+<img src="http://i.upmath.me/svg/%5Cbegin%7Bdocument%7D%5Cbegin%7Btikzpicture%7D%0A%25%20draw%20horizontal%20line%20%20%20%0A%5Cdraw%20(0%2C0)%20--%20(5%2C0)%3B%0A%25%20draw%20vertical%20lines%0A%5Cforeach%20%5Cx%20in%20%7B0%2C1%2C2%2C3%2C4%2C5%7D%20%5Cdraw%20(%5Cx%20cm%2C3pt)%20--%20(%5Cx%20cm%2C-3pt)%3B%0A%25%20draw%20nodes%0A%5Cdraw%20(0%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%200%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%5C%2413%2C000%20%20%24%7D%3B%0A%5Cdraw%20(1%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%24%7D%3B%0A%5Cdraw%20(2%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%20PMT%3D%20%3F%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%24%7D%3B%0A%5Cdraw%20(3%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%208%5C%25%20%24%7D%3B%0A%5Cdraw%20(4%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%24%7D%3B%0A%5Cdraw%20(5%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%205%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%20%24%7D%3B%0A%5Cend%7Btikzpicture%7D%0A%5Cend%7Bdocument%7D" />
 ### uses `payment_solution().series().print_table()` to return a pretty-print table
 ```
 use num_format::{Locale};

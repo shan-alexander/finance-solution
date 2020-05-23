@@ -261,7 +261,7 @@ pub fn epr(epr:f64, compounding_periods_in_year:u32) -> ConvertRateSolution {
 /// 
 // EAR = (1 + (apr/periods))<sup>periods</sup> - 1
 // Latex formula:   EAR=\left(1+\left(\frac{APR}{periods}\right)\right)^{periods}-1
-/// > <img src="http://i.upmath.me/svg/EAR%3D%5Cleft(1%2B%5Cleft(%5Cfrac%7BAPR%7D%7Bperiods%7D%5Cright)%5Cright)%5E%7Bperiods%7D-1" />
+/// > <img src="http://i.upmath.me/svg/EAR%3D%5Cleft(1%2B%5Cfrac%7BAPR%7D%7Bperiods%7D%5Cright)%5E%7Bperiods%7D-1" />
 /// 
 /// # Arguments
 /// * `rate` - The input rate, expressed as a floating point number. 
@@ -299,7 +299,7 @@ pub fn convert_apr_to_ear(apr: f64, compounding_periods_in_year: u32) -> f64 {
 /// 
 // EAR = (1 + (apr/periods))<sup>periods</sup> - 1
 // Latex formula:   EAR=\left(1+\left(\frac{APR}{periods}\right)\right)^{periods}-1
-/// > <img src="http://i.upmath.me/svg/EAR%3D%5Cleft(1%2B%5Cleft(%5Cfrac%7BAPR%7D%7Bperiods%7D%5Cright)%5Cright)%5E%7Bperiods%7D-1" />
+/// > <img src="http://i.upmath.me/svg/EAR%3D%5Cleft(1%2B%5Cfrac%7BAPR%7D%7Bperiods%7D%5Cright)%5E%7Bperiods%7D-1" />
 ///
 /// # Arguments
 /// * `rate` - The input rate, expressed as a floating point number. 
