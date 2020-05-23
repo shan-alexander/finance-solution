@@ -35,11 +35,11 @@
 //!
 //! With simple compound interest the number of periods is calculated with:
 //!
-//! > <img src="http://i.upmath.me/svg/periods%20%3D%20%7Blog_%7B1%2Brate%7D%5Cleft(%7Bfuture%5C_value%20%5Cover%20present%5C_value%7D%5Cright)%20%5Cover%20rate%7D" />
+//! > <img src="http://i.upmath.me/svg/periods%20%3D%20%5Cfrac%7B%5Clog_%7B1%2Brate%7D%5Cleft(%5Cfrac%7Bfuture%5C_value%7D%7Bpresent%5C_value%7D%5Cright)%7D%7Brate%7D" />
 //!
 //! Or using some more common variable names:
 //!
-//! > <img src="http://i.upmath.me/svg/n%20%3D%20%7Blog_%7B1%2Br%7D%5Cleft(%7Bfv%20%5Cover%20pv%7D%5Cright)%20%5Cover%20r%7D" />
+//! > <img src="http://i.upmath.me/svg/n%20%3D%20%5Cfrac%7B%5Clog_%7B1%2Br%7D%5Cleft(%5Cfrac%7Bfv%7D%7Bpv%7D%5Cright)%7Dr" />
 //!
 //! `n` is often used for the number of periods, though it may be `t` for time if each period is
 //! assumed to be one year as in continuous compounding. `r` is the periodic rate, though this may
@@ -60,19 +60,19 @@
 //!
 //! With continuous compounding it's:
 //!
-//! > <img src="http://i.upmath.me/svg/periods%20%3D%20%7Blog_e%5Cleft(%7Bfuture%5C_value%20%5Cover%20present%5C_value%7D%5Cright)%20%5Cover%20rate%7D" />
+//! > <img src="http://i.upmath.me/svg/periods%20%3D%20%5Cfrac%7B%5Cln%5Cleft(%5Cfrac%7Bfuture%5C_value%7D%7Bpresent%5C_value%7D%5Cright)%7D%7Brate%7D" />
 //!
 //! or:
 //!
-//! > <img src="http://i.upmath.me/svg/n%20%3D%20%7Blog_e%5Cleft(%7Bfv%20%5Cover%20pv%7D%5Cright)%20%5Cover%20r%7D" />
+//! > <img src="http://i.upmath.me/svg/n%20%3D%20%5Cfrac%7B%5Cln%5Cleft(%5Cfrac%7Bfv%7D%7Bpv%7D%5Cright)%7Dr" />
 //!
 //! With continuous compounding the period is assumed to be years and `t` (time) is often used as
 //! the variable name. Within this crate we stick with `n` for the number of periods so that it's
 //! easier to compare formulas when they're printed as simple text as part of the [TvmSolution](./struct.TvmSolution.html)
 //! struct, as in:
 //! ```text
-//! formula: "9.16 = log(250.0000 / 100.0000, base 2.718282) / 0.100000",
-//! symbolic_formula: "n = log(fv / pv, base e) / r",
+//! formula: "9.16 = ln(250.0000 / 100.0000) / 0.100000",
+//! symbolic_formula: "n = ln(fv / pv) / r",
 //! ```
 
 // use log::warn;
@@ -290,7 +290,7 @@ pub(crate) fn periods_internal(rate: f64, present_value: f64, future_value: f64,
 
     let fractional_periods = if continuous_compounding {
         // http://www.edmichaelreggie.com/TMVContent/rate.htm
-        (future_value / present_value).log(std::f64::consts::E) / rate
+        (future_value / present_value).ln() / rate
     } else {
         (future_value / present_value).log(1.0 + rate)
     };
@@ -302,8 +302,8 @@ pub(crate) fn periods_solution_internal(rate: f64, present_value: f64, future_va
     let fractional_periods = periods_internal(rate, present_value, future_value, continuous_compounding);
     assert!(fractional_periods >= 0.0);
     let (formula, symbolic_formula) = if continuous_compounding {
-        let formula = format!("{:.2} = log({:.4} / {:.4}, base {:.6}) / {:.6}", fractional_periods, future_value, present_value, std::f64::consts::E, rate);
-        let symbolic_formula = "n = log(fv / pv, base e) / r";
+        let formula = format!("{:.2} = ln({:.4} / {:.4}) / {:.6}", fractional_periods, future_value, present_value, rate);
+        let symbolic_formula = "n = ln(fv / pv) / r";
         (formula, symbolic_formula)
     } else {
         let rate_multiplier = 1.0 + rate;

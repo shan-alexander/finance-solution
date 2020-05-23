@@ -142,19 +142,21 @@ Simple compounding.
 Original:
 n = log(fv / pv, base (1 + r))
 LaTeX:
-periods = {log_{1+rate}\left({future\_value \over present\_value}\right) \over rate}
-//i.upmath.me/svg/periods%20%3D%20%7Blog_%7B1%2Brate%7D%5Cleft(%7Bfuture%5C_value%20%5Cover%20present%5C_value%7D%5Cright)%20%5Cover%20rate%7D
-n = {log_{1+r}\left({fv \over pv}\right) \over r}
-//i.upmath.me/svg/n%20%3D%20%7Blog_%7B1%2Br%7D%5Cleft(%7Bfv%20%5Cover%20pv%7D%5Cright)%20%5Cover%20r%7D
+periods = \frac{\log_{1+rate}\left(\frac{future\_value}{present\_value}\right)}{rate}
+//i.upmath.me/svg/periods%20%3D%20%5Cfrac%7B%5Clog_%7B1%2Brate%7D%5Cleft(%5Cfrac%7Bfuture%5C_value%7D%7Bpresent%5C_value%7D%5Cright)%7D%7Brate%7D
+n = \frac{\log_{1+r}\left(\frac{fv}{pv}\right)}r
+//i.upmath.me/svg/n%20%3D%20%5Cfrac%7B%5Clog_%7B1%2Br%7D%5Cleft(%5Cfrac%7Bfv%7D%7Bpv%7D%5Cright)%7Dr
 
 Continuous compounding.
 Original:
 n = log(fv / pv, base e) / r
 LaTeX:
-periods = {log_e\left({future\_value \over present\_value}\right) \over rate}
-//i.upmath.me/svg/periods%20%3D%20%7Blog_e%5Cleft(%7Bfuture%5C_value%20%5Cover%20present%5C_value%7D%5Cright)%20%5Cover%20rate%7D
-n = {log_e\left({fv \over pv}\right) \over r}
-//i.upmath.me/svg/n%20%3D%20%7Blog_e%5Cleft(%7Bfv%20%5Cover%20pv%7D%5Cright)%20%5Cover%20r%7D
+periods = \frac{\ln\left(\frac{future\_value}{present\_value}\right)}{rate}
+//i.upmath.me/svg/periods%20%3D%20%5Cfrac%7B%5Cln%5Cleft(%5Cfrac%7Bfuture%5C_value%7D%7Bpresent%5C_value%7D%5Cright)%7D%7Brate%7D
+n = \frac{\ln\left(\frac{fv}{pv}\right)}r
+//i.upmath.me/svg/n%20%3D%20%5Cfrac%7B%5Cln%5Cleft(%5Cfrac%7Bfv%7D%7Bpv%7D%5Cright)%7Dr
+
+
 
 
 
