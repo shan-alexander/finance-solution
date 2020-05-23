@@ -79,10 +79,6 @@
 
 use super::tvm::*;
 
-// Needed for the Rustdoc comments.
-#[allow(unused_imports)]
-use crate::{future_value::future_value, present_value::present_value, rate::rate};
-
 /// Returns the number of periods given a periodic rate along with the present and future values,
 /// using simple compounding.
 ///

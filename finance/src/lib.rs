@@ -225,8 +225,8 @@ pub(crate) fn format_float_locale_opt<T>(val: T, locale: Option<&Locale>, precis
     }
 }
 
-pub(crate) fn print_table_locale_opt(columns: &Vec<(String, String, bool)>, mut data: Vec<Vec<String>>, locale: Option<&num_format::Locale>, precision: Option<usize>) {
-    if columns.len() == 0 || data.len() == 0 {
+pub(crate) fn print_table_locale_opt(columns: &[(String, String, bool)], mut data: Vec<Vec<String>>, locale: Option<&num_format::Locale>, precision: Option<usize>) {
+    if columns.is_empty() || data.is_empty() {
         return;
     }
 
@@ -240,7 +240,7 @@ pub(crate) fn print_table_locale_opt(columns: &Vec<(String, String, bool)>, mut 
             if visible {
                 // If the data in this cell is an empty string we're going to leave it with that
                 // value regardless of the type.
-                if data[row_index][col_index].len() > 0 {
+                if !data[row_index][col_index].is_empty() {
                     let col_type = columns[col_index].1.to_lowercase();
                     //bg!(&col_type, &data[row_index][col_index]);
                     if col_type != "s" {
@@ -268,8 +268,8 @@ pub(crate) fn print_table_locale_opt(columns: &Vec<(String, String, bool)>, mut 
         let visible = columns[col_index].2;
         let width = if visible {
             let mut width = columns[col_index].0.len();
-            for row_index in 0..data.len() {
-                width = max(width, data[row_index][col_index].len());
+            for row in &data {
+                width = max(width, row[col_index].len());
             }
             width
         } else {
@@ -356,15 +356,13 @@ pub(crate) fn print_ab_comparison_values_bool(field_name: &str, value_a: bool, v
 fn print_ab_comparison_values_internal(field_name: &str, value_a: &str, value_b: &str, right_align: bool) {
     if value_a == value_b {
         println!("{}: {}", field_name, value_a);
+    } else if right_align {
+        let width = max(value_a.len(), value_b.len());
+        println!("{} a: {:>width$}", field_name, value_a, width = width);
+        println!("{} b: {:>width$}", field_name, value_b, width = width);
     } else {
-        if right_align {
-            let width = max(value_a.len(), value_b.len());
-            println!("{} a: {:>width$}", field_name, value_a, width = width);
-            println!("{} b: {:>width$}", field_name, value_b, width = width);
-        } else {
-            println!("{} a: {}", field_name, value_a);
-            println!("{} b: {}", field_name, value_b);
-        }
+        println!("{} a: {}", field_name, value_a);
+        println!("{} b: {}", field_name, value_b);
     }
 }
 
@@ -441,25 +439,25 @@ impl Schedule {
 
     pub fn value_type(&self) -> &ValueType {
         match self {
-            Schedule::Repeating { value_type, value: _, periods: _ } => value_type,
-            Schedule::Custom { value_type, values: _ } => value_type,
+            Schedule::Repeating { value_type, .. } => value_type,
+            Schedule::Custom { value_type, .. } => value_type,
         }
     }
 
     pub fn value(&self) -> Option<f64> {
         match self {
-            Schedule::Repeating{ value_type: _, value, periods: _ } => Some(*value),
-            Schedule::Custom { value_type: _, values: _} => None,
+            Schedule::Repeating{ value_type: _, value, .. } => Some(*value),
+            Schedule::Custom { .. } => None,
         }
     }
 
     pub fn get(&self, index: usize) -> f64 {
         match self {
-            Schedule::Repeating { value_type: _, value, periods } => {
+            Schedule::Repeating { value, periods, .. } => {
                 assert!(index < *periods as usize);
                 *value
             },
-            Schedule::Custom { value_type: _, values } => {
+            Schedule::Custom { values, .. } => {
                 *values.get(index).unwrap()
             },
         }
@@ -467,13 +465,13 @@ impl Schedule {
 
     pub fn max(&self) -> Option<f64> {
         match self {
-            Schedule::Repeating{ value_type: _, value, periods: _ } => Some(*value),
-            Schedule::Custom { value_type: _, values} => {
+            Schedule::Repeating{ value, .. } => Some(*value),
+            Schedule::Custom { values, ..} => {
                 match values.len() {
                     0 => None,
                     1 => Some(values[0]),
                     // https://www.reddit.com/r/rust/comments/3fg0xr/how_do_i_find_the_max_value_in_a_vecf64/ctoa7mp/
-                    _ => Some(values.iter().cloned().fold(0./0., f64::max))
+                    _ => Some(values.iter().cloned().fold(std::f64::NAN, f64::max))
                 }
             }
         }

@@ -65,10 +65,6 @@ use log::warn;
 
 use super::tvm::*;
 
-// Needed for the Rustdoc comments.
-#[allow(unused_imports)]
-use crate::{future_value::future_value, rate::rate, periods::periods};
-
 /// Returns the current value of a future amount using a fixed rate.
 ///
 /// Related functions:
@@ -374,7 +370,7 @@ pub(crate) fn present_value_solution_internal(rate: f64, periods: f64, future_va
         let symbolic_formula = "pv = fv / (1 + r)^n";
         (formula, symbolic_formula)
     };
-    TvmSolution::new_fractional_periods(TvmVariable::PresentValue, continuous_compounding, rate, periods, present_value, future_value.into(), &formula, symbolic_formula)
+    TvmSolution::new_fractional_periods(TvmVariable::PresentValue, continuous_compounding, rate, periods, present_value, future_value, &formula, symbolic_formula)
 }
 
 fn check_present_value_parameters(rate: f64, _periods: f64, future_value: f64) {

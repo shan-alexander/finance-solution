@@ -136,7 +136,7 @@ impl CashflowSolution {
         formula: &str,
         symbolic_formula: &str,
     ) -> Self {
-        assert!(formula.len() > 0);
+        assert!(!formula.is_empty());
         let sum_of_payments = payment * periods as f64;
         let sum_of_interest = sum_of_payments + present_value + future_value;
         Self {
@@ -238,7 +238,7 @@ impl CashflowSeries {
         where P: Fn(&&CashflowPeriod) -> bool
     {
         Self {
-            0: self.iter().filter(|x| predicate(x)).map(|x| x.clone()).collect()
+            0: self.iter().filter(|x| predicate(x)).cloned().collect()
         }
     }
 
