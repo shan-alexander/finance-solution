@@ -503,7 +503,11 @@ pub fn convert_ear_to_apr_solution(ear: f64, compounding_periods_in_year: u32) -
 // Periodic Rate = (1 + ear)<sup>(1 / compounding_periods_in_year)</sup> - 1
 // Latex formula: EPR=(1 + ear)^{(1/compounding\_periods\_in\_year)}-1
 /// > <img src="http://i.upmath.me/svg/EPR%3D(1%20%2B%20ear)%5E%7B(1%2Fcompounding%5C_periods%5C_in%5C_year)%7D-1" />
-///
+/// 
+/// or this formula can be re-written as:
+/// 
+/// <img src="https://i.upmath.me/svg/EPR%20%3D%20%5Csqrt%5Bperiods%5D%7B1%2Bear%7D%20-%201" />
+/// 
 /// # Arguments
 /// * `ear` - The input rate (effective annual rate), expressed as a floating point number. 
 /// For instance 0.05 would mean 5%. Often appears as `r` or `i` in formulas.
@@ -540,6 +544,10 @@ pub fn convert_ear_to_epr(ear: f64, compounding_periods_in_year: u32) -> f64 {
 // Latex formula: EPR=(1 + ear)^{(1/compounding\_periods\_in\_year)}-1
 /// > <img src="http://i.upmath.me/svg/EPR%3D(1%20%2B%20ear)%5E%7B(1%2Fcompounding%5C_periods%5C_in%5C_year)%7D-1" />
 ///
+/// or this formula can be re-written as:
+/// 
+/// <img src="https://i.upmath.me/svg/EPR%20%3D%20%5Csqrt%5Bperiods%5D%7B1%2Bear%7D%20-%201" />
+/// 
 /// # Arguments
 /// * `ear` - The input rate (effective annual rate), expressed as a floating point number. 
 /// For instance 0.05 would mean 5%. Often appears as `r` or `i` in formulas.

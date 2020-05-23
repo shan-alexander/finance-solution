@@ -19,6 +19,8 @@ A business partner will give you $4,000 in 3 years.
 Your rate-of-return in the market is 5%.
 How much is the deal worth to you right now?
 
+<img src="//i.upmath.me/svg/%5Cbegin%7Bdocument%7D%5Cbegin%7Btikzpicture%7D%0A%25%20draw%20horizontal%20line%20%20%20%0A%5Cdraw%20(0%2C0)%20--%20(6%2C0)%3B%0A%25%20draw%20vertical%20lines%0A%5Cforeach%20%5Cx%20in%20%7B0%2C2%2C4%2C6%7D%20%5Cdraw%20(%5Cx%20cm%2C3pt)%20--%20(%5Cx%20cm%2C-3pt)%3B%0A%25%20draw%20nodes%0A%5Cdraw%20(0%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%200%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%5C%24%3F%20%20%24%7D%3B%0A%5Cdraw%20(1%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%24%7D%3B%0A%5Cdraw%20(2%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%201%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%24%7D%3B%0A%5Cdraw%20(3%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%20%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%205%5C%25%20%24%7D%3B%0A%5Cdraw%20(4%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%202%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%24%7D%3B%0A%5Cdraw%20(5%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%20%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%20%24%7D%3B%0A%5Cdraw%20(6%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%203%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%5C%244%2C000%20%24%7D%3B%0A%5Cend%7Btikzpicture%7D%0A%5Cend%7Bdocument%7D" />
+
 ### uses `present_value()` to return f64 value
 ```
 let future_value = 4_000;
