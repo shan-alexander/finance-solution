@@ -1,4 +1,4 @@
-//! Number of periods required to achieve a Future Value with a given set 
+//! **Number of periods calculations for scenarios with payments.** Returns the number of periods required for a Present Value to achieve a Future Value with a given set 
 //! of annuities (payments) at a specified periodic rate.
 
 use log::{warn};
@@ -101,11 +101,11 @@ mod tests {
     #[test]
     fn test_nper_1() {
         // normal cases
-        assert_eq!(round_to_ulps6(27.7879559), round_to_ulps6(nper(0.034, -500, 1000, 20_000)));
-        assert_eq!(round_to_ulps6(59.76100743), round_to_ulps6(nper(0.034, -50, 1000, 2_000)));
-        assert_eq!(round_to_ulps6(25.68169193), round_to_ulps6(nper(0.034, -50, 0, 2_000)));
-        assert_eq!(round_to_ulps6(80.18661533), round_to_ulps6(nper(0.034, -5, 0, 2_000)));
-        assert_eq!(round_to_ulps6(106.3368288), round_to_ulps6(nper(0.034, -200, 0, 200_000)));
+        assert_eq!(round_6(27.7879559), round_6(nper(0.034, -500, 1000, 20_000)));
+        assert_eq!(round_6(59.76100743), round_6(nper(0.034, -50, 1000, 2_000)));
+        assert_eq!(round_6(25.68169193), round_6(nper(0.034, -50, 0, 2_000)));
+        assert_eq!(round_6(80.18661533), round_6(nper(0.034, -5, 0, 2_000)));
+        assert_eq!(round_6(106.3368288), round_6(nper(0.034, -200, 0, 200_000)));
     }
 
     #[should_panic]
@@ -127,14 +127,14 @@ mod tests {
 
     #[should_panic]
     #[test]
-    fn test_nper_3() {
+    fn test_nper_4() {
         // positive pmt
         nper(1_f64/0_f64, 0, 1000, 20_000);
     }
 
     #[should_panic]
     #[test]
-    fn test_nper_3() {
+    fn test_nper_5() {
         // negative 0
         nper(1_f64/0_f64, -0, 1000, 20_000);
     }

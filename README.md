@@ -1,6 +1,6 @@
-# libf financial library for Rust
+# finance-solution
 
-## libf is a financial library for time-value-of-money problems.
+## finance-solution is a financial library for time-value-of-money problems. 💸
 
 People who will find this crate helpful include:
 - **Students of Finance** who want to solve their financial problems using something better than a crude handheld calculator. Using this library also reduces the chance of human error, and provides better output and data displays than Excel.
@@ -136,16 +136,16 @@ dbg!(answer.series().print_table(&Locale::en, 4));
 //      5      -16,279.6695              0.0000  -3,014.7536       -12,999.0000              -0.0000    -241.1803       -3,279.6695              0.0000
 ```
 
-## Benefits of using libf
+## Benefits of using finance-solution
 This library has undergone hundreds of hours spent designing the library to be ergonomic, rustic, and accurate.
 
 Bonus highlights include:
-- libf provides both f64 functions almost all functions can add `_solution` to the function name to provide a more helpful output, with additional functionality.  We highly recommend you use the `_solution` functions when you can!
+- finance-solution provides both f64 functions almost all functions can add `_solution` to the function name to provide a more helpful output, with additional functionality.  We highly recommend you use the `_solution` functions when you can!
 - the `_solution` structs add a trivial amount of time to the code execution, 12-30 nanoseconds... as shown in our `benches` section.
 - all the formulas have been rigorously tested, both in unit tests, integration tests, and "symmetry" tests.
 - function parameters follow consistent ordering when possible, for example "rate, periods, ..." so the user can almost guess the ordering of parameters.
 - table output of `_solution().series().print_table()` allows the user to specify locale for specific currency formatting, and the output can easily be copy&pasted into spreadsheets (Excel, Google Sheet, etc).
-- Sample word problems are provided in the `examples` folder of the repo, which allows users to see how libf can be used to solve financial problems.
+- Sample word problems are provided in the `examples` folder of the repo, which allows users to see how finance-solution can be used to solve financial problems.
 - Functions have built-in asserts, panics, and even `warn!` logs to prevent users from making common mistakes, especially with rates.
 - Functions are built for ease-of-use, so the user can provide f64 or f32 or u32 or i8... Any numeric format for money is accepted into the function and converted into f64, for user convenience.
 - Functional parameters like rate and periods are strictly enforced to f64 for rate and u32 for periods. Periods are not allowed to be negative, and periods larger than 2000 will likely lead to computer-inherent floating point representation errors, so we provide a `warn!` for situations when we believe the inputs may create inaccuracies in the final output. It is up to the user to enable warn logs.
