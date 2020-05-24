@@ -1,3 +1,75 @@
+//! `finance_solution` is a collection of financial functions related to time-value-of-money.
+//! In addition to being rigourously tested with symmetry tests as well as excel-matching tests,
+//! the library provides `solution` structs to give the user more detailed information about
+//! each transaction, which has record-keeping benefits for financial software and 
+//! learning benefits for students of finance.
+//!  
+//! ## Example
+//! ```
+//! use finance_solution::*;
+//! let (rate, periods, present_value, is_continuous) = (0.034,10,1000, false);
+//! let fv = future_value_solution(rate, periods, present_value, is_continuous);
+//! dbg!(fv);
+//! ```
+//! which prints to the terminal:
+//! ```text
+//! fv = TvmSolution {
+//!    calculated_field: FutureValue,
+//!    continuous_compounding: false,
+//!    rate: 0.034,
+//!    periods: 10,
+//!    fractional_periods: 10.0,
+//!    present_value: 1000.0,
+//!    future_value: -1397.0288910795477,
+//!    formula: "-1397.0289 = -1000.0000 * (1.034000 ^ 10)",
+//!    symbolic_formula: "fv = -pv * (1 + r)^n",
+//! }
+//! ``` 
+//! and if you run this line:
+//! ```
+//! # use finance_solution::*;
+//! # let (rate, periods, present_value, is_continuous) = (0.034,10,1000, false);
+//! # let fv = future_value_solution(rate, periods, present_value, is_continuous);
+//! fv.series().print_table();
+//! ```
+//! a pretty-printed table will be displayed in the terminal:
+//! ```text
+//! period      rate        value
+//! ------  --------  -----------
+//!      0  0.000000  -1_000.0000
+//!      1  0.034000  -1_034.0000
+//!      2  0.034000  -1_069.1560
+//!      3  0.034000  -1_105.5073
+//!      4  0.034000  -1_143.0946
+//!      5  0.034000  -1_181.9598
+//!      6  0.034000  -1_222.1464
+//!      7  0.034000  -1_263.6994
+//!      8  0.034000  -1_306.6652
+//!      9  0.034000  -1_351.0918
+//!     10  0.034000  -1_397.0289
+//! ```
+//! This can be very useful for functions in the `cashflow` family, such as a payment.
+//! ```
+//! # use finance_solution::*;
+//! let (rate, periods, present_value, future_value, due) = (0.034, 10, 1000, 0, false);
+//! let pmt = payment_solution(rate, periods, present_value, future_value, due);
+//! pmt.print_table();
+//! ```
+//! Which prints to the terminal:
+//! ```
+//! // period  payments_to_date  payments_remaining  principal  principal_to_date  principal_remaining  interest  interest_to_date  interest_remaining
+//! // ------  ----------------  ------------------  ---------  -----------------  -------------------  --------  ----------------  ------------------
+//! //      1         -119.6361         -1_076.7248   -85.6361           -85.6361            -914.3639  -34.0000          -34.0000           -162.3609
+//! //      2         -239.2722           -957.0887   -88.5477          -174.1838            -825.8162  -31.0884          -65.0884           -131.2725
+//! //      3         -358.9083           -837.4526   -91.5583          -265.7421            -734.2579  -28.0778          -93.1661           -103.1947
+//! //      4         -478.5443           -717.8165   -94.6713          -360.4134            -639.5866  -24.9648         -118.1309            -78.2300
+//! //      5         -598.1804           -598.1804   -97.8901          -458.3036            -541.6964  -21.7459         -139.8768            -56.4840
+//! //      6         -717.8165           -478.5443  -101.2184          -559.5220            -440.4780  -18.4177         -158.2945            -38.0663
+//! //      7         -837.4526           -358.9083  -104.6598          -664.1818            -335.8182  -14.9763         -173.2708            -23.0901
+//! //      8         -957.0887           -239.2722  -108.2183          -772.4001            -227.5999  -11.4178         -184.6886            -11.6723
+//! //      9       -1_076.7248           -119.6361  -111.8977          -884.2978            -115.7022   -7.7384         -192.4270             -3.9339
+//! //     10       -1_196.3609             -0.0000  -115.7022          -999.0000              -0.0000   -3.9339         -196.3609              0.0000
+//! ```
 #![allow(dead_code)]
 
 use num_format::{Locale, ToFormattedString};
