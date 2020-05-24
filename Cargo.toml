@@ -1,12 +1,13 @@
 [package]
 name = "finance-solution"
-version = "0.0.1"
+version = "0.0.0"
 authors = ["Shan Newton <shan.alexander2020@gmail.com>", "David Thureson <David.G.Thureson@gmail.com>"]
 edition = "2018"
 license = "MIT"
 description = "A library for finance time-value-of-money functions with detailed solutions and pretty-printed tables."
 repository = "https://github.com/shan-alexander/finance-solution"
 documentation = "https://docs.rs/finance-solution"
+readme = "README.md"
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
