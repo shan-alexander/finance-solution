@@ -548,11 +548,13 @@ pub(crate) fn columns_with_strings(columns: &[(&str, &str, bool)]) -> Vec<(Strin
     columns.iter().map(|(label, data_type, visible)| (label.to_string(), data_type.to_string(), *visible)).collect()
 }
 
-pub (crate) fn initialized_vector<T>(length: usize, value: T) -> Vec<T>
-    where T: Copy
+pub (crate) fn initialized_vector<L, V>(length: L, value: V) -> Vec<V>
+    where
+        L: Into<usize>,
+        V: Copy,
 {
     let mut v = vec![];
-    for _ in 0..length {
+    for _ in 0..length.into() {
         v.push(value);
     }
     v

@@ -201,7 +201,7 @@ where C: Into<f64> + Copy
 
     let mut pv_accumulator = 0_f64;
     for i in 0..periods { 
-        let present_value = present_value(r[i as usize], (i+1) as u32, c[i as usize + 1], false);
+        let present_value = -present_value(r[i as usize], (i+1) as u32, c[i as usize + 1], false);
         pv_accumulator = pv_accumulator + present_value;
     }
     let npv = initial_investment + pv_accumulator;
@@ -285,7 +285,7 @@ where C: Into<f64> + Copy
     let mut sum_accumulator = 0_f64;
     let mut pv_accumulator = 0_f64;
     for i in 0..periods { 
-        let present_value = present_value(rates[i as usize], (i+1) as u32, cashflows[i as usize + 1], false);
+        let present_value = -present_value(rates[i as usize], (i+1) as u32, cashflows[i as usize + 1], false);
         pv_accumulator = pv_accumulator + present_value;
         sum_accumulator = sum_accumulator + cashflows[i as usize + 1];
     }

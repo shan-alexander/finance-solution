@@ -78,7 +78,7 @@ use crate::*;
 /// let periods = 365;
 ///
 /// // The starting value is $10,000.
-/// let present_value = 10_000.00;
+/// let present_value = -10_000.00;
 ///
 /// // The ending value is $11,000.
 /// let future_value = 11_000.00;
@@ -130,7 +130,7 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F, continuous_co
 /// // The starting value is $10,000.
 /// // The ending value is $15,000.
 /// let periods = 10;
-/// let present_value = 10_000.00;
+/// let present_value = -10_000.00;
 /// let future_value = 15_000.00;
 /// let continuous_compounding = false;
 /// /// // Calculate the periodic rate and create a struct with a record of the
@@ -147,10 +147,10 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F, continuous_co
 /// // Examine the formulas.
 /// let formula = solution.formula();
 /// dbg!(&formula);
-/// assert_eq!("0.041380 = ((15000.0000 / 10000.0000) ^ (1 / 10)) - 1", formula);
+/// assert_eq!("0.041380 = ((-15000.0000 / -10000.0000) ^ (1 / 10)) - 1", formula);
 /// let symbolic_formula = solution.symbolic_formula();
 /// dbg!(&symbolic_formula);
-/// assert_eq!("r = ((fv / pv) ^ (1 / n)) - 1", symbolic_formula);
+/// assert_eq!("r = ((-fv / pv) ^ (1 / n)) - 1", symbolic_formula);
 ///
 /// // Calculate the period-by-period values.
 /// let series = solution.series();
@@ -177,9 +177,9 @@ fn rate_internal(periods: u32, present_value: f64, future_value: f64, continuous
 
     let rate = if continuous_compounding {
         // http://www.edmichaelreggie.com/TMVContent/APR.htm
-        (future_value / present_value).ln() / periods as f64
+        (-future_value / present_value).ln() / periods as f64
     } else {
-        (future_value / present_value).powf(1.0 / periods as f64) - 1.0
+        (-future_value / present_value).powf(1.0 / periods as f64) - 1.0
     };
 
     if !rate.is_finite() {
@@ -201,12 +201,12 @@ pub (crate) fn rate_solution_internal(periods: u32, present_value: f64, future_v
 
     let rate = rate_internal(periods, present_value, future_value, continuous_compounding);
     let (formula, symbolic_formula) = if continuous_compounding {
-        let formula = format!("{:.6} = ln({:.4} / {:.4}) / {}", rate, future_value, present_value, periods);
-        let symbolic_formula = "r = ln(fv / pv) / t";
+        let formula = format!("{:.6} = ln({:.4} / {:.4}) / {}", rate, -future_value, present_value, periods);
+        let symbolic_formula = "r = ln(-fv / pv) / t";
         (formula, symbolic_formula)
     } else {
-        let formula = format!("{:.6} = (({:.4} / {:.4}) ^ (1 / {})) - 1", rate, future_value, present_value, periods);
-        let symbolic_formula = "r = ((fv / pv) ^ (1 / n)) - 1";
+        let formula = format!("{:.6} = (({:.4} / {:.4}) ^ (1 / {})) - 1", rate, -future_value, present_value, periods);
+        let symbolic_formula = "r = ((-fv / pv) ^ (1 / n)) - 1";
         (formula, symbolic_formula)
     };
     TvmSolution::new(TvmVariable::Rate, continuous_compounding, rate, periods, present_value, future_value, &formula, symbolic_formula)
@@ -215,6 +215,8 @@ pub (crate) fn rate_solution_internal(periods: u32, present_value: f64, future_v
 fn check_rate_parameters(periods: u32, present_value: f64, future_value: f64) {
     assert!(present_value.is_finite(), "The present value must be finite (not NaN or infinity)");
     assert!(future_value.is_finite(), "The future value must be finite (not NaN or infinity)");
+    assert!(!(present_value < 0.0 && future_value < 0.0), "The present value and future value are both negative. They must have opposite signs.");
+    assert!(!(present_value > 0.0 && future_value > 0.0), "The present value and future value are both positive. They must have opposite signs.");
     assert!(!(present_value == 0.0 && future_value != 0.0), "The present value is zero and the future value is nonzero so there's no way to solve for rate.");
     assert!(!(periods == 0 && present_value + future_value != 0.0), "The number of periods is zero and the present value plus the future value is nonzero so there's no way to solve for rate.");
 }
@@ -222,26 +224,14 @@ fn check_rate_parameters(periods: u32, present_value: f64, future_value: f64) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    //use crate::*;
-
-    #[test]
-    fn test_rate_nominal() {
-        // The test values come from the Excel rate function.
-        assert_rounded_6(0.028436, rate(12, 5_000, 7_000, false));
-        assert_rounded_6(-0.027650, rate(12, 7_000, 5_000, false));
-        assert_rounded_6(0.100000, rate(1, 10_000, 11_000, false));
-        assert_rounded_6(-0.090909, rate(1, 11_000, 10_000, false));
-        assert_rounded_6(0.001127, rate(360, 8_000, 12_000, false));
-        assert_rounded_6(-0.001126, rate(360, 12_000, 8_000, false));
-    }
 
     #[test]
     fn test_rate_edge() {
         // Zero periods, values add up to zero.
         assert_rounded_6(0.0, rate(0, 10_000.0, -10_000.0, false));
 
-        // Nonzero periods, values the same.
-        assert_rounded_6(0.0, rate(12, 10_000.0, 10_000.0, false));
+        // Nonzero periods, values add up to zero.
+        assert_rounded_6(0.0, rate(12, -10_000.0, 10_000.0, false));
     }
 
     #[should_panic]
@@ -279,5 +269,115 @@ mod tests {
         rate(0, 10_000.0, 10_000.0, false);
     }
 
-}
+    /*
+    macro_rules! compare_to_excel {
+        ( $n:expr, $pv:expr, $fv:expr, $r_excel:expr, $r_manual_simple:expr, $r_manual_cont:expr ) => {
+            println!("$n = {}, $pv = {}, $fv = {}, $r_excel: {}, $r_manual_simple = {}, $r_manual_cont = {}", $n, $pv, $fv, $r_excel, $r_manual_simple, $r_manual_cont);
+            assert_approx_equal!($r_excel, $r_manual_simple);
 
+            let r_calc_simple = rate($n, $pv, $fv, false);
+            println!("r_calc_simple = {}", r_calc_simple);
+            assert_approx_equal!($r_excel, r_calc_simple);
+
+            let r_calc_cont = rate($n, $pv, $fv, true);
+            println!("r_calc_cont = {}", r_calc_cont);
+            assert_approx_equal!($r_manual_cont, r_calc_cont);
+
+            if is_approx_equal!(0.0, r_calc_simple) {
+                assert_approx_equal!(0.0, r_calc_cont);
+            } else {
+                let ratio = r_calc_cont / r_calc_simple;
+                println!("ratio = {}", ratio);
+                if $r_excel < 0.0 {
+                    assert!(ratio >= 1.0);
+                    assert!(ratio <= 2.0);
+                } else {
+                    assert!(ratio >= 0.0);
+                    assert!(ratio <= 1.0);
+                }
+            }
+        }
+    }
+    */
+
+    fn compare_to_excel (test_case: usize, n: u32, pv: f64, fv: f64, r_excel: f64, r_manual_simple: f64, r_manual_cont: f64) {
+        let display = false;
+
+        if display { println!("test_case = {}, n = {}, pv = {}, fv = {}, r_excel: {}, r_manual_simple = {}, r_manual_cont = {}", test_case, n, pv, fv, r_excel, r_manual_simple, r_manual_cont) }
+        assert_approx_equal!(r_excel, r_manual_simple);
+
+        let r_calc_simple = rate(n, pv, fv,false);
+        if display { println!("r_calc_simple = {}", r_calc_simple) }
+        assert_approx_equal!(r_excel, r_calc_simple);
+
+        let r_calc_cont = rate(n, pv, fv, true);
+        if display { println!("r_calc_cont = {}", r_calc_cont); }
+        assert_approx_equal!(r_manual_cont, r_calc_cont);
+
+        if is_approx_equal!(0.0, r_calc_simple) {
+            assert_approx_equal!(0.0, r_calc_cont);
+        } else {
+            let ratio = r_calc_cont / r_calc_simple;
+            if display { println!("ratio = {}", ratio) };
+            if r_excel < 0.0 {
+                assert!(ratio >= 1.0);
+                assert!(ratio <= 2.0);
+            } else {
+                assert!(ratio >= 0.0);
+                assert!(ratio <= 1.0);
+            }
+        }
+
+        // Solution with simple compounding.
+        let solution = rate_solution(n, pv, fv, false);
+        if display { dbg!(&solution); }
+        solution.invariant();
+        assert!(solution.calculated_field().is_rate());
+        assert_eq!(false, solution.continuous_compounding());
+        assert_approx_equal!(r_excel, solution.rate());
+        assert_eq!(n, solution.periods());
+        assert_approx_equal!(n as f64, solution.fractional_periods());
+        assert_approx_equal!(pv, solution.present_value());
+        assert_approx_equal!(fv, solution.future_value());
+
+        // Solution with continuous compounding.
+        let solution = rate_solution(n, pv, fv, true);
+        if display { dbg!(&solution); }
+        solution.invariant();
+        assert!(solution.calculated_field().is_rate());
+        assert!(solution.continuous_compounding());
+        assert_approx_equal!(r_manual_cont, solution.rate());
+        assert_eq!(n, solution.periods());
+        assert_approx_equal!(n as f64, solution.fractional_periods());
+        assert_approx_equal!(pv, solution.present_value());
+        assert_approx_equal!(fv, solution.future_value());
+    }
+
+    #[test]
+    fn test_rate_against_excel() {
+        compare_to_excel(1, 90, -0.1f64, 1f64, 0.0259143654700119f64, 0.0259143654700098f64, 0.025584278811045f64);
+        compare_to_excel(2, 85, 1.05f64, -1.5f64, 0.00420499208399443f64, 0.00420499208399305f64, 0.00419617581104391f64);
+        compare_to_excel(3, 80, -2.25f64, 2.25f64, 8.10490132135311E-16f64, 0f64, 0f64);
+        compare_to_excel(4, 75, 4.3875f64, -3.375f64, -0.00349207865283533f64, -0.00349207865410572f64, -0.00349819019289988f64);
+        compare_to_excel(5, 70, -10.125f64, 5.0625f64, -0.00985323817917932f64, -0.00985323818144335f64, -0.00990210257942779f64);
+        compare_to_excel(6, 65, 0.759375f64, -7.59375f64, 0.0360593046264088f64, 0.0360593046256343f64, 0.0354243860460622f64);
+        compare_to_excel(7, 60, -7.9734375f64, 11.390625f64, 0.00596228650143506f64, 0.00596228649269048f64, 0.00594458239897887f64);
+        compare_to_excel(8, 55, 17.0859375f64, -17.0859375f64, 4.31995919490311E-13f64, 0f64, 0f64);
+        compare_to_excel(9, 50, -33.317578125f64, 25.62890625f64, -0.00523354233611077f64, -0.00523354233613538f64, -0.00524728528934982f64);
+        compare_to_excel(10, 45, 76.88671875f64, -38.443359375f64, -0.0152852470655657f64, -0.0152852470655688f64, -0.0154032706791099f64);
+        compare_to_excel(11, 40, -5.76650390625f64, 57.6650390625f64, 0.0592537251772898f64, 0.0592537251772889f64, 0.0575646273248511f64);
+        compare_to_excel(12, 35, 60.548291015625f64, -86.49755859375f64, 0.010242814832087f64, 0.0102428148320715f64, 0.0101907126839638f64);
+        compare_to_excel(13, 30, -129.746337890625f64, 129.746337890625f64, 2.53808542775445E-15f64, 0f64, 0f64);
+        compare_to_excel(14, 25, 253.005358886719f64, -194.619506835937f64, -0.0104396946981842f64, -0.0104396947068867f64, -0.0104945705786996f64);
+        compare_to_excel(15, 20, -583.858520507812f64, 291.929260253906f64, -0.0340636710696604f64, -0.0340636710751544f64, -0.0346573590279973f64);
+        compare_to_excel(16, 15, 43.7893890380859f64, -437.893890380859f64, 0.165914401180033f64, 0.165914401179832f64, 0.15350567286627f64);
+        compare_to_excel(17, 12, -459.788584899902f64, 656.840835571289f64, 0.0301690469250706f64, 0.0301690469166949f64, 0.0297229119948944f64);
+        compare_to_excel(18, 10, 985.261253356933f64, -985.261253356933f64, 3.26110008113999E-16f64, 0f64, 0f64);
+        compare_to_excel(19, 7, -1921.25944404602f64, 1477.8918800354f64, -0.0367869049970667f64, -0.0367869049970667f64, -0.0374806092096416f64);
+        compare_to_excel(20, 5, 4433.6756401062f64, -2216.8378200531f64, -0.129449436703859f64, -0.129449436703876f64, -0.138629436111989f64);
+        compare_to_excel(21, 4, -332.525673007965f64, 3325.25673007965f64, 0.778279410038923f64, 0.778279410038923f64, 0.575646273248511f64);
+        compare_to_excel(22, 3, 3491.51956658363f64, -4987.88509511947f64, 0.126247880443697f64, 0.126247880443606f64, 0.118891647979577f64);
+        compare_to_excel(23, 2, -7481.82764267921f64, 7481.82764267921f64, -9.19973496824152E-17f64, 0f64, 0f64);
+        compare_to_excel(24, 1, 14589.5639032245f64, -11222.7414640188f64, -0.230769230769231f64, -0.230769230769231f64, -0.262364264467491f64);
+    }
+}
