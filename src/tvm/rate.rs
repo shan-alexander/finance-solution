@@ -165,12 +165,12 @@ pub fn rate_solution<P, F>(periods: u32, present_value: P, future_value: F, cont
 }
 
 fn rate_internal(periods: u32, present_value: f64, future_value: f64, continuous_compounding: bool) -> f64 {
-    if present_value + future_value == 0.0 {
+    if is_approx_equal!(0.0, present_value + future_value) {
         // This is a special case where any rate will work.
         return 0.0;
     }
     if future_value == 0.0 {
-        // This is a special case where the rate must be -100% because present value is nonzero.
+        // This is a special case where the rate must be -100% because the present value is nonzero.
         return -1.0;
     }
     check_rate_parameters(periods, present_value, future_value);
@@ -187,6 +187,7 @@ fn rate_internal(periods: u32, present_value: f64, future_value: f64, continuous
     }
 
     assert!(rate.is_finite());
+    //rintln!("\nrate_internal(): periods = {}, present_value = {}, future_value = {}, continuous_compounding = {},\n\trate = {}", periods, present_value, future_value, continuous_compounding, rate);
     rate
 }
 
@@ -213,12 +214,13 @@ pub (crate) fn rate_solution_internal(periods: u32, present_value: f64, future_v
 }
 
 fn check_rate_parameters(periods: u32, present_value: f64, future_value: f64) {
+    //bg!(periods, present_value, future_value);
     assert!(present_value.is_finite(), "The present value must be finite (not NaN or infinity)");
     assert!(future_value.is_finite(), "The future value must be finite (not NaN or infinity)");
     assert!(!(present_value < 0.0 && future_value < 0.0), "The present value and future value are both negative. They must have opposite signs.");
     assert!(!(present_value > 0.0 && future_value > 0.0), "The present value and future value are both positive. They must have opposite signs.");
-    assert!(!(present_value == 0.0 && future_value != 0.0), "The present value is zero and the future value is nonzero so there's no way to solve for rate.");
-    assert!(!(periods == 0 && present_value + future_value != 0.0), "The number of periods is zero and the present value plus the future value is nonzero so there's no way to solve for rate.");
+    assert!(!(is_approx_equal!(0.0, present_value) && !is_approx_equal!(0.0, future_value)), "The present value is zero and the future value is nonzero so there's no way to solve for rate.");
+    assert!(!(periods == 0 && is_approx_equal!(0.0, present_value + future_value)), "The number of periods is zero and the present value plus the future value is nonzero so there's no way to solve for rate.");
 }
 
 #[cfg(test)]

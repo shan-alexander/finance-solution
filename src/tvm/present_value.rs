@@ -349,7 +349,12 @@ pub fn present_value_schedule_solution<T>(rates: &[f64], future_value: T) -> Tvm
 
 pub(crate) fn present_value_internal(rate: f64, periods: f64, future_value: f64, continuous_compounding: bool) -> f64 {
     check_present_value_parameters(rate, periods, future_value);
-    let present_value = if continuous_compounding {
+
+    let present_value = if is_approx_equal!(0.0, rate) || is_approx_equal!(0.0, periods) {
+        // The rate is zero and/or there are no periods, so there's no compounding going on. The
+        // present value must be the same as the future value (with signs reversed).
+        -future_value
+    } else if continuous_compounding {
         -future_value / std::f64::consts::E.powf(rate * periods as f64)
     } else {
         -future_value / (1. + rate).powf(periods)
@@ -374,14 +379,18 @@ pub(crate) fn present_value_solution_internal(rate: f64, periods: f64, future_va
     TvmSolution::new_fractional_periods(TvmVariable::PresentValue, continuous_compounding, rate, periods, present_value, future_value, &formula, symbolic_formula)
 }
 
-fn check_present_value_parameters(rate: f64, _periods: f64, future_value: f64) {
+fn check_present_value_parameters(rate: f64, periods: f64, future_value: f64) {
     assert!(rate.is_finite(), "The rate must be finite (not NaN or infinity)");
     assert!(rate >= -1.0, "The rate must be greater than or equal to -1.0 because a rate lower than -100% would mean the investment loses more than its full value in a period.");
     if rate.abs() > 1. {
         warn!("You provided a periodic rate ({}) greater than 1. Are you sure you expect a {}% return?", rate, rate * 100.0);
     }
     assert!(future_value.is_finite(), "The future value must be finite (not NaN or infinity)");
-    assert!(future_value.is_normal(), "The future value is zero (or subnormal) so there is no way to calculate the present value.");
+    if !is_approx_equal!(0.0, rate) && periods > 0.0 {
+        // rate and periods are both nonzero, so if future value is zero there's no way to work out
+        // the present value.
+        assert!(!is_approx_equal!(0.0, future_value), "The future value is zero but the rate is nonzero and periods > 0 so there is no way to calculate the present value.");
+    }
 }
 
 #[cfg(test)]

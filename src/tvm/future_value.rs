@@ -380,7 +380,9 @@ pub fn future_value_schedule_solution<T>(rates: &[f64], present_value: T) -> Tvm
 
 pub(crate) fn future_value_internal(rate: f64, periods: f64, present_value: f64, continuous_compounding: bool) -> f64 {
     check_future_value_parameters(rate, periods, present_value);
-    let future_value = if continuous_compounding {
+    let future_value = if is_approx_equal!(-1.0, rate) {
+        0.0
+    } else if continuous_compounding {
         // http://www.edmichaelreggie.com/TMVContent/rate.htm
         -present_value * std::f64::consts::E.powf(rate * periods)
     } else {
@@ -553,7 +555,3 @@ mod tests {
     }
 
 }
-
-// Comment should be on dev branch.
-// Second comment should be on dev branch.
-

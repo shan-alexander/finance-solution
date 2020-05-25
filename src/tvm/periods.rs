@@ -277,13 +277,14 @@ pub(crate) fn periods_internal(rate: f64, present_value: f64, future_value: f64,
         // the case where both are zero.
         return 0.0;
     }
-    if future_value == 0.0 && rate == -1.0 {
+    if is_approx_equal!(0.0, future_value) && is_approx_equal!(-1.0, rate) {
         // This is a special case that we can't run through the log function. Since the rate is
         // -100%, given any present value the future value will be zero and it will take only one
         // period to get there.
+
         // We already know that the present value is nonzero because that case would have been
         // caught above.
-        assert!(present_value != 0.0);
+        assert!(!is_approx_equal!(0.0, present_value));
         return 1.0;
     }
 
@@ -296,6 +297,7 @@ pub(crate) fn periods_internal(rate: f64, present_value: f64, future_value: f64,
         (-future_value / present_value).log(1.0 + rate)
     };
     assert!(fractional_periods >= 0.0);
+    //rintln!("\nperiods_internal(): rate = {}, present_value = {}, future_value = {}, continuous_compounding = {},\n\tfractional_periods = {}", rate, present_value, future_value, continuous_compounding, fractional_periods);
     fractional_periods
 }
 

@@ -1048,12 +1048,14 @@ mod tests {
         let rate = 0.10;
         let periods = 4;
         let present_value = -5_000.00;
-        check_symmetry(rate, periods, present_value);
+        // Check the symmetry with simple compounding then continuous compounding.
+        check_symmetry(rate, periods, present_value, false);
+        check_symmetry(rate, periods, present_value, true);
     }
 
     #[test]
     fn test_tvm_symmetry_multiple() {
-        let rates = vec![-1.0, -0.5, -0.05, -0.005, 0.0, 0.005, 0.05, 0.5, 1.0, 10.0, 100.0];
+        let rates = vec![-1.0, -0.05, -0.005, 0.0, 0.005, 0.05];
         // let rates = vec![-0.5, -0.05, -0.005, 0.0, 0.005, 0.05, 0.5, 1.0, 10.0, 100.0];
         // let periods: Vec<u32> = vec![0, 1, 2, 5, 10, 36, 100, 1_000];
         let periods: Vec<u32> = vec![0, 1, 2, 5, 10, 36];
@@ -1063,7 +1065,10 @@ mod tests {
                 for present_value_one in present_values.iter() {
                     if !(*periods_one > 50 && *rate_one > 0.01) {
                         if !(*periods_one == 0 && *present_value_one != 0.0) {
-                            check_symmetry(*rate_one, *periods_one, *present_value_one);
+                            for continuous_one in [false, true].iter() {
+
+                                check_symmetry(*rate_one, *periods_one, *present_value_one, *continuous_one);
+                            }
                         }
                     }
                 }
@@ -1071,40 +1076,57 @@ mod tests {
         }
     }
 
-    fn check_symmetry(rate_in: f64, periods_in: u32, present_value_in: f64) {
-        //bg!("check_symmetry", rate_in, periods_in, present_value_in);
+    fn check_symmetry(rate_in: f64, periods_in: u32, present_value_in: f64, continuous_in: bool) {
+        let display = false;
+
+        if display { dbg!("check_symmetry", rate_in, periods_in, present_value_in); }
 
         // Calculate the future value given the other three inputs so that we have all four values
         // which we can use in various combinations to confirm that all four basic TVM functions
         // return consistent values.
-        let future_value_calc = future_value(rate_in, periods_in, present_value_in, false);
-        //bg!(future_value_calc);
-        //bg!(future_value_calc.is_normal());
+        let future_value_calc = future_value(rate_in, periods_in, present_value_in, continuous_in);
+        if display { dbg!(future_value_calc); }
+        if display { dbg!(future_value_calc.is_normal()); }
+        if is_approx_equal!(0.0, future_value_calc) && rate_in > -1.0 {
+            // In this case the rate is negative enough when compounded by the number of periods
+            // that the future value is effectively zero even though the rate is not -100%. That's
+            // fine as far as the future value calculation and it's returning a number very close to
+            // zero as it should. But such a case will run into problems in a symmetry test because
+            // for instance we'll try to determine the present value with a future value of zero and
+            // there's no way to do that.
+            return;
+        }
 
-        let rate_calc = rate(periods_in, present_value_in, future_value_calc, false);
-        //bg!(rate_calc);
-        if periods_in == 0 || present_value_in == 0.0 {
+        let rate_calc = rate(periods_in, present_value_in, future_value_calc, continuous_in);
+
+        if display {
+            println!("\ncheck_symmetry(): rate_in = {}, periods_in = {}, present_value_in = {}, continuous_in = {}\n\tfuture_value_calc = {}, rate_calc = {}",
+                     rate_in, periods_in, present_value_in, continuous_in, future_value_calc, rate_calc);
+        }
+
+        if display { dbg!(rate_calc); }
+        if periods_in == 0 || is_approx_equal!(0.0, present_value_in) {
             // With zero periods or zero for the present value, presumably the future value is the
             // same as the present value and any periodic rate would be fine so we arbitrarily
             // return zero.
             assert_approx_equal_symmetry_test!(present_value_in, future_value_calc);
             assert_approx_equal_symmetry_test!(0.0, rate_calc);
         } else {
-            //bg!(rate_calc, rate_in);
+            if display { dbg!(rate_calc, rate_in); }
             assert_approx_equal_symmetry_test!(rate_calc, rate_in);
         }
 
-        let fractional_periods_calc = periods(rate_in, present_value_in, future_value_calc, false);
-        //bg!(fractional_periods_calc);
+        let fractional_periods_calc = periods(rate_in, present_value_in, future_value_calc, continuous_in);
+        if display { dbg!(fractional_periods_calc); }
         let periods_calc = round_4(fractional_periods_calc).ceil() as u32;
-        //bg!(periods_calc);
-        if rate_in == 0.0 || present_value_in == 0.0 || periods_in == 0 {
+        if display { dbg!(periods_calc); }
+        if is_approx_equal!(0.0, rate_in) || is_approx_equal!(0.0, present_value_in) || periods_in == 0 {
             // If the rate is zero or the present value is zero then the present value and future
             // value will be the same (but with opposite signs) and periods() will return zero since
             // no periods are required.
             assert_approx_equal_symmetry_test!(present_value_in, -future_value_calc);
             assert_eq!(0, periods_calc);
-        } else if rate_in == -1.0 {
+        } else if is_approx_equal!(-1.0, rate_in) {
             // The investment will drop to zero by the end of the first period so periods() will
             // return 1.
             assert_approx_equal_symmetry_test!(0.0, future_value_calc);
@@ -1116,46 +1138,29 @@ mod tests {
         }
 
         if future_value_calc.is_normal() {
-            let present_value_calc = present_value(rate_in, periods_in, future_value_calc, false);
-            //bg!(present_value_calc);
+            let present_value_calc = present_value(rate_in, periods_in, future_value_calc, continuous_in);
+            if display { dbg!(present_value_calc); }
             assert_approx_equal_symmetry_test!(present_value_calc, present_value_in);
         };
 
-        // Create a list of rates that are all the same so that we can try the _schedule functions
-        // For present value and future value
-        let mut rates_in = vec![];
-        for _ in 0..periods_in {
-            rates_in.push(rate_in);
-        }
-
-        if future_value_calc.is_normal() {
-            let present_value_schedule_calc = present_value_schedule(&rates_in, future_value_calc);
-            //bg!(present_value_schedule_calc);
-            assert_approx_equal_symmetry_test!(present_value_schedule_calc, present_value_in);
-        }
-
-        let future_value_schedule_calc = future_value_schedule(&rates_in, present_value_in);
-        //bg!(future_value_schedule_calc);
-        assert_approx_equal_symmetry_test!(future_value_schedule_calc, future_value_calc);
-
         // Create TvmSolution structs by solving for each of the four possible variables.
         let mut solutions = vec![
-            rate_solution(periods_in, present_value_in, future_value_calc, false),
-            periods_solution(rate_in, present_value_in, future_value_calc, false),
-            future_value_solution(rate_in, periods_in, present_value_in, false),
+            rate_solution(periods_in, present_value_in, future_value_calc, continuous_in),
+            periods_solution(rate_in, present_value_in, future_value_calc, continuous_in),
+            future_value_solution(rate_in, periods_in, present_value_in, continuous_in),
         ];
 
         if future_value_calc.is_normal() {
-            solutions.push(present_value_solution(rate_in, periods_in, future_value_calc, false));
+            solutions.push(present_value_solution(rate_in, periods_in, future_value_calc, continuous_in));
         }
         for solution in solutions.iter() {
-            //bg!(solution);
+            if display { dbg!(solution); }
             if solution.calculated_field().is_rate() {
                 // There are a few special cases in which the calculated rate is arbitrarily set to
                 // zero since any value would work. We've already checked rate_calc against those
                 // special cases, so use that here for the comparison.
                 if !is_approx_equal_symmetry_test!(rate_calc, solution.rate()) {
-                    dbg!(rate_calc, solution.rate(), &solution);
+                    if display { dbg!(rate_calc, solution.rate(), &solution); }
                 }
                 assert_approx_equal_symmetry_test!(rate_calc, solution.rate());
             } else {
@@ -1173,29 +1178,11 @@ mod tests {
             assert_approx_equal_symmetry_test!(future_value_calc, solution.future_value());
         }
 
-        let mut schedules = vec![future_value_schedule_solution(&rates_in, present_value_in)];
-        if future_value_calc.is_normal() {
-            schedules.push(present_value_schedule_solution(&rates_in, future_value_calc));
-        }
-
-        for schedule in schedules.iter() {
-            //bg!(schedule);
-            assert_eq!(periods_in, schedule.rates().len() as u32);
-            assert_eq!(periods_in, schedule.periods());
-            assert_approx_equal_symmetry_test!(present_value_in, schedule.present_value());
-            assert_approx_equal_symmetry_test!(future_value_calc, schedule.future_value());
-        }
-
         // Check each series in isolation.
         for solution in solutions.iter() {
             let label = format!("Solution for {:?}", solution.calculated_field());
-            //bg!(&label);
-            check_series_internal(label, solution.calculated_field(), &solution.series(), rate_in, periods_in, present_value_in, future_value_calc, rate_calc, periods_calc);
-        }
-        for solution in schedules.iter() {
-            let label = format!("Schedule for {:?}", solution.calculated_field());
-            //bg!(&label);
-            check_series_internal(label, solution.calculated_field(),  &solution.series(), rate_in, periods_in, present_value_in, future_value_calc, rate_calc, periods_calc);
+            if display { dbg!(&label); }
+            check_series_internal(label, solution.calculated_field(), &solution.series(), rate_in, periods_in, present_value_in, continuous_in, future_value_calc, rate_calc, periods_calc);
         }
 
         // Confirm that all of the series have the same values for all periods regardless of how we
@@ -1209,15 +1196,76 @@ mod tests {
             let label = format!("Solution for {:?}", solution.calculated_field());
             check_series_same_values(reference_solution, &reference_series,label, solution.calculated_field(), &solution.series());
         }
-        for schedule in schedules.iter() {
-            let label = format!("Schedule for {:?}", schedule.calculated_field());
-            check_series_same_values(reference_solution, &reference_series, label, schedule.calculated_field(), &schedule.series());
+
+        if !continuous_in {
+            // Create a list of rates that are all the same so that we can try the _schedule functions
+            // For present value and future value
+            let mut rates_in = vec![];
+            for _ in 0..periods_in {
+                rates_in.push(rate_in);
+            }
+
+            if future_value_calc.is_normal() {
+                let present_value_schedule_calc = present_value_schedule(&rates_in, future_value_calc);
+                if display { dbg!(present_value_schedule_calc); }
+                assert_approx_equal_symmetry_test!(present_value_schedule_calc, present_value_in);
+            }
+
+            let future_value_schedule_calc = future_value_schedule(&rates_in, present_value_in);
+            if display { dbg!(future_value_schedule_calc); }
+            assert_approx_equal_symmetry_test!(future_value_schedule_calc, future_value_calc);
+            let mut schedules = vec![future_value_schedule_solution(&rates_in, present_value_in)];
+            if future_value_calc.is_normal() {
+                schedules.push(present_value_schedule_solution(&rates_in, future_value_calc));
+            }
+
+            for schedule in schedules.iter() {
+                if display { dbg!(schedule); }
+                assert_eq!(periods_in, schedule.rates().len() as u32);
+                assert_eq!(periods_in, schedule.periods());
+                assert_approx_equal_symmetry_test!(present_value_in, schedule.present_value());
+                assert_approx_equal_symmetry_test!(future_value_calc, schedule.future_value());
+            }
+
+            for solution in schedules.iter() {
+                let label = format!("Schedule for {:?}", solution.calculated_field());
+                if display { dbg!(&label); }
+                check_series_internal(label, solution.calculated_field(),  &solution.series(), rate_in, periods_in, present_value_in, continuous_in, future_value_calc, rate_calc, periods_calc);
+            }
+
+            let reference_solution = solutions.iter().find(|solution| solution.calculated_field().is_future_value()).unwrap();
+            let reference_series = reference_solution.series();
+            for schedule in schedules.iter() {
+                let label = format!("Schedule for {:?}", schedule.calculated_field());
+                check_series_same_values(reference_solution, &reference_series, label, schedule.calculated_field(), &schedule.series());
+            }
+
+        }
+
+        if !continuous_in && rate_in > -1.0 {
+            // Check that we can use the given values in a payment calculation and get zero for the
+            // payment.
+            let payment_calc = payment(rate_in, periods_in, present_value_in, future_value_calc, false);
+            assert_approx_equal!(0.0, payment_calc);
         }
     }
 
-    fn check_series_internal(_label: String, calculated_field: &TvmVariable, series: &TvmSeries, rate_in: f64, periods_in: u32, present_value_in: f64, future_value_calc: f64, rate_calc: f64, periods_calc: u32) {
-        //bg!(label);
-        //bg!(&series);
+    fn check_series_internal(
+        label: String,
+        calculated_field: &TvmVariable,
+        series: &TvmSeries,
+        rate_in: f64,
+        periods_in: u32,
+        present_value_in: f64,
+        continuous_in: bool,
+        future_value_calc: f64,
+        rate_calc: f64,
+        periods_calc: u32)
+    {
+        let display = false;
+
+        if display { dbg!(label); }
+        if display { dbg!(&series); }
         if calculated_field.is_periods() {
             // There are a few special cases in which the number of periods might be zero or one
             // instead of matching periods_in. So check against the number returned from
@@ -1226,6 +1274,9 @@ mod tests {
         } else {
             assert_eq!(periods_in + 1, series.len() as u32);
         }
+
+        check_series_from_to(series, rate_in, periods_in, present_value_in, future_value_calc, continuous_in);
+
         let mut prev_value: Option<f64> = None;
         for (period, entry) in series.iter().enumerate() {
             assert_eq!(period as u32, entry.period());
@@ -1282,6 +1333,104 @@ mod tests {
         }
     }
 
+    fn check_series_from_to(series: &TvmSeries, r: f64, n: u32, pv: f64, fv: f64, continuous: bool) {
+        // For each period in the series, we should be able to do all of the TVM calculations as if
+        // we'd started at that point. Likewise we should be able to do the calculations as if the
+        // current period is the endpoint.
+
+        // This should work for all periods including period 0 and the last period except for a few
+        // special cases such as trying to calculate a rate when there are zero periods.
+
+        let display = false;
+
+        if display { println!("\ncheck_series_from_to(): r = {}, n = {}, pv = {}, fv = {}, continuous = {}", r, n, pv, fv, continuous); }
+
+        for (period, entry) in series.iter().enumerate() {
+            if display {
+                if display { println!("\ncheck_series_from_to(): r = {}, n = {}, pv = {}, fv = {}, continuous = {}, period = {}", r, n, pv, fv, continuous, period); }
+                //bg!(entry);
+            }
+
+            assert_eq!(period as u32, entry.period());
+
+            let n_so_far = period as u32;
+            let n_remaining = n - period as u32;
+
+            if n_remaining > 0 {
+                // Calculate the rate as if all we knew was the current period and the future value.
+                // This should be the same as the rate from the real solution.
+                let r_from = rate(n_remaining, -entry.value(), fv, continuous);
+                if display { dbg!(r, r_from); }
+                assert_approx_equal_symmetry_test!(r, r_from);
+            }
+
+            if n_so_far > 0 {
+                // Calculate the rate as if all we knew was the present value and the current period.
+                // This should be the same as the rate from the real solution.
+                let r_to = rate(n_so_far, pv, entry.value(), continuous);
+                if display { dbg!(r, r_to); }
+                assert_approx_equal_symmetry_test!(r, r_to);
+            }
+
+            if r > -1.0 && !is_approx_equal!(0.0, pv + fv) {
+                // Calculate the periods as if all we knew was the current period and the future value.
+                // This should be the same as the periods from this point forward.
+                let n_from = periods(r, -entry.value(), fv, continuous);
+                let n_from = n_from.round() as u32;
+                if display { dbg!(n_remaining, n_from); }
+                assert_eq!(n_remaining, n_from);
+
+                // Calculate the periods as if all we knew was the current period and the present value.
+                // This should be the same as the current period number.
+                let n_to = periods(r, pv, entry.value(), continuous);
+                let n_to = n_to.round() as u32;
+                if display { dbg!(n_so_far, n_to); }
+                assert_eq!(n_so_far, n_to);
+            }
+
+            if !is_approx_equal!(0.0, fv) {
+                // Calculate the present value as if we'd started at this period rather than period 0.
+                // This should be the same as the value of this period (with the signs reversed).
+                let pv_from = present_value(r, n_remaining, fv, continuous);
+                if display { dbg!(-entry.value(), pv_from); }
+                assert_approx_equal_symmetry_test!(-entry.value(), pv_from);
+
+                // Calculate the present value as if we'd ended after this period. This should be the
+                // same as the original present value.
+                let pv_to = present_value(r, n_so_far, entry.value(), continuous);
+                if display { dbg!(pv, pv_to); }
+                assert_approx_equal_symmetry_test!(pv, pv_to);
+            }
+
+            // Calculate the future value as if we'd started at this period rather than period 0.
+            // This should be the same as the future value from the real solution.
+            let fv_from = future_value(r, n_remaining, -entry.value(), continuous);
+            if display { dbg!(fv, fv_from); }
+            assert_approx_equal_symmetry_test!(fv, fv_from);
+
+            // Calculate the future value as if we'd ended after this period. This should be the
+            // same as the value of this period.
+            let fv_to = future_value(r, n_so_far, pv, continuous);
+            if display { dbg!(entry.value(), fv_to); }
+            assert_approx_equal_symmetry_test!(entry.value(), fv_to);
+
+            if !continuous && r > -1.0 {
+                // Calculate the payment starting from this point. It should be zero because we're
+                // starting with the four variables of the simple TVM calculations (rate, periods,
+                // present value, and future value) and the calculation works out without any payments.
+                let pmt_from = payment(r, n_remaining, -entry.value(), fv, false);
+                if display { dbg!(pmt_from); }
+                assert_approx_equal!(0.0, pmt_from);
+
+                // Calculate the payment as if we'd ended after this period. It should be zero.
+                let pmt_to = payment(r, n_so_far, pv, entry.value(), false);
+                if display { dbg!(pmt_to); }
+                assert_approx_equal!(0.0, pmt_to);
+            }
+
+        }
+    }
+
     fn check_series_same_values(_reference_solution: &TvmSolution, reference_series: &TvmSeries, _label: String, calculated_field: &TvmVariable, series: &[TvmPeriod]) {
         //bg!(reference_solution);
         //bg!(&reference_series);
@@ -1335,6 +1484,7 @@ mod tests {
                 // assert_eq!(reference_entry.value.round(), entry.value.round());
             }
         }
+
     }
 
     #[test]
@@ -1510,14 +1660,18 @@ mod tests {
     */
 
     fn check_simple_to_continuous_symmetry(rate_in: f64, periods_in: u32, present_value_in: f64) {
-        println!();
-        dbg!("check_simple_to_continuous_symmetry", rate_in, periods_in, present_value_in);
+        let display = false;
+
+        if display {
+            println!();
+            dbg!("check_simple_to_continuous_symmetry", rate_in, periods_in, present_value_in);
+        }
 
         // Calculate the future value given the other three inputs so that we have all four values
         // which we can use in various combinations to confirm that all four continuous TVM
         // functions return consistent values.
         let future_value_calc = future_value(rate_in, periods_in, present_value_in, true);
-        dbg!(future_value_calc);
+        if display { dbg!(future_value_calc); }
 
         // Create TvmSolution structs with continuous compounding by solving for each of the four possible variables.
         let continuous_solutions = vec![
@@ -1544,8 +1698,10 @@ mod tests {
         // Compare the continuous solutions to the corresponding simple solutions.
         for (index, continuous_solution) in continuous_solutions.iter().enumerate() {
             let simple_solution = &simple_solutions[index];
-            println!("\nContinuous compounding vs. simple compounding adjusting {} while keeping the other three values constant.\n", continuous_solution.calculated_field().to_string().to_lowercase());
-            dbg!(&continuous_solution, &simple_solution);
+            if display {
+                println!("\nContinuous compounding vs. simple compounding adjusting {} while keeping the other three values constant.\n", continuous_solution.calculated_field().to_string().to_lowercase());
+                dbg!(&continuous_solution, &simple_solution);
+            }
             assert_eq!(continuous_solution.calculated_field(), simple_solution.calculated_field());
             assert!(continuous_solution.continuous_compounding());
             assert!(!simple_solution.continuous_compounding());
@@ -1611,7 +1767,7 @@ mod tests {
         for (index, solution) in continuous_solutions.iter().enumerate() {
             let solution_round_trip = &continuous_solutions_round_trip[index];
             println!("\nOriginal continuous compounding vs. derived continuous compounding where the calculated field is {}.\n", solution.calculated_field().to_string().to_lowercase());
-            dbg!(&solution, &solution_round_trip);
+            if display { dbg!(&solution, &solution_round_trip); }
             assert_eq!(solution, solution_round_trip);
         }
         /*
@@ -1655,27 +1811,34 @@ mod tests {
 
     #[test]
     fn test_with_compounding_periods_vary_future_value() {
-        println!("\ntest_with_compounding_periods_vary_future_value()\n");
+        let display = false;
+        if display { println!("\ntest_with_compounding_periods_vary_future_value()\n"); }
 
         let (solution, compounding_periods) = setup_for_compounding_periods();
-        dbg!(&compounding_periods);
+        if display { dbg!(&compounding_periods); }
 
         for one_compounding_period in compounding_periods.iter() {
-            println!("\nSimple compounding original vs. compounding periods = {} while varying future value.\n", one_compounding_period);
-            dbg!(&solution, solution.future_value_solution(false, Some(*one_compounding_period)));
+            if display {
+                println!("\nSimple compounding original vs. compounding periods = {} while varying future value.\n", one_compounding_period);
+                dbg!(&solution, solution.future_value_solution(false, Some(*one_compounding_period)));
+            }
         }
     }
 
     #[test]
     fn test_with_compounding_periods_vary_present_value() {
-        println!("\ntest_with_compounding_periods_vary_present_value()\n");
+        let display = false;
+
+        if display { println!("\ntest_with_compounding_periods_vary_present_value()\n"); }
 
         let (solution, compounding_periods) = setup_for_compounding_periods();
-        dbg!(&compounding_periods);
+        if display { dbg!(&compounding_periods); }
 
         for one_compounding_period in compounding_periods.iter() {
-            println!("\nSimple compounding original vs. compounding periods = {} while varying present value.\n", one_compounding_period);
-            dbg!(&solution, solution.present_value_solution(false, Some(*one_compounding_period)));
+            if display {
+                println!("\nSimple compounding original vs. compounding periods = {} while varying present value.\n", one_compounding_period);
+                dbg!(&solution, solution.present_value_solution(false, Some(*one_compounding_period)));
+            }
         }
     }
 }

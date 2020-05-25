@@ -314,16 +314,16 @@ impl CashflowSeries {
             locale: Option<&num_format::Locale>,
             precision: Option<usize>) {
         let columns = columns_with_strings(&[("period", "i", true),
-                           ("payment_a", "f", true), ("payment_b", "f", true),
-                           ("pmt_to_date_a", "f", include_running_totals), ("pmt_to_date_b", "f", include_running_totals),
-            // ("pmt_remaining_a", "f", include_remaining_amounts), ("pmt_remaining_b", "f", include_remaining_amounts),
-            ("pmt_remaining_a", "f", false), ("pmt_remaining_b", "f", false),
-                           ("principal_a", "f", true), ("principal_b", "f", true),
-                           ("princ_to_date_a", "f", include_running_totals), ("princ_to_date_b", "f", include_running_totals),
-                           ("princ_remaining_a", "f", include_remaining_amounts), ("princ_remaining_b", "f", include_remaining_amounts),
-                           ("interest_a", "f", false), ("interest_b", "f", false),
-                           ("int_to_date_a", "f", include_running_totals), ("int_to_date_b", "f", include_running_totals),
-                           ("int_remaining_a", "f", false), ("int_remaining_b", "f", false)]);
+            ("payment_a", "f", true), ("payment_b", "f", true),
+            ("pmt_to_date_a", "f", include_running_totals), ("pmt_to_date_b", "f", include_running_totals),
+            ("pmt_remaining_a", "f", include_remaining_amounts), ("pmt_remaining_b", "f", include_remaining_amounts),
+            ("principal_a", "f", true), ("principal_b", "f", true),
+            ("princ_to_date_a", "f", include_running_totals), ("princ_to_date_b", "f", include_running_totals),
+            ("princ_remaining_a", "f", include_remaining_amounts), ("princ_remaining_b", "f", include_remaining_amounts),
+            ("interest_a", "f", true), ("interest_b", "f", true),
+            ("int_to_date_a", "f", include_running_totals), ("int_to_date_b", "f", include_running_totals),
+            ("int_remaining_a", "f", include_remaining_amounts), ("int_remaining_b", "f", include_remaining_amounts)
+        ]);
         let mut data = vec![];
         let rows = max(self.len(), other.len());
         for row_index in 0..rows {
