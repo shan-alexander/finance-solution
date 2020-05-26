@@ -270,7 +270,7 @@ impl PaymentSolution {
             };
             let entry = CashflowPeriod::new(period, self.rate(), self.due_at_beginning(), self.payment(), payments_to_date,
                                                payments_remaining, principal, principal_to_date, principal_remaining, interest,
-                                               interest_to_date, interest_remaining, formula, symbolic_formula);
+                                               interest_to_date, interest_remaining, &formula, &symbolic_formula);
             series.push(entry);
         }
         let payment_series = PaymentSeries::new(CashflowSeries::new(series));

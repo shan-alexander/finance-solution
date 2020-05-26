@@ -90,6 +90,8 @@ pub mod cashflow;
 #[doc(inline)]
 pub use cashflow::*;
 
+pub mod simple;
+
 pub mod tvm;
 #[doc(inline)]
 pub use tvm::*;
@@ -620,7 +622,7 @@ pub(crate) fn columns_with_strings(columns: &[(&str, &str, bool)]) -> Vec<(Strin
     columns.iter().map(|(label, data_type, visible)| (label.to_string(), data_type.to_string(), *visible)).collect()
 }
 
-pub (crate) fn initialized_vector<L, V>(length: L, value: V) -> Vec<V>
+pub(crate) fn initialized_vector<L, V>(length: L, value: V) -> Vec<V>
     where
         L: Into<usize>,
         V: Copy,
@@ -630,6 +632,14 @@ pub (crate) fn initialized_vector<L, V>(length: L, value: V) -> Vec<V>
         v.push(value);
     }
     v
+}
+
+pub(crate) fn fix_zero(value: f64) -> f64 {
+    if value.is_finite() && is_approx_equal!(0.0, value) {
+        0.0
+    } else {
+        value
+    }
 }
 
 #[cfg(test)]

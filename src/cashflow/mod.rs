@@ -250,6 +250,29 @@ impl CashflowSeries {
         }
     }
 
+    pub(crate) fn summarize(&self, periods: u32) -> Self {
+        let mut series = vec![];
+        for entry in self.iter().filter(|entry| entry.period() % periods == 0 || entry.period() == self.len() as u32 + 1) {
+            let mut payment_sum = 0.0;
+            let mut principal_sum = 0.0;
+            let mut interest_sum = 0.0;
+            let period_min = (entry.period as i128 - periods as i128) + 1;
+            let period_max = entry.period;
+            for sum_entry in self.iter().filter(|entry| entry.period as i128 >= period_min && entry.period <= period_max) {
+                payment_sum += sum_entry.payment;
+                principal_sum += sum_entry.principal;
+                interest_sum += sum_entry.interest;
+            }
+            series.push(CashflowPeriod::new(
+                entry.period, entry.rate, entry.due_at_beginning,
+                payment_sum, entry.payments_to_date, entry.payments_remaining,
+                principal_sum, entry.principal_to_date, entry.principal_remaining,
+                interest_sum, entry.interest_to_date, entry.interest_remaining,
+                &entry.formula, &entry.symbolic_formula));
+        }
+        CashflowSeries::new(series)
+    }
+
     pub fn print_table(
         &self,
         include_running_totals: bool,
@@ -263,11 +286,12 @@ impl CashflowSeries {
         include_running_totals: bool,
         include_remaining_amounts: bool,
         locale: &num_format::Locale,
-        precision: usize) {
+        precision: usize)
+    {
         self.print_table_locale_opt(include_running_totals, include_remaining_amounts, Some(locale), Some(precision));
     }
 
-    fn print_table_locale_opt(
+    pub(crate) fn print_table_locale_opt(
         &self,
         include_running_totals: bool,
         include_remaining_amounts: bool,
@@ -276,11 +300,11 @@ impl CashflowSeries {
     {
         let columns = columns_with_strings(&[
             ("period", "i", true),
-            ("payments_to_date", "f", include_running_totals), ("payments_remaining", "f", include_remaining_amounts),
+            ("payment", "f", true), ("payments_to_date", "f", include_running_totals), ("payments_remaining", "f", include_remaining_amounts),
             ("principal", "f", true), ("principal_to_date", "f", include_running_totals), ("principal_remaining", "f", include_remaining_amounts),
             ("interest", "f", true), ("interest_to_date", "f", include_running_totals), ("interest_remaining", "f", include_remaining_amounts)]);
         let data = self.iter()
-            .map(|entry| vec![entry.period.to_string(), entry.payments_to_date.to_string(), entry.payments_remaining.to_string(),
+            .map(|entry| vec![entry.period.to_string(), entry.payment.to_string(), entry.payments_to_date.to_string(), entry.payments_remaining.to_string(),
                               entry.principal.to_string(), entry.principal_to_date.to_string(), entry.principal_remaining.to_string(),
                               entry.interest.to_string(), entry.interest_to_date.to_string(), entry.interest_remaining.to_string()])
             .collect::<Vec<_>>();
@@ -397,8 +421,8 @@ impl CashflowPeriod {
         interest: f64,
         interest_to_date: f64,
         interest_remaining: f64,
-        formula: String,
-        symbolic_formula: String,
+        formula: &str,
+        symbolic_formula: &str,
     ) -> Self {
         Self {
             period,
@@ -406,15 +430,15 @@ impl CashflowPeriod {
             due_at_beginning,
             payment,
             payments_to_date,
-            payments_remaining,
+            payments_remaining: fix_zero(payments_remaining),
             principal,
             principal_to_date,
-            principal_remaining,
+            principal_remaining: fix_zero(principal_remaining),
             interest,
             interest_to_date,
-            interest_remaining,
-            formula,
-            symbolic_formula,
+            interest_remaining: fix_zero(interest_remaining),
+            formula: formula.to_string(),
+            symbolic_formula: symbolic_formula.to_string(),
         }
     }
 
