@@ -197,7 +197,7 @@ pub (crate) fn rate_solution_internal(periods: u32, present_value: f64, future_v
         let formula = "{special case}";
         let symbolic_formula = "***";
         let rate = 0.0;
-        return TvmSolution::new(TvmVariable::Rate, continuous_compounding, rate, periods, present_value, future_value, formula, symbolic_formula);
+        return TvmSolution::new(TvmVariable::Rate, TvmCalculationType::Excel, continuous_compounding, rate, periods, present_value, future_value, formula, symbolic_formula);
     }
 
     let rate = rate_internal(periods, present_value, future_value, continuous_compounding);
@@ -210,7 +210,7 @@ pub (crate) fn rate_solution_internal(periods: u32, present_value: f64, future_v
         let symbolic_formula = "r = ((-fv / pv) ^ (1 / n)) - 1";
         (formula, symbolic_formula)
     };
-    TvmSolution::new(TvmVariable::Rate, continuous_compounding, rate, periods, present_value, future_value, &formula, symbolic_formula)
+    TvmSolution::new(TvmVariable::Rate, TvmCalculationType::Excel, continuous_compounding, rate, periods, present_value, future_value, &formula, symbolic_formula)
 }
 
 fn check_rate_parameters(periods: u32, present_value: f64, future_value: f64) {

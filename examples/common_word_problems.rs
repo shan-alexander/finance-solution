@@ -14,7 +14,7 @@ use finance_solution::*;
 use num_format::{Locale};
 
 pub fn main() {
-    // pv_problem_1();
+    pv_problem_1();
     // fv_problem_1();
     // nper_problem_1();
     // rate_problem_1();
@@ -29,6 +29,7 @@ pub fn main() {
 
     // retirement_problem_1();
 
+    dbg!(pv(0.034, 10, 1000));
 
 
 }

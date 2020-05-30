@@ -24,7 +24,7 @@ pub use rate::*;
 /// Enumeration used for the `calculated_field` field in [`TvmSolution`] and [`TvmSchedule`] to keep
 /// track of what was calculated, either the periodic rate, the number of periods, the present
 /// value, or the future value.
-#[derive(Clone, Debug, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq)]
 pub enum TvmVariable {
     Rate,
     Periods,
@@ -32,9 +32,18 @@ pub enum TvmVariable {
     FutureValue,
 }
 
+/// Enumeration used for the `calculation_type` field in [`TvmSolution`] and [`TvmSchedule`] to identify
+/// if the formula used is for bookkeeping (matches Excel) or for academic (matches textbooks) purposes.
+#[derive(Clone, Debug)]
+pub enum TvmCalculationType {
+    Excel,
+    Academic
+}
+
 #[derive(Clone, Debug)]
 pub struct TvmSolution {
     calculated_field: TvmVariable,
+    calculation_type: TvmCalculationType,
     continuous_compounding: bool,
     rate: f64,
     periods: u32,
@@ -142,19 +151,46 @@ impl Display for TvmVariable {
     }
 }
 
+impl TvmCalculationType {
+    /// Returns true if the variant is TvmCalculationType::Excel.
+    pub fn is_excel(&self) -> bool {
+        match self {
+            TvmCalculationType::Excel => true,
+            _ => false,
+        }
+    }
+
+    /// Returns true if the variant is TvmCalculationType::Academic.
+    pub fn is_academic(&self) -> bool {
+        match self {
+            TvmCalculationType::Academic => true,
+            _ => false,
+        }
+    }
+}
+
+impl Display for TvmCalculationType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        match self {
+            TvmCalculationType::Excel => write!(f, "Excel"),
+            TvmCalculationType::Academic => write!(f, "Academic"),
+        }
+    }
+}
+
 impl Eq for TvmVariable {}
 
 impl TvmSolution {
-    pub(crate) fn new(calculated_field: TvmVariable, continuous_compounding: bool, rate: f64, periods: u32, present_value: f64, future_value: f64, formula: &str, symbolic_formula: &str) -> Self {
+    pub(crate) fn new(calculated_field: TvmVariable, calculation_type: TvmCalculationType, continuous_compounding: bool, rate: f64, periods: u32, present_value: f64, future_value: f64, formula: &str, symbolic_formula: &str) -> Self {
         assert!(rate.is_finite());
         assert!(present_value.is_finite());
         assert!(future_value.is_finite());
         assert!(!formula.is_empty());
         assert!(!symbolic_formula.is_empty());
-        Self::new_fractional_periods(calculated_field, continuous_compounding, rate, periods as f64, present_value, future_value, formula, symbolic_formula)
+        Self::new_fractional_periods(calculated_field, calculation_type, continuous_compounding, rate, periods as f64, present_value, future_value, formula, symbolic_formula)
     }
 
-    pub(crate) fn new_fractional_periods(calculated_field: TvmVariable, continuous_compounding: bool, rate: f64, fractional_periods: f64, present_value: f64, future_value: f64, formula: &str, symbolic_formula: &str) -> Self {
+    pub(crate) fn new_fractional_periods(calculated_field: TvmVariable, calculation_type: TvmCalculationType, continuous_compounding: bool, rate: f64, fractional_periods: f64, present_value: f64, future_value: f64, formula: &str, symbolic_formula: &str) -> Self {
         assert!(rate >= -1.0);
         assert!(fractional_periods >= 0.0);
         assert!(present_value.is_finite());
@@ -163,6 +199,7 @@ impl TvmSolution {
         assert!(symbolic_formula.len() > 0);
         Self {
             calculated_field,
+            calculation_type,
             continuous_compounding,
             rate,
             periods: round_fractional_periods(fractional_periods),
@@ -340,6 +377,12 @@ impl TvmSolution {
     /// ```
     pub fn calculated_field(&self) -> &TvmVariable {
         &self.calculated_field
+    }
+
+    /// Returns the type of calculation (Excel or Academic). To test for the enum variant, use 
+    /// functions like `TvmCalculationType::is_excel` or `TvmCalculationType::is_academic`.
+    pub fn calculation_type(&self) -> &TvmCalculationType {
+        &self.calculation_type
     }
 
     /// Returns true if the value is compounded continuously rather than period-by-period.
@@ -1035,6 +1078,8 @@ fn series_internal(
 }
 
 
+
+
 fn round_fractional_periods(fractional_periods: f64) -> u32 {
     round_4(fractional_periods).ceil() as u32
 }
@@ -1486,6 +1531,8 @@ mod tests {
         }
 
     }
+
+
 
     #[test]
     fn test_continuous_symmetry_one() {

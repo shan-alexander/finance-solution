@@ -376,7 +376,7 @@ pub(crate) fn present_value_solution_internal(rate: f64, periods: f64, future_va
         let symbolic_formula = "pv = -fv / (1 + r)^n";
         (formula, symbolic_formula)
     };
-    TvmSolution::new_fractional_periods(TvmVariable::PresentValue, continuous_compounding, rate, periods, present_value, future_value, &formula, symbolic_formula)
+    TvmSolution::new_fractional_periods(TvmVariable::PresentValue, TvmCalculationType::Excel, continuous_compounding, rate, periods, present_value, future_value, &formula, symbolic_formula)
 }
 
 fn check_present_value_parameters(rate: f64, periods: f64, future_value: f64) {
