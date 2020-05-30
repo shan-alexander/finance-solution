@@ -27,7 +27,10 @@ pub fn main() {
     // pv_annuity_problem_1();
     // fv_annuity_problem_1();
 
-    retirement_problem_1();
+    // retirement_problem_1();
+
+
+
 }
 
 // If you wish to accumulate $140,000 in 13 years, 
@@ -42,7 +45,7 @@ fn pv_problem_1() {
     dbg!(&pv_problem_1); // Outputs solution struct.
     dbg!(pv_problem_1.present_value()); // Outputs 25489.71433359101 from solution struct.
     dbg!(present_value(rate, periods, future_value, false)); // Outputs 25489.71433359101 from f64 fn.
-    assert_rounded_2(25_489.71, pv_problem_1.present_value());
+    assert_rounded_2(-25_489.71, pv_problem_1.present_value());
 }
 
 // What will $247,000 grow to be in 9 years if it is invested today 
@@ -56,7 +59,7 @@ fn fv_problem_1() {
     dbg!(&fv_problem_1); // Outputs solution struct.
     dbg!(fv_problem_1.future_value()); // Outputs 631835.1203234661 from solution struct.
     dbg!(future_value(rate, periods, present_value, false)); // Outputs 631835.1203234661 from f64 fn.
-    assert_rounded_2(631_835.12, fv_problem_1.future_value());
+    assert_rounded_2(-631_835.12, fv_problem_1.future_value());
 }
 
 // How many years will it take for $136,000 to grow to be $468,000 
@@ -64,7 +67,7 @@ fn fv_problem_1() {
 // Expect 16.06 years
 fn nper_problem_1() {
     let present_value = 136_000;
-    let future_value = 468_000;
+    let future_value = -468_000;
     let rate = 0.08;
     let nper_problem_1 = periods_solution(rate, present_value, future_value, false);
     dbg!(&nper_problem_1); // Outputs solution struct.
@@ -79,7 +82,7 @@ fn nper_problem_1() {
 // Expect 9.29%
 fn rate_problem_1() { 
     let pv = 137_000;
-    let fv = 475_000;
+    let fv = -475_000;
     let periods = 14;
     let rate_problem_1 = rate_solution(periods, pv, fv, false);
     dbg!(&rate_problem_1);
@@ -109,7 +112,7 @@ fn pv_problem_2() {
 
     let pv_problem_2_ear = present_value_solution(ear, periods, fv, false);
     dbg!(&pv_problem_2_ear);
-    assert_rounded_2(104_947.03, pv_problem_2_ear.present_value());
+    assert_rounded_2(-104_947.03, pv_problem_2_ear.present_value());
 
     // Solve it again using one period for each compounding period which in this case is twice per
     // year.
@@ -126,7 +129,7 @@ fn pv_problem_2() {
 
     let pv_problem_2_epr = present_value_solution(epr, periods, fv, false);
     dbg!(&pv_problem_2_epr);
-    assert_rounded_2!(104_947.03, pv_problem_2_epr.present_value());
+    assert_rounded_2!(-104_947.03, pv_problem_2_epr.present_value());
 
     // Both approaches return the same answer.
     assert_approx_equal!(pv_problem_2_ear.present_value(), pv_problem_2_epr.present_value());
@@ -137,7 +140,11 @@ fn pv_problem_2() {
 // Expect $558,386.38
 fn fv_problem_2() {
     let pv = 153_000;
-    // finish here
+    let years = 13;
+    let periods = 13 * 12;
+    let apr = 0.10;
+    let epr = convert_apr_to_epr(apr, 12);
+    let fv = future_value(epr, periods, pv, false);
 }
 
 
