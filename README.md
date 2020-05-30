@@ -1,4 +1,5 @@
-# finance-solution
+# finance-solution 
+<small>beta release, v0.1.0 with more updates coming soon.</small>
 
 ## finance-solution is a financial library for time-value-of-money problems. 💸
 
