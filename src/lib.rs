@@ -296,11 +296,18 @@ pub struct ConcreteFormula {
     concrete_formula: String, 
 }
 impl ConcreteFormula {
+
+    pub fn present_value(rate:f64, periods:u32, present_value:f64, future_value:f64) -> String {
+        // máps to excel 
+        format!("{:.4} = {:.4} / ({:.6} ^ {})", present_value, future_value, rate, periods)
+    }
     pub fn pv(rate:f64, periods:u32, present_value:f64, future_value:f64) -> String {
+        // maps to academic
         format!("{:.4} = {:.4} / (1 + {:.6} ^ {})", present_value, future_value, rate, periods)
     }
-    pub fn present_value(rate:f64, periods:u32, present_value:f64, future_value:f64) -> String {
-        format!("{:.4} = {:.4} / ({:.6} ^ {})", present_value, future_value, rate, periods)
+    pub fn fv(rate:f64, periods:u32, present_value:f64, future_value:f64) -> String {
+        // maps to academic
+        format!("{:.4} = {:.4} * ((1 + {:.6}) ^ {})", future_value, present_value, rate, periods)
     }
 }
 

@@ -10,6 +10,7 @@
 #[allow(unused_imports)]
 use crate::*;
 
+/// Academic function for present value. Returns a solution struct.
 pub fn pv<T>(rate: f64, periods: u32, future_value: T) -> tvm::TvmSolution
     where T: Into<f64> + Copy 
 {
