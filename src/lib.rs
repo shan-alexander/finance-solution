@@ -244,14 +244,14 @@ pub struct SymbolicFormula<'a> {
     payment_excel: &'a str,
     // payment_academic: &'a str,
     // convert rates
-    // apr_to_epr: &'a str,
-    // apr_to_ear: &'a str,
-    // ear_to_apr: &'a str,
-    // ear_to_epr: &'a str,
-    // epr_to_apr: &'a str,
-    // epr_to_ear: &'a str,
-    // apr_to_ear_continuous: &'a str,
-    // ear__to_apr_continuous: &'a str,
+    apr_to_epr: &'a str,
+    apr_to_ear: &'a str,
+    ear_to_apr: &'a str,
+    ear_to_epr: &'a str,
+    epr_to_apr: &'a str,
+    epr_to_ear: &'a str,
+    apr_to_ear_continuous: &'a str,
+    ear_to_apr_continuous: &'a str,
 }
 
 pub const SYMBOLIC_FORMULAS: SymbolicFormula<'static> = SymbolicFormula {
@@ -281,14 +281,14 @@ pub const SYMBOLIC_FORMULAS: SymbolicFormula<'static> = SymbolicFormula {
     payment_excel: "pmt = ((pv * (1 + r)^n) * -r) / ((1 + r)^n - 1)",
     // payment_academic: "pmt = ((pv * (1 + r)^n) * -r) / ((1 + r)^n - 1)",  // not sure about this
     // convert rates
-    // apr_to_epr: ,
-    // apr_to_ear: ,
-    // ear_to_apr: ,
-    // ear_to_epr: ,
-    // epr_to_apr: ,
-    // epr_to_ear: ,
-    // apr_to_ear_continuous: ,
-    // ear__to_apr_continuous: ,
+    apr_to_epr: "apr / n",
+    apr_to_ear: "(1 + (apr/n))^(n) - 1",
+    ear_to_apr: "((1 + ear)^(1 / n) - 1) * n",
+    ear_to_epr: "(1 + ear)^(1 / n) - 1",
+    epr_to_apr: "epr * n",
+    epr_to_ear: "(1 + epr)^(n) - 1",
+    apr_to_ear_continuous: "ear = e^(apr) - 1",
+    ear_to_apr_continuous: "apr = log(ear + 1)",
 };
 
 
