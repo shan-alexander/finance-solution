@@ -20,9 +20,9 @@ pub fn pv<T>(rate: f64, periods: u32, future_value: T) -> tvm::TvmSolution
         solution.continuous_compounding(),
         solution.rate(), 
         solution.periods(), 
-        solution.present_value() * -1_f64,
+        -solution.present_value(),
         solution.future_value(),
-        solution.formula(),
+        &ConcreteFormula::pv(solution.rate(), solution.periods(), -solution.present_value(), solution.future_value()),
         SYMBOLIC_FORMULAS.pv_academic,
     )
 }

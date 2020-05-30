@@ -218,7 +218,7 @@ macro_rules! repeating_vec {
 /// Contains all the Symbolic Formulas in this crate.
 pub struct SymbolicFormula<'a> {
     //tvm
-    pv_excel: &'a str, //&'a str
+    pv_excel: &'a str, 
     pv_academic: &'a str,
     fv_excel: &'a str,
     fv_academic: &'a str,
@@ -291,6 +291,15 @@ pub const SYMBOLIC_FORMULAS: SymbolicFormula<'static> = SymbolicFormula {
     ear_to_apr_continuous: "apr = log(ear + 1)",
 };
 
+/// A struct containing functions which create the Concrete Formulas used in solution structs.
+pub struct ConcreteFormula {
+    concrete_formula: String, 
+}
+impl ConcreteFormula {
+    pub fn pv(rate:f64, periods:u32, present_value:f64, future_value:f64) -> String {
+        format!("{:.4} = {:.4} / ({:.6} ^ {})", present_value, future_value, rate, periods)
+    }
+}
 
 fn decimal_separator_locale_opt(locale: Option<&Locale>) -> String {
     match locale {
