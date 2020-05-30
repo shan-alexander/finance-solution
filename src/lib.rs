@@ -297,6 +297,9 @@ pub struct ConcreteFormula {
 }
 impl ConcreteFormula {
     pub fn pv(rate:f64, periods:u32, present_value:f64, future_value:f64) -> String {
+        format!("{:.4} = {:.4} / (1 + {:.6} ^ {})", present_value, future_value, rate, periods)
+    }
+    pub fn present_value(rate:f64, periods:u32, present_value:f64, future_value:f64) -> String {
         format!("{:.4} = {:.4} / ({:.6} ^ {})", present_value, future_value, rate, periods)
     }
 }
