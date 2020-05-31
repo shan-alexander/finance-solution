@@ -482,7 +482,7 @@ impl LoanSolution {
     /// formula b: 1518.9423 = (180000.0000 * 1.005000^180 * 0.005000) / (1.005000^180 - 1)
     /// symbolic_formula: pmt = (P * (1+r)^n * r) / ((1 + r)^n - 1)
     /// ```
-    pub fn with_principal<T>(&self, principal: T) -> Self
+    pub fn with_principal<T>(&self, principal: T) -> LoanSolution
         where T: Into<f64> + Copy
     {
         loan_solution(principal, self.apr, self.months)
@@ -518,7 +518,7 @@ impl LoanSolution {
     /// formula b: 1581.5873 = (200000.0000 * 1.004167^180 * 0.004167) / (1.004167^180 - 1)
     /// symbolic_formula: pmt = (P * (1+r)^n * r) / ((1 + r)^n - 1)
     /// ```
-    pub fn with_apr(&self, apr: f64) -> Self {
+    pub fn with_apr(&self, apr: f64) -> LoanSolution {
         loan_solution(self.principal, apr, self.months)
     }
 
@@ -553,14 +553,14 @@ impl LoanSolution {
     /// formula b: 1432.8621 = (200000.0000 * 1.005000^240 * 0.005000) / (1.005000^240 - 1)
     /// symbolic_formula: pmt = (P * (1+r)^n * r) / ((1 + r)^n - 1)
     /// ```
-    pub fn with_months(&self, months: u32) -> Self {
+    pub fn with_months(&self, months: u32) -> LoanSolution {
         loan_solution(self.principal, self.apr, months)
     }
 
     /// Creates a variation on a loan which is the same except that each month an extra payment goes
     /// directly toward paying down the remaining principal. This results in the loan being paid off
     /// earlier and with a smaller total amount of interest.
-    pub fn with_extra_payment<T>(&self, _amount: T) -> Self
+    pub fn with_extra_payment<T>(&self, _amount: T) -> LoanSolution
         where T: Into<f64> + Copy
     {
         unimplemented!();
