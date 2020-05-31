@@ -314,7 +314,7 @@ pub(crate) fn periods_solution_internal(rate: f64, present_value: f64, future_va
         let symbolic_formula = "n = log(-fv / pv, base (1 + r))";
         (formula, symbolic_formula)
     };
-    TvmSolution::new_fractional_periods(TvmVariable::Periods,continuous_compounding, rate, fractional_periods, present_value, future_value, &formula, symbolic_formula)
+    TvmSolution::new_fractional_periods(TvmVariable::Periods, TvmCalculationType::Excel, continuous_compounding, rate, fractional_periods, present_value, future_value, &formula, symbolic_formula)
 }
 
 fn check_periods_parameters(rate: f64, present_value: f64, future_value: f64) {

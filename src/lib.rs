@@ -91,6 +91,8 @@ pub mod cashflow;
 pub use cashflow::*;
 
 pub mod simple;
+#[doc(inline)]
+pub use simple::*;
 
 pub mod tvm;
 #[doc(inline)]
@@ -211,6 +213,102 @@ macro_rules! repeating_vec {
         }
         repeats
     }};
+}
+
+/// Contains all the Symbolic Formulas in this crate.
+pub struct SymbolicFormula<'a> {
+    //tvm
+    pv_excel: &'a str, 
+    pv_academic: &'a str,
+    fv_excel: &'a str,
+    fv_academic: &'a str,
+    rate_excel: &'a str,
+    rate_academic: &'a str,
+    periods_excel: &'a str,
+    periods_academic: &'a str,
+
+    pv_continuous_excel: &'a str,
+    pv_continuous_academic: &'a str,
+    fv_continuous_excel: &'a str,
+    fv_continuous_academic: &'a str,
+    rate_continuous_excel: &'a str,
+    rate_continuous_academic: &'a str,
+    periods_continuous_excel: &'a str,
+    periods_continuous_academic: &'a str,
+
+    // cashflow
+    pv_ann_excel: &'a str,
+    pv_ann_academic: &'a str,
+    fv_ann_excel: &'a str,
+    fv_ann_academic: &'a str,
+    payment_excel: &'a str,
+    // payment_academic: &'a str,
+    // convert rates
+    apr_to_epr: &'a str,
+    apr_to_ear: &'a str,
+    ear_to_apr: &'a str,
+    ear_to_epr: &'a str,
+    epr_to_apr: &'a str,
+    epr_to_ear: &'a str,
+    apr_to_ear_continuous: &'a str,
+    ear_to_apr_continuous: &'a str,
+}
+
+pub const SYMBOLIC_FORMULAS: SymbolicFormula<'static> = SymbolicFormula {
+    //tvm
+    pv_excel: "pv = -fv / (1 + r)^n",
+    pv_academic: "pv = fv / (1 + r)^n",
+    fv_excel: "fv = -pv * (1 + r)^n",
+    fv_academic: "fv = pv * (1 + r)^n",
+    rate_excel: "r = ((-fv / pv) ^ (1 / n)) - 1",
+    rate_academic: "r = ((fv / pv) ^ (1 / n)) - 1",
+    periods_excel: "n = log(-fv / pv, base (1 + r))",
+    periods_academic: "n = log(fv / pv, base (1 + r))",
+    // continuous
+    pv_continuous_excel: "pv = -fv / e^(rt)",
+    pv_continuous_academic: "pv = fv / e^(rt)",
+    fv_continuous_excel: "fv = -pv * e^(rt)",
+    fv_continuous_academic: "fv = pv * e^(rt)",
+    rate_continuous_excel: "log(-fv / pv) / n",
+    rate_continuous_academic: "log(fv / pv) / n",
+    periods_continuous_excel: "n = log(-fv / pv, base (1 + r))",
+    periods_continuous_academic: "n = log(fv / pv, base (1 + r))",
+    // cashflow
+    pv_ann_excel: "pv_ann = -annuity * ((1. - (1. / (1. + r))^(n)) / r) * (1. + (r * due));",
+    pv_ann_academic: "pv_ann = annuity * ((1. - (1. / (1. + r))^(n)) / r) * (1. + (r * due));",
+    fv_ann_excel: "fv_ann = -annuity * ((1. - (1. / (1. + r))^(n)) / r)* (1. + (r * due));",
+    fv_ann_academic: "fv_ann = annuity * ((1. - (1. / (1. + r))^(n)) / r)* (1. + (r * due));",
+    payment_excel: "pmt = ((pv * (1 + r)^n) * -r) / ((1 + r)^n - 1)",
+    // payment_academic: "pmt = ((pv * (1 + r)^n) * -r) / ((1 + r)^n - 1)",  // not sure about this
+    // convert rates
+    apr_to_epr: "apr / n",
+    apr_to_ear: "(1 + (apr/n))^(n) - 1",
+    ear_to_apr: "((1 + ear)^(1 / n) - 1) * n",
+    ear_to_epr: "(1 + ear)^(1 / n) - 1",
+    epr_to_apr: "epr * n",
+    epr_to_ear: "(1 + epr)^(n) - 1",
+    apr_to_ear_continuous: "ear = e^(apr) - 1",
+    ear_to_apr_continuous: "apr = log(ear + 1)",
+};
+
+/// A struct containing functions which create the Concrete Formulas used in solution structs.
+pub struct ConcreteFormula {
+    concrete_formula: String, 
+}
+impl ConcreteFormula {
+
+    pub fn present_value(rate:f64, periods:u32, present_value:f64, future_value:f64) -> String {
+        // máps to excel 
+        format!("{:.4} = {:.4} / ({:.6} ^ {})", present_value, future_value, rate, periods)
+    }
+    pub fn pv(rate:f64, periods:u32, present_value:f64, future_value:f64) -> String {
+        // maps to academic
+        format!("{:.4} = {:.4} / (1 + {:.6} ^ {})", present_value, future_value, rate, periods)
+    }
+    pub fn fv(rate:f64, periods:u32, present_value:f64, future_value:f64) -> String {
+        // maps to academic
+        format!("{:.4} = {:.4} * ((1 + {:.6}) ^ {})", future_value, present_value, rate, periods)
+    }
 }
 
 fn decimal_separator_locale_opt(locale: Option<&Locale>) -> String {

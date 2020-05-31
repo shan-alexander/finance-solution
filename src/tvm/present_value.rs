@@ -372,11 +372,13 @@ pub(crate) fn present_value_solution_internal(rate: f64, periods: f64, future_va
         let symbolic_formula = "pv = -fv / e^(rt)";
         (formula, symbolic_formula)
     } else {
-        let formula = format!("{:.4} = {:.4} / ({:.6} ^ {})", present_value, -future_value, rate_multiplier, periods);
-        let symbolic_formula = "pv = -fv / (1 + r)^n";
+        // let formula = format!("{:.4} = {:.4} / ({:.6} ^ {})", present_value, -future_value, rate_multiplier, periods);
+        let formula = ConcreteFormula::present_value(rate_multiplier, periods as u32, present_value, -future_value);
+        // let symbolic_formula = "pv = -fv / (1 + r)^n";
+        let symbolic_formula = SYMBOLIC_FORMULAS.pv_excel;
         (formula, symbolic_formula)
     };
-    TvmSolution::new_fractional_periods(TvmVariable::PresentValue, continuous_compounding, rate, periods, present_value, future_value, &formula, symbolic_formula)
+    TvmSolution::new_fractional_periods(TvmVariable::PresentValue, TvmCalculationType::Excel, continuous_compounding, rate, periods, present_value, future_value, &formula, symbolic_formula)
 }
 
 fn check_present_value_parameters(rate: f64, periods: f64, future_value: f64) {

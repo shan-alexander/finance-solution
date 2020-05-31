@@ -1,6 +1,11 @@
-# finance-solution
+# finance-solution 
+<small>beta release, v0.1.0 with more updates coming soon.</small>
 
 ## finance-solution is a financial library for time-value-of-money problems. 💸
+
+Quick Reference:
+- [Rust documentation](https://docs.rs/finance-solution/0.0.0/finance_solution/)
+- [Github Repo](https://github.com/shan-alexander/finance-solution)
 
 People who will find this crate helpful include:
 - **Students of Finance** who want to solve their financial problems using something better than a crude handheld calculator. Using this library also reduces the chance of human error, and provides better output and data displays than Excel.
@@ -9,9 +14,9 @@ People who will find this crate helpful include:
 - **Serious Rust developers** who want to build financial software, and prefer to rely on a rigourously tested library instead of reinventing the wheel and spending hundreds of hours to develop and test their own library.
 
 Currently, this library is geared towards the basic financial equations, regarding:
-- **Simple Time-Value-of-Money formulas** -- this includes `present_value`, `future_value`, `rate`, and `periods` (known as NPER in Excel).
-- **Cashflow Time-Value-of-Money formulas** -- this includes `present_value_annuity`, `future_value_annuity`, `net_present_value`, and `payment` (known as PMT in Excel). 
-- **Rate conversions** -- this includes all conversions between `apr`, `ear`, and `epr`, and also includes conversion for continuous compounding (`apr_continuous`, `ear_continuous`).
+- **[Simple Time-Value-of-Money formulas](https://docs.rs/finance-solution/0.0.0/finance_solution/tvm/index.html)** -- this includes [`present_value`](https://docs.rs/finance-solution/0.0.0/finance_solution/present_value/index.html), [`future_value`](https://docs.rs/finance-solution/0.0.0/finance_solution/future_value/index.html), [`rate`](https://docs.rs/finance-solution/0.0.0/finance_solution/rate/index.html), and [`periods`](https://docs.rs/finance-solution/0.0.0/finance_solution/periods/index.html) (known as NPER in Excel).
+- **[Cashflow Time-Value-of-Money formulas](https://docs.rs/finance-solution/0.0.0/finance_solution/cashflow/index.html)** -- this includes [`present_value_annuity`](https://docs.rs/finance-solution/0.0.0/finance_solution/present_value_annuity/index.html), [`future_value_annuity`](https://docs.rs/finance-solution/0.0.0/finance_solution/future_value_annuity/index.html), [`net_present_value`](https://docs.rs/finance-solution/0.0.0/finance_solution/net_present_value/index.html), and [`payment`](https://docs.rs/finance-solution/0.0.0/finance_solution/payment/index.html) (known as PMT in Excel). 
+- **[Rate conversions](https://docs.rs/finance-solution/0.0.0/finance_solution/convert_rate/index.html)** -- this includes all conversions between `apr`, `ear`, and `epr`, and also includes conversion for continuous compounding ([`apr_continuous`](https://docs.rs/finance-solution/0.0.0/finance_solution/fn.apr_continuous.html), [`ear_continuous`](https://docs.rs/finance-solution/0.0.0/finance_solution/fn.ear_continuous.html)).
 
 ## Examples
 
