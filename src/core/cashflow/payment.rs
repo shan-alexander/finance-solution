@@ -6,7 +6,7 @@
 //! ## Example
 //! ```
 //! let (rate, periods, present_value, future_value, due_at_beginning) = (0.034, 10, 1000, 0, false);
-//! let solution = finance_solution::payment_solution(rate, periods, present_value, future_value, due_at_beginning);
+//! let solution = finance_solution::core::payment_solution(rate, periods, present_value, future_value, due_at_beginning);
 //! dbg!(&solution);
 //! ```
 //! Outputs to terminal:
@@ -26,7 +26,7 @@
 //! }
 //! ```
 //! ```
-//! # use finance_solution::*;
+//! # use finance_solution::core::*;
 //! # let (rate, periods, present_value, future_value, due_at_beginning) = (0.034, 10, 1000, 0, false);
 //! # let solution = payment_solution(rate, periods, present_value, future_value, due_at_beginning);
 //! dbg!(solution.print_table());
@@ -96,7 +96,7 @@
 //! amount still owed at the end) was zero. Also the rate was positive. In cases like this if the
 //! present value is entered as a positive number the payment will be negative, and vice versa:
 //! ```
-//! use finance_solution::*;
+//! use finance_solution::core::*;
 //!
 //! let (rate, periods, present_value, due_at_beginning) = (0.01, 120, 100_000, false);
 //!
@@ -167,9 +167,11 @@
 use log::{warn};
 
 // Import needed for the function references in the Rustdoc comments.
-#[allow(unused_imports)]
-use crate::*;
+// #[allow(unused_imports)]
+// use crate::*;
 use std::ops::Deref;
+
+use super::*;
 
 const RUN_PAYMENT_INVARIANTS: bool = false;
 
@@ -195,7 +197,7 @@ impl PaymentSolution {
     /// # Examples
     /// An amortized loan. Uses [`payment`].
     /// ```
-    /// use finance_solution::*;
+    /// use finance_solution::core::*;
     ///
     /// let years = 5;
     ///
@@ -543,7 +545,7 @@ impl Deref for PaymentSeries {
 /// # Examples
 /// A simple amortized loan with the payment due at the end of the month.
 /// ```
-/// # use finance_solution::*;
+/// # use finance_solution::core::*;
 /// // The loan will be paid off in five years.
 /// let years = 5;
 ///
@@ -568,7 +570,7 @@ impl Deref for PaymentSeries {
 ///
 /// // The payment is $212.47/month. Since the principal/present value was positive the payment is
 /// // negative.
-/// assert_rounded_4(pmt, -212.4704);
+/// assert_rounded_4!(pmt, -212.4704);
 ///
 ///
 /// // As above except this time the payment is due at the beginning of the month. This will reduce
@@ -580,7 +582,7 @@ impl Deref for PaymentSeries {
 /// // The payment is $210.7145, shown as negative since the present value was positive. It's
 /// // slightly smaller (that is, closer to zero) than the payment in the case above where the
 /// // payment was due at the end of the month.
-/// assert_rounded_4(pmt, -210.7145);
+/// assert_rounded_4!(pmt, -210.7145);
 ///
 /// ```
 pub fn payment<P, F>(rate: f64, periods: u32, present_value: P, future_value: F, due_at_beginning: bool) -> f64
@@ -712,7 +714,7 @@ pub fn payment<P, F>(rate: f64, periods: u32, present_value: P, future_value: F,
 /// then examine the formulas and the period-by-period details such as the amount of the payment
 /// that goes to principal and interest.
 /// ```
-/// # use finance_solution::*;
+/// # use finance_solution::core::*;
 /// // The interest rate is 11.75% per year. Each period is one month so we need to divide the rate
 /// // by the number of months in a year.
 /// let rate = 0.1175 / 12.0;
@@ -735,15 +737,15 @@ pub fn payment<P, F>(rate: f64, periods: u32, present_value: P, future_value: F,
 ///
 /// // The payment is $327.65/month. Since the principal/present value was negative the payment is
 /// // positive.
-/// assert_rounded_4(solution.payment(), 327.6538);
+/// assert_rounded_4!(solution.payment(), 327.6538);
 ///
 /// // The sum of payments is simply the monthly payment times the number of months.
-/// assert_rounded_4(solution.sum_of_payments(), 15_727.3820);
+/// assert_rounded_4!(solution.sum_of_payments(), 15_727.3820);
 ///
 /// // The sum of interest is the portion of the sum of payments that is over and above the original
 /// // loan amount. Here we add the present value since it has the opposite sign of the payments.
-/// assert_rounded_4(solution.sum_of_interest(), solution.sum_of_payments() + solution.present_value());
-/// assert_rounded_4(solution.sum_of_interest(), 3_226.8820);
+/// assert_rounded_4!(solution.sum_of_interest(), solution.sum_of_payments() + solution.present_value());
+/// assert_rounded_4!(solution.sum_of_interest(), 3_226.8820);
 ///
 /// // Examine the formulas. Since the future value is zero we expect to see a slightly simplified
 /// // formula.
@@ -974,6 +976,7 @@ mod tests {
     }
     */
 
+    #[allow(dead_code)]
     fn run_payment_invariants(solution: &PaymentSolution, series: &PaymentSeries) {
         // Display the solution and series only if either one fails its invariant.
         let result = std::panic::catch_unwind(|| {

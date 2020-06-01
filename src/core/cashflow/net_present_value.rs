@@ -10,7 +10,7 @@
 //! 
 //! **Simple Usage:**
 //! ```
-//! # use finance_solution::net_present_value_solution;
+//! # use finance_solution::core::net_present_value_solution;
 //! let (rate, periods, initial_investment, cashflow) = (0.034, 3, -1000, 400);
 //! let npv = net_present_value_solution(rate, periods, initial_investment, cashflow);
 //! dbg!(npv.print_table());
@@ -27,7 +27,7 @@
 //! 
 //! **More typical usage (varying cashflows):**
 //! ```
-//! # use finance_solution::net_present_value_schedule_solution;
+//! # use finance_solution::core::net_present_value_schedule_solution;
 //! let rates = vec![0.034, 0.034, 0.034];
 //! let cashflows = vec![-1000, 300, 400, 500];
 //! let npv = net_present_value_schedule_solution(&rates, &cashflows);
@@ -43,14 +43,15 @@
 //! 3       0.0340       452.2810      500.0000          116.5433 
 //! ```
 
-
 // use crate::cashflow::*;
 // Needed for the Rustdoc comments.
-#[allow(unused_imports)]
-use crate::present_value_annuity::present_value_annuity;
-use crate::*;
+// #[allow(unused_imports)]
+// use crate::present_value_annuity::present_value_annuity;
 
 use std::ops::Deref;
+
+use crate::*;
+use crate::core::tvm::present_value::present_value;
 
 /// Returns the net present value of a future series of constant cashflows and constant rate, subtracting the initial investment cost. Returns f64.
 ///
@@ -79,7 +80,7 @@ use std::ops::Deref;
 /// # Examples
 /// Net Present Value of a series of -$1000 investment which will payback $500 yearly for 10 years.
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::core::*;
 /// let (rate, periods, initial_investment, cashflow) = (0.034, 10, -1000, 500);
 ///
 /// // Find the present value of this scenario.
@@ -135,7 +136,7 @@ where I: Into<f64> + Copy, C: Into<f64> + Copy
 /// # Examples
 /// Net Present Value of a series of -$1000 investment which will payback $500 yearly for 10 years.
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::core::*;
 /// let (rates, cashflows) = (vec![0.034, 0.089, 0.055], vec![-1000, 200, 300, 500]);
 ///
 /// // Find the present value of this scenario.
@@ -265,7 +266,7 @@ where C: Into<f64> + Copy
 /// ```
 /// let rates = vec![0.034, 0.034, 0.034];
 /// let cashflows = vec![-1000, 300, 400, 500];
-/// let npv = finance_solution::net_present_value_schedule_solution(&rates, &cashflows);
+/// let npv = finance_solution::core::net_present_value_schedule_solution(&rates, &cashflows);
 /// dbg!(npv.print_table());
 /// ```
 /// > outputs to terminal:

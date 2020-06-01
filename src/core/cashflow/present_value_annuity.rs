@@ -7,7 +7,7 @@
 //! 
 //! ## Example
 //! ```
-//! # use finance_solution::present_value_annuity_solution; // this function will be hidden
+//! # use finance_solution::core::present_value_annuity_solution; // this function will be hidden
 //! let (rate, periods, annuity, due) = (0.034, 10, 500, false);
 //! let pv_ann = present_value_annuity_solution(rate, periods, annuity, due);
 //! dbg!(pv_ann);
@@ -33,9 +33,13 @@
 // to do: add "use log::warn;" and helper logs
 
 // Needed for the Rustdoc comments.
-use crate::present_value::present_value;
-use crate::future_value::future_value;
-use crate::cashflow::*;
+// use crate::present_value::present_value;
+// use crate::future_value::future_value;
+// use crate::cashflow::*;
+
+use super::*;
+use crate::core::tvm::present_value::present_value;
+use crate::core::tvm::future_value::future_value;
 
 /// Returns the **present value of an annuity** (series of constant cashflows) at a constant rate. Returns f64.
 ///
@@ -64,7 +68,7 @@ use crate::cashflow::*;
 /// 
 /// Quick glance, how to use:
 /// ```
-/// # use finance_solution::*;
+/// # use finance_solution::core::*;
 /// let (rate, periods, annuity, due_at_beginning)  = (0.034, 10, 21_000, false);
 /// let my_annuity = present_value_annuity_solution(rate, periods, annuity, due_at_beginning);
 /// dbg!(my_annuity);
@@ -72,7 +76,7 @@ use crate::cashflow::*;
 /// 
 /// Present value of a series of $2000 cashflows.
 /// ```
-/// # use finance_solution::*;
+/// # use finance_solution::core::*;
 /// // The rate is 2.1% per month.
 /// let rate = 0.021;
 ///
@@ -148,15 +152,15 @@ pub fn present_value_annuity_accumulator<T>(rate: f64, periods: u32, annuity: T,
 // / // The cashflow will be $2,000.
 // / // The number of periods is inferred by the length of the vector.
 // / // The rep! macro is used to create a vector of repeating values.
-// / // let cashflows = finance_solution::repeat!(2_000, rate.len());
+// / // let cashflows = finance_solution::core::repeat!(2_000, rate.len());
 // / let  cashflows = vec![2000,2000,2000];
 // / 
 // / // Find the current value.
-// / let present_value_ann = finance_solution::present_value_annuity_schedule(rates, cashflows);
+// / let present_value_ann = finance_solution::core::present_value_annuity_schedule(rates, cashflows);
 // / dbg!(&present_value_ann);
 // /
 // / // Confirm that the present value is correct to four decimal places (one hundredth of a cent).
-// / // finance_solution::assert_approx_equal!( , present_value_ann);
+// / // finance_solution::core::assert_approx_equal!( , present_value_ann);
 // / ```
 // / 
  
@@ -207,7 +211,7 @@ pub fn present_value_annuity_accumulator<T>(rate: f64, periods: u32, annuity: T,
 /// # Examples
 /// Present value of a $500 annuity (a series of $500 cashflows).
 /// ```
-/// # use finance_solution::*;
+/// # use finance_solution::core::*;
 /// // The rate is 3.4% per month.
 /// let rate = 0.034;
 ///

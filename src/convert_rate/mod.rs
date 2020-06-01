@@ -30,9 +30,8 @@
 //! The solution functions provide helpful information in the `dbg!()` output, for example:
 //! 
 //! ```
-//! use finance_solution::*;
-//! // Example 1: Give the apr function an apr and compounding-periods-per-year. 
-//! let rate = apr(0.034, 12);
+//! // Example 1: Give the apr function an apr and compounding-periods-per-year.
+//! let rate = finance_solution::convert_rate::apr(0.034, 12);
 //! dbg!(rate);
 //! ```
 //! > prints to terminal: 
@@ -54,7 +53,7 @@
 //! ```
 //! Example 2: explicit call to f64 function
 //! ```
-//! # use finance_solution::*;
+//! # use finance_solution::convert_rate::*;
 //! let apr = convert_apr_to_ear(0.034, 12);
 //! dbg!(apr);
 //! ```
@@ -64,8 +63,8 @@
 //! ```
 //! Example 3: explicit call to a `_solution` function
 //! ```
-//! # use finance_solution::*;
-//! let apr = convert_rate::convert_apr_to_ear_solution(0.034, 12);  // provides same output as apr! macro                                                       
+//! # use finance_solution::convert_rate::*;
+//! let apr = convert_apr_to_ear_solution(0.034, 12);  // provides same output as apr! macro
 //! dbg!(apr.ear());
 //! ```
 //! > prints to terminal: 
@@ -87,13 +86,13 @@
 //! ```
 //! Here are a few variations of how someone can use the `convert_rate` module functions:
 //! ```
-//! # use finance_solution::*;
-//! // What is the future value of $500 in 1 year 
+//! # use finance_solution::core::*;
+//! // What is the future value of $500 in 1 year
 //! // if the APR is 3.4% and it's compounded monthly?
 //! // Solve twice, first using EPR and then using EAR.
 //! 
 //! // to solve, first convert the annual rate into a periodic rate (monthly):
-//! let epr = convert_rate::convert_apr_to_epr(0.034, 12);
+//! let epr = convert_apr_to_epr(0.034, 12);
 //! assert_approx_equal!(epr, 0.002833333333333333);
 //!
 //! // then solve for future value:
@@ -114,7 +113,7 @@
 //! ```
 //! Now let's doublecheck the previous answer.
 //! ```
-//! # use finance_solution::*;
+//! # use finance_solution::core::*;
 //! // Double-check the previous answer_1 by solving the future_value
 //! // using 1 year as the period and the effective annual rate, 
 //! // instead of using 12 monthly periods of the periodic rate.
@@ -138,10 +137,11 @@
 
 use log::{warn};
 
-// Import needed for the function references in the Rustdoc comments.
-#[allow(unused_imports)]
-use crate::tvm_convert_rate::*;
-use crate::*;
+pub use crate::*;
+
+pub mod tvm_convert_rate;
+#[doc(inline)]
+pub use tvm_convert_rate::*;
 
 fn assert_inputs(rate:f64, periods:u32, fn_type: ConvertRateVariable) {
     assert!(periods >= 1);
@@ -177,7 +177,7 @@ pub fn apr_continuous(apr:f64) -> ConvertRateSolution {
     let compounding_periods_in_year = 1; // not used
     assert_inputs(apr, compounding_periods_in_year, tvm_convert_rate::ConvertRateVariable::AprContinuous);
     // formula: e^apr - 1
-    let e: f64 = 2.71828182845904; 
+    let e: f64 = std::f64::consts::E;
     let ear: f64;
     if apr < 0.0 {
         // when apr is negative...
@@ -274,12 +274,13 @@ pub fn epr(epr:f64, compounding_periods_in_year:u32) -> ConvertRateSolution {
 /// # Examples
 /// Convert annual rate to effective annual rate.
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::convert_rate::*;
+///
 /// // The annual percentage rate is 3.4% and 12 compounding periods per year.
 /// let nominal_rate = 0.034;
 /// let periods = 12;
 ///
-/// let effective_annual_rate = convert_rate::convert_apr_to_ear(nominal_rate, periods);
+/// let effective_annual_rate = convert_apr_to_ear(nominal_rate, periods);
 /// 
 /// // Confirm that the EAR is correct.
 /// assert_approx_equal!(0.034535, effective_annual_rate);
@@ -312,7 +313,7 @@ pub fn convert_apr_to_ear(apr: f64, compounding_periods_in_year: u32) -> f64 {
 /// # Example
 /// /// Convert annual rate to effective annual rate.
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::convert_rate::*;
 /// // The annual percentage rate is 3.4%.
 /// let nominal_rate = 0.034;
 ///
@@ -353,7 +354,7 @@ pub fn convert_apr_to_ear_solution(apr: f64, compounding_periods_in_year: u32) -
 /// # Example
 /// Convert annual rate to periodic rate.
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::convert_rate::*;
 /// // The annual percentage rate is 3.4%.
 /// // There are 12 compounding periods per year.
 /// let nominal_rate = 0.034;
@@ -391,7 +392,8 @@ pub fn convert_apr_to_epr(apr: f64, compounding_periods_in_year: u32) -> f64 {
 /// # Example
 /// Convert annual rate to periodic rate.
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::convert_rate::*;
+///
 /// // The annual percentage rate is 3.4%.
 /// // There are 12 compounding periods per year.
 /// let nominal_rate = 0.034;
@@ -432,13 +434,14 @@ pub fn convert_apr_to_epr_solution(apr: f64, compounding_periods_in_year: u32) -
 /// # Example
 /// Convert effective annual rate (EAR) to annual percentage rate (APR).
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::convert_rate::*;
+///
 /// // The effective annual rate is 3.4534%
 /// // There are 12 compounding periods per year.
 /// let effective_annual_rate = 0.03453486936;
 /// let periods = 12;
 ///
-/// let nominal_rate = convert_rate::convert_ear_to_apr(effective_annual_rate, periods);
+/// let nominal_rate = convert_ear_to_apr(effective_annual_rate, periods);
 /// 
 /// // Confirm that the APR is correct.
 /// assert_approx_equal!(0.034, nominal_rate);
@@ -471,14 +474,15 @@ pub fn convert_ear_to_apr(ear: f64, compounding_periods_in_year: u32) -> f64 {
 /// # Example
 /// Convert effective annual rate (EAR) to annual percentage rate (APR).
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::convert_rate::*;
+///
 /// // The effective annual rate is 3.453486936028982%
 /// let effective_annual_rate = 0.03453486936028982;
 ///
 /// // There are 12 compounding periods per year.
 /// let periods = 12;
 ///
-/// let ear_to_apr_solution = convert_rate::convert_ear_to_apr_solution(effective_annual_rate, periods);
+/// let ear_to_apr_solution = convert_ear_to_apr_solution(effective_annual_rate, periods);
 /// 
 /// // Confirm that the APR is correct.
 /// assert_approx_equal!(0.034, ear_to_apr_solution.apr());
@@ -519,13 +523,14 @@ pub fn convert_ear_to_apr_solution(ear: f64, compounding_periods_in_year: u32) -
 /// # Example
 /// Convert effective annual rate to periodic rate.
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::convert_rate::*;
+///
 /// // The effective annual rate is 3.4534%.
 /// // There are 12 compounding periods per year.
 /// let effective_annual_rate = 0.03453486936;
 /// let periods = 12;
 ///
-/// let periodic_rate = convert_rate::convert_ear_to_epr(effective_annual_rate, periods);
+/// let periodic_rate = convert_ear_to_epr(effective_annual_rate, periods);
 /// 
 /// // Confirm that the EPR is correct.
 /// assert_approx_equal!(0.00283333, periodic_rate);
@@ -559,13 +564,14 @@ pub fn convert_ear_to_epr(ear: f64, compounding_periods_in_year: u32) -> f64 {
 /// # Example
 /// Convert effective annual rate to periodic rate.
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::convert_rate::*;
+///
 /// // The effective annual rate is 3.4534%.
 /// // There are 12 compounding periods per year.
 /// let effective_annual_rate = 0.03453486936;
 /// let periods = 12;
 ///
-/// let ear_to_epr_solution = convert_rate::convert_ear_to_epr_solution(effective_annual_rate, periods);
+/// let ear_to_epr_solution = convert_ear_to_epr_solution(effective_annual_rate, periods);
 /// 
 /// // Confirm that the EPR is correct.
 /// assert_approx_equal!(0.00283333, ear_to_epr_solution.epr());
@@ -598,11 +604,12 @@ pub fn convert_ear_to_epr_solution(ear: f64, compounding_periods_in_year: u32) -
 /// # Example
 /// Convert a periodic rate to effective annual rate.
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::convert_rate::*;
+///
 /// // The periodic rate is 3.4534%. There are 12 compounding periods per year.
 /// let (periodic_rate, periods) = (0.034, 12);
 ///
-/// let ear = convert_rate::convert_epr_to_ear(periodic_rate, periods);
+/// let ear = convert_epr_to_ear(periodic_rate, periods);
 /// 
 /// // Confirm that the EAR is correct.
 /// assert_approx_equal!(0.49364182107104493, ear);
@@ -633,11 +640,12 @@ pub fn convert_epr_to_ear(epr: f64, compounding_periods_in_year: u32) -> f64 {
 /// # Example
 /// Convert a periodic rate to effective annual rate.
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::convert_rate::*;
+///
 /// // The periodic rate is 3.4534%. There are 12 compounding periods per year.
 /// let (periodic_rate, periods) = (0.034, 12);
 ///
-/// let epr_to_ear_solution = convert_rate::convert_epr_to_ear_solution(periodic_rate, periods);
+/// let epr_to_ear_solution = convert_epr_to_ear_solution(periodic_rate, periods);
 /// 
 /// // Confirm that the EAR is correct.
 /// assert_approx_equal!(0.49364182107104493, epr_to_ear_solution.ear());
@@ -671,11 +679,12 @@ pub fn convert_epr_to_ear_solution(epr: f64, compounding_periods_in_year: u32) -
 /// # Example
 /// Convert a periodic rate to the annual rate (APR).
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::convert_rate::*;
+///
 /// // The periodic rate is 3.4%. There are 12 compounding periods per year.
 /// let (periodic_rate, periods) = (0.034, 12);
 ///
-/// let apr = convert_rate::convert_epr_to_apr(periodic_rate, periods);
+/// let apr = convert_epr_to_apr(periodic_rate, periods);
 /// 
 /// // Confirm that the APR is correct.
 /// assert_approx_equal!(0.4080, apr);
@@ -706,11 +715,12 @@ pub fn convert_epr_to_apr(epr: f64, compounding_periods_in_year: u32) -> f64 {
 /// # Example
 /// Convert a periodic rate to the annual rate (APR).
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::convert_rate::*;
+///
 /// // The periodic rate is 3.4%. There are 12 compounding periods per year.
 /// let (periodic_rate, periods) = (0.034, 12);
 ///
-/// let epr_to_apr_solution = convert_rate::convert_epr_to_apr_solution(periodic_rate, periods);
+/// let epr_to_apr_solution = convert_epr_to_apr_solution(periodic_rate, periods);
 /// 
 /// // Confirm that the APR is correct.
 /// assert_approx_equal!(0.4080, epr_to_apr_solution.apr());

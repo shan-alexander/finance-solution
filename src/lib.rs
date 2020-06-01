@@ -6,7 +6,7 @@
 //!  
 //! ## Example
 //! ```
-//! use finance_solution::*;
+//! use finance_solution::core::*;
 //! let (rate, periods, present_value, is_continuous) = (0.034,10,1000, false);
 //! let fv = future_value_solution(rate, periods, present_value, is_continuous);
 //! dbg!(fv);
@@ -27,7 +27,7 @@
 //! ``` 
 //! and if you run this line:
 //! ```
-//! # use finance_solution::*;
+//! # use finance_solution::core::*;
 //! # let (rate, periods, present_value, is_continuous) = (0.034,10,1000, false);
 //! # let fv = future_value_solution(rate, periods, present_value, is_continuous);
 //! fv.series().print_table();
@@ -50,7 +50,7 @@
 //! ```
 //! This can be very useful for functions in the `cashflow` family, such as a payment.
 //! ```
-//! # use finance_solution::*;
+//! # use finance_solution::core::*;
 //! let (rate, periods, present_value, future_value, due) = (0.034, 10, 1000, 0, false);
 //! let pmt = payment_solution(rate, periods, present_value, future_value, due);
 //! pmt.print_table();
@@ -70,7 +70,6 @@
 //! //      9       -1_076.7248           -119.6361  -111.8977          -884.2978            -115.7022   -7.7384         -192.4270             -3.9339
 //! //     10       -1_196.3609             -0.0000  -115.7022          -999.0000              -0.0000   -3.9339         -196.3609              0.0000
 //! ```
-#![allow(dead_code)]
 
 use num_format::{Locale, ToFormattedString};
 use itertools::Itertools;
@@ -78,34 +77,22 @@ use itertools::Itertools;
 extern crate float_cmp;
 pub extern crate num_format;
 
+pub mod academic;
+
 pub mod convert_rate;
-#[doc(inline)]
-pub use convert_rate::*;
+// #[doc(inline)]
+// pub use convert_rate::*;
+
+pub mod core;
+
+pub mod excel;
 
 pub mod round;
 #[doc(inline)]
 pub use round::*;
 
-pub mod cashflow;
-#[doc(inline)]
-pub use cashflow::*;
-
-pub mod simple;
-#[doc(inline)]
-pub use simple::*;
-
-pub mod tvm;
-#[doc(inline)]
-pub use tvm::*;
-
-pub mod tvm_convert_rate;
-#[doc(inline)]
-pub use tvm_convert_rate::*;
 use std::cmp::max;
-use std::fmt::{Debug, Formatter, Error};
-
-// use tvm_convert_rate::*;
-// use convert_rate::*;
+use std::fmt::{Debug, Formatter, Error, Display};
 
 /*
 #[macro_export]
@@ -215,8 +202,28 @@ macro_rules! repeating_vec {
     }};
 }
 
+/// Enumeration used for the `calculation_type` field in [`TvmSolution`] and [`TvmSchedule`] to identify
+/// if the formula used is for bookkeeping (matches Excel) or for academic (matches textbooks) purposes.
+#[derive(Clone, Debug)]
+pub enum CalculationType {
+    Core,
+    Academic,
+    Excel,
+}
+
+impl Display for CalculationType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        match self {
+            CalculationType::Core => write!(f, "Core"),
+            CalculationType::Academic => write!(f, "Academic"),
+            CalculationType::Excel => write!(f, "Excel"),
+        }
+    }
+}
+
 /// Contains all the Symbolic Formulas in this crate.
-pub struct SymbolicFormula<'a> {
+#[allow(dead_code)]
+pub(crate) struct SymbolicFormula<'a> {
     //tvm
     pv_excel: &'a str, 
     pv_academic: &'a str,
@@ -254,7 +261,7 @@ pub struct SymbolicFormula<'a> {
     ear_to_apr_continuous: &'a str,
 }
 
-pub const SYMBOLIC_FORMULAS: SymbolicFormula<'static> = SymbolicFormula {
+pub(crate) const SYMBOLIC_FORMULAS: SymbolicFormula<'static> = SymbolicFormula {
     //tvm
     pv_excel: "pv = -fv / (1 + r)^n",
     pv_academic: "pv = fv / (1 + r)^n",
@@ -292,8 +299,8 @@ pub const SYMBOLIC_FORMULAS: SymbolicFormula<'static> = SymbolicFormula {
 };
 
 /// A struct containing functions which create the Concrete Formulas used in solution structs.
-pub struct ConcreteFormula {
-    concrete_formula: String, 
+pub(crate) struct ConcreteFormula {
+    // concrete_formula: String,
 }
 impl ConcreteFormula {
 
@@ -329,6 +336,7 @@ fn minus_sign_locale_opt(val: f64, locale: Option<&Locale>) -> String {
     }
 }
 
+#[allow(dead_code)]
 pub(crate) fn parse_and_format_int(val: &str) -> String {
     parse_and_format_int_locale_opt(val, None)
 }
@@ -346,6 +354,7 @@ pub(crate) fn parse_and_format_int_locale_opt(val: &str, locale: Option<&Locale>
     }
 }
 
+#[allow(dead_code)]
 pub(crate) fn format_int<T>(val: T) -> String
     where T: ToFormattedString
 {
@@ -563,6 +572,7 @@ impl ValueType {
     }
 }
 
+/*
 #[derive(Debug)]
 pub enum Schedule {
     Repeating {
@@ -645,76 +655,7 @@ impl Schedule {
         }
     }
 }
-
-#[derive(Debug)]
-pub struct ScenarioList {
-    pub setup: String,
-    pub input_variable: TvmVariable,
-    pub output_variable: TvmVariable,
-    pub entries: Vec<ScenarioEntry>,
-}
-
-pub struct ScenarioEntry {
-    pub input: f64,
-    pub output: f64,
-    input_precision: usize,
-    output_precision: usize,
-}
-
-impl ScenarioList {
-
-    pub(crate) fn new(setup: String, input_variable: TvmVariable, output_variable: TvmVariable, entries: Vec<(f64, f64)>) -> Self {
-        let input_precision = match input_variable {
-            TvmVariable::Periods => 0,
-            TvmVariable::Rate => 6,
-            _ => 4,
-        };
-        let output_precision = match output_variable {
-            TvmVariable::Periods => 0,
-            TvmVariable::Rate => 6,
-            _ => 4,
-        };
-        let entries= entries.iter().map(|entry| ScenarioEntry::new(entry.0, entry.1, input_precision, output_precision)).collect();
-        Self {
-            setup,
-            input_variable,
-            output_variable,
-            entries,
-        }
-    }
-
-    pub fn print_table(&self) {
-        self.print_table_locale_opt(None, None);
-    }
-
-    pub fn print_table_locale(&self, locale: &num_format::Locale, precision: usize) {
-        self.print_table_locale_opt(Some(locale), Some(precision));
-    }
-
-    fn print_table_locale_opt(&self, locale: Option<&num_format::Locale>, precision: Option<usize>) {
-        let columns = vec![self.input_variable.table_column_spec(true), self.output_variable.table_column_spec(true)];
-        // let columns = columns_with_strings.iter().map(|x| &x.0[..], &x.1[..], x.2);
-        let data = self.entries.iter()
-            .map(|entry| vec![entry.input.to_string(), entry.output.to_string()])
-            .collect::<Vec<_>>();
-        print_table_locale_opt(&columns, data, locale, precision);
-    }
-
-}
-
-impl ScenarioEntry {
-    pub(crate) fn new(input: f64, output: f64, input_precision: usize, output_precision: usize) -> Self {
-        Self { input, output, input_precision, output_precision }
-    }
-}
-
-impl Debug for ScenarioEntry {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        let input = format_float_locale_opt(self.input, None, Some(self.input_precision));
-        let output = format_float_locale_opt(self.output, None, Some(self.output_precision));
-        write!(f, "{{ input: {}, output: {} }}", input, output)
-    }
-}
+*/
 
 pub(crate) fn columns_with_strings(columns: &[(&str, &str, bool)]) -> Vec<(String, String, bool)> {
     columns.iter().map(|(label, data_type, visible)| (label.to_string(), data_type.to_string(), *visible)).collect()

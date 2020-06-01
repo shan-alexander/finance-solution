@@ -11,6 +11,8 @@
 
 // use finance_solution::{present_value_solution, future_value_solution, future_value, periods_solution, periods};
 use finance_solution::*;
+use finance_solution::core::*;
+use finance_solution::academic::*;
 use num_format::{Locale};
 
 pub fn main() {
@@ -46,7 +48,7 @@ fn pv_problem_1() {
     dbg!(&pv_problem_1); // Outputs solution struct.
     dbg!(pv_problem_1.present_value()); // Outputs 25489.71433359101 from solution struct.
     dbg!(present_value(rate, periods, future_value, false)); // Outputs 25489.71433359101 from f64 fn.
-    assert_rounded_2(-25_489.71, pv_problem_1.present_value());
+    assert_rounded_2!(-25_489.71, pv_problem_1.present_value());
 }
 
 // What will $247,000 grow to be in 9 years if it is invested today 
@@ -60,7 +62,7 @@ fn fv_problem_1() {
     dbg!(&fv_problem_1); // Outputs solution struct.
     dbg!(fv_problem_1.future_value()); // Outputs 631835.1203234661 from solution struct.
     dbg!(future_value(rate, periods, present_value, false)); // Outputs 631835.1203234661 from f64 fn.
-    assert_rounded_2(-631_835.12, fv_problem_1.future_value());
+    assert_rounded_2!(-631_835.12, fv_problem_1.future_value());
 }
 
 // How many years will it take for $136,000 to grow to be $468,000 
@@ -75,7 +77,7 @@ fn nper_problem_1() {
     dbg!(nper_problem_1.periods()); // Outputs 17 from solution struct.
     dbg!(nper_problem_1.fractional_periods()); // Outputs 16.057649324100133 from solution struct.
     dbg!(periods(rate, present_value, future_value, false)); // Outputs 16.057649324100133 from f64 fn.
-    assert_rounded_2(16.06, nper_problem_1.fractional_periods());
+    assert_rounded_2!(16.06, nper_problem_1.fractional_periods());
 }
 
 // At what annual interest rate must $137,000 be invested 
@@ -88,7 +90,7 @@ fn rate_problem_1() {
     let rate_problem_1 = rate_solution(periods, pv, fv, false);
     dbg!(&rate_problem_1);
     dbg!(&rate_problem_1.rate());
-    assert_rounded_4(0.0929, rate_problem_1.rate());
+    assert_rounded_4!(0.0929, rate_problem_1.rate());
 }
 
 // If you wish to accumulate $197,000 in 5 years, 
@@ -113,7 +115,7 @@ fn pv_problem_2() {
 
     let pv_problem_2_ear = present_value_solution(ear, periods, fv, false);
     dbg!(&pv_problem_2_ear);
-    assert_rounded_2(-104_947.03, pv_problem_2_ear.present_value());
+    assert_rounded_2!(-104_947.03, pv_problem_2_ear.present_value());
 
     // Solve it again using one period for each compounding period which in this case is twice per
     // year.
@@ -198,9 +200,9 @@ fn rate_problem_2() {
 
     // Starting with the same present value and compounding once per year using the EAR should give
     // us the future value we started with. If so this means we correctly calculated the rate above.
-    let check_future_value = finance_solution::future_value(ear, years, present_value, false);
+    let check_future_value = finance_solution::core::future_value(ear, years, present_value, false);
     dbg!(check_future_value);
-    assert_rounded_4(check_future_value, future_value as f64);
+    assert_rounded_4!(check_future_value, future_value as f64);
 }
 
 // You are offered an investment with a quoted annual interest rate 
@@ -387,7 +389,7 @@ fn retirement_problem_1() {
     let payment_before_retirement = payment_solution(rate_before_retire, retire_in, 0, total_at_retirement, due_at_beginning);
     dbg!(&payment_before_retirement);
     // Since the desired future value was positive the payment is negative.
-    assert_rounded_2(-8_874.79, payment_before_retirement.payment());
+    assert_rounded_2!(-8_874.79, payment_before_retirement.payment());
 
     // To double check the logic, start with the payments calculated just now and work forward.
 

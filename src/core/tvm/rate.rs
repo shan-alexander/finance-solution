@@ -45,6 +45,7 @@
 //! the functions use the same variables.
 
 use crate::*;
+use super::*;
 
 /// Returns the periodic rate of an investment given the number of periods along with the present
 /// and future values.
@@ -72,7 +73,7 @@ use crate::*;
 ///
 /// # Examples
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::core::*;
 ///
 /// // The interest will compound for 365 days.
 /// let periods = 365;
@@ -89,7 +90,7 @@ use crate::*;
 /// let rate = rate(periods, present_value, future_value, continuous_compounding);
 /// dbg!(&rate);
 /// // The rate is 0.0261% per day.
-/// assert_rounded_6(0.000261, rate);
+/// assert_rounded_6!(0.000261, rate);
 /// ```
 pub fn rate<P, F>(periods: u32, present_value: P, future_value: F, continuous_compounding: bool) -> f64
     where
@@ -126,6 +127,7 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F, continuous_co
 /// Calculate a periodic rate and examine the period-by-period values.
 /// ```
 /// use finance_solution::*;
+/// use finance_solution::core::*;
 /// // The interest will compound for ten periods.
 /// // The starting value is $10,000.
 /// // The ending value is $15,000.
@@ -142,7 +144,7 @@ pub fn rate<P, F>(periods: u32, present_value: P, future_value: F, continuous_co
 /// let rate = solution.rate();
 /// dbg!(&rate);
 /// // The rate is 4.138% per period.
-/// assert_rounded_6(0.041380, rate);
+/// assert_rounded_6!(0.041380, rate);
 ///
 /// // Examine the formulas.
 /// let formula = solution.formula();
@@ -197,7 +199,7 @@ pub (crate) fn rate_solution_internal(periods: u32, present_value: f64, future_v
         let formula = "{special case}";
         let symbolic_formula = "***";
         let rate = 0.0;
-        return TvmSolution::new(TvmVariable::Rate, TvmCalculationType::Excel, continuous_compounding, rate, periods, present_value, future_value, formula, symbolic_formula);
+        return TvmSolution::new(TvmVariable::Rate, CalculationType::Excel, continuous_compounding, rate, periods, present_value, future_value, formula, symbolic_formula);
     }
 
     let rate = rate_internal(periods, present_value, future_value, continuous_compounding);
@@ -210,7 +212,7 @@ pub (crate) fn rate_solution_internal(periods: u32, present_value: f64, future_v
         let symbolic_formula = "r = ((-fv / pv) ^ (1 / n)) - 1";
         (formula, symbolic_formula)
     };
-    TvmSolution::new(TvmVariable::Rate, TvmCalculationType::Excel, continuous_compounding, rate, periods, present_value, future_value, &formula, symbolic_formula)
+    TvmSolution::new(TvmVariable::Rate, CalculationType::Excel, continuous_compounding, rate, periods, present_value, future_value, &formula, symbolic_formula)
 }
 
 fn check_rate_parameters(periods: u32, present_value: f64, future_value: f64) {
@@ -230,10 +232,10 @@ mod tests {
     #[test]
     fn test_rate_edge() {
         // Zero periods, values add up to zero.
-        assert_rounded_6(0.0, rate(0, 10_000.0, -10_000.0, false));
+        assert_rounded_6!(0.0, rate(0, 10_000.0, -10_000.0, false));
 
         // Nonzero periods, values add up to zero.
-        assert_rounded_6(0.0, rate(12, -10_000.0, 10_000.0, false));
+        assert_rounded_6!(0.0, rate(12, -10_000.0, 10_000.0, false));
     }
 
     #[should_panic]

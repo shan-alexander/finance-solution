@@ -1,9 +1,10 @@
 //! The internal module which supports the solution struct for the family of Time-value-of-money equations
 //! which do not involve payments. For example, future value, present value, rate, and periods.
 
-use crate::*;
 use std::ops::Deref;
 use std::fmt::{Display, Formatter, Error};
+
+use crate::*;
 
 pub mod future_value;
 #[doc(inline)]
@@ -21,6 +22,8 @@ pub mod rate;
 #[doc(inline)]
 pub use rate::*;
 
+const CALL_INVARIANT: bool = true;
+
 /// Enumeration used for the `calculated_field` field in [`TvmSolution`] and [`TvmSchedule`] to keep
 /// track of what was calculated, either the periodic rate, the number of periods, the present
 /// value, or the future value.
@@ -32,18 +35,10 @@ pub enum TvmVariable {
     FutureValue,
 }
 
-/// Enumeration used for the `calculation_type` field in [`TvmSolution`] and [`TvmSchedule`] to identify
-/// if the formula used is for bookkeeping (matches Excel) or for academic (matches textbooks) purposes.
-#[derive(Clone, Debug)]
-pub enum TvmCalculationType {
-    Excel,
-    Academic
-}
-
 #[derive(Clone, Debug)]
 pub struct TvmSolution {
     calculated_field: TvmVariable,
-    calculation_type: TvmCalculationType,
+    calculation_type: CalculationType,
     continuous_compounding: bool,
     rate: f64,
     periods: u32,
@@ -137,8 +132,17 @@ impl TvmVariable {
         (self.to_string(), data_type.to_string(), visible)
     }
 
-
+    /*
+    pub(crate) fn precision(&self) -> usize {
+        match self {
+            TvmVariable::Periods => 0,
+            TvmVariable::Rate => 6,
+            _ => 4,
+        }
     }
+    */
+
+}
 
 impl Display for TvmVariable {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
@@ -151,11 +155,11 @@ impl Display for TvmVariable {
     }
 }
 
-impl TvmCalculationType {
+impl CalculationType {
     /// Returns true if the variant is TvmCalculationType::Excel.
     pub fn is_excel(&self) -> bool {
         match self {
-            TvmCalculationType::Excel => true,
+            CalculationType::Excel => true,
             _ => false,
         }
     }
@@ -163,17 +167,8 @@ impl TvmCalculationType {
     /// Returns true if the variant is TvmCalculationType::Academic.
     pub fn is_academic(&self) -> bool {
         match self {
-            TvmCalculationType::Academic => true,
+            CalculationType::Academic => true,
             _ => false,
-        }
-    }
-}
-
-impl Display for TvmCalculationType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        match self {
-            TvmCalculationType::Excel => write!(f, "Excel"),
-            TvmCalculationType::Academic => write!(f, "Academic"),
         }
     }
 }
@@ -181,16 +176,20 @@ impl Display for TvmCalculationType {
 impl Eq for TvmVariable {}
 
 impl TvmSolution {
-    pub(crate) fn new(calculated_field: TvmVariable, calculation_type: TvmCalculationType, continuous_compounding: bool, rate: f64, periods: u32, present_value: f64, future_value: f64, formula: &str, symbolic_formula: &str) -> Self {
+    pub(crate) fn new(calculated_field: TvmVariable, calculation_type: CalculationType, continuous_compounding: bool, rate: f64, periods: u32, present_value: f64, future_value: f64, formula: &str, symbolic_formula: &str) -> Self {
         assert!(rate.is_finite());
         assert!(present_value.is_finite());
         assert!(future_value.is_finite());
         assert!(!formula.is_empty());
         assert!(!symbolic_formula.is_empty());
-        Self::new_fractional_periods(calculated_field, calculation_type, continuous_compounding, rate, periods as f64, present_value, future_value, formula, symbolic_formula)
+        let solution = Self::new_fractional_periods(calculated_field, calculation_type, continuous_compounding, rate, periods as f64, present_value, future_value, formula, symbolic_formula);
+        if CALL_INVARIANT {
+            solution.invariant();
+        }
+        solution
     }
 
-    pub(crate) fn new_fractional_periods(calculated_field: TvmVariable, calculation_type: TvmCalculationType, continuous_compounding: bool, rate: f64, fractional_periods: f64, present_value: f64, future_value: f64, formula: &str, symbolic_formula: &str) -> Self {
+    pub(crate) fn new_fractional_periods(calculated_field: TvmVariable, calculation_type: CalculationType, continuous_compounding: bool, rate: f64, fractional_periods: f64, present_value: f64, future_value: f64, formula: &str, symbolic_formula: &str) -> Self {
         assert!(rate >= -1.0);
         assert!(fractional_periods >= 0.0);
         assert!(present_value.is_finite());
@@ -219,7 +218,7 @@ impl TvmSolution {
     /// ```
     /// // The initial investment is $10,000.12, the interest rate is 1.5% per month, and the
     /// // investment will grow for 24 months using simple compounding.
-    /// let solution = finance_solution::future_value_solution(0.015, 24, 10_000.12, false);
+    /// let solution = finance_solution::core::future_value_solution(0.015, 24, 10_000.12, false);
     ///
     /// // Calculate the value at the end of each period.
     /// let series = solution.series();
@@ -244,7 +243,7 @@ impl TvmSolution {
     /// ```
     /// // The interest rate is 7.8% per year, the investment will grow for 10 years using simple
     /// // compounding, and the final value will be 8_112.75.
-    /// let solution = finance_solution::present_value_solution(0.078, 10, 8_112.75, false);
+    /// let solution = finance_solution::core::present_value_solution(0.078, 10, 8_112.75, false);
     ///
     /// // Calculate the value at the end of each period.
     /// let series = solution.series();
@@ -276,7 +275,7 @@ impl TvmSolution {
     ///
     /// // Calculate the present value and keep track of the inputs and the formula
     /// // in a struct.
-    /// let solution = finance_solution::present_value_schedule_solution(&rates, future_value);
+    /// let solution = finance_solution::core::present_value_schedule_solution(&rates, future_value);
     /// dbg!(&solution);
     ///
     /// // Calculate the value at the end of each period.
@@ -308,7 +307,7 @@ impl TvmSolution {
     ///
     /// # Examples
     /// ```
-    /// finance_solution::future_value_solution(0.045, 5, 10_000, false)
+    /// finance_solution::core::future_value_solution(0.045, 5, 10_000, false)
     ///     .print_series_table();
     /// ```
     /// Output:
@@ -343,12 +342,12 @@ impl TvmSolution {
     /// ```
     /// // English formatting with "," for the thousands separator and "." for the decimal
     /// // separator.
-    /// let locale = finance_solution::num_format::Locale::en;
+    /// let locale = finance_solution::core::num_format::Locale::en;
     ///
     /// // Show money amounts to two decimal places.
     /// let precision = 2;
     ///
-    /// finance_solution::future_value_solution(0.11, 4, 5_000, false)
+    /// finance_solution::core::future_value_solution(0.11, 4, 5_000, false)
     ///     .print_series_table_locale(&locale, precision);
     /// ```
     /// Output:
@@ -372,7 +371,7 @@ impl TvmSolution {
     /// # Examples
     /// ```
     /// // Calculate the future value of $25,000 that grows at 5% for 12 yeors.
-    /// let solution = finance_solution::future_value_solution(0.05, 12, 25_000, false);
+    /// let solution = finance_solution::core::future_value_solution(0.05, 12, 25_000, false);
     /// assert!(solution.calculated_field().is_future_value());
     /// ```
     pub fn calculated_field(&self) -> &TvmVariable {
@@ -381,7 +380,7 @@ impl TvmSolution {
 
     /// Returns the type of calculation (Excel or Academic). To test for the enum variant, use 
     /// functions like `TvmCalculationType::is_excel` or `TvmCalculationType::is_academic`.
-    pub fn calculation_type(&self) -> &TvmCalculationType {
+    pub fn calculation_type(&self) -> &CalculationType {
         &self.calculation_type
     }
 
@@ -482,11 +481,11 @@ impl TvmSolution {
     /// // varies by the number of compounding periods but we're starting with a future value
     /// // calculation. It would have been fine to start with a rate, periods, or present value
     /// // calculation as well. It just depends on what information we have to work with.
-    /// let solution = finance_solution::future_value_solution(0.20, 1, -83.333, false);
+    /// let solution = finance_solution::core::future_value_solution(0.20, 1, -83.333, false);
     /// dbg!(&solution);
     ///
     /// // The present value of $83.33 gives us a future value of about $100.00.
-    /// finance_solution::assert_rounded_2!(100.00, solution.future_value());
+    /// finance_solution::core::assert_rounded_2!(100.00, solution.future_value());
     ///
     /// // We'll experiment with compounding annually, quarterly, monthly, weekly, and daily.
     /// let compounding_periods = [1, 4, 12, 52, 365];
@@ -565,7 +564,7 @@ impl TvmSolution {
     ///
     /// let continuous_compounding = false;
     ///
-    /// let solution = finance_solution::future_value_solution(rate, periods, present_value, continuous_compounding);
+    /// let solution = finance_solution::core::future_value_solution(rate, periods, present_value, continuous_compounding);
     /// dbg!(&solution);
     ///
     /// // We'll experiment with compounding annually, quarterly, monthly, weekly, and daily.
@@ -721,13 +720,17 @@ impl TvmScheduleSolution {
         }
         assert!(present_value.is_finite());
         assert!(future_value.is_finite());
-        Self {
+        let solution = Self {
             calculated_field,
             rates: rates.to_vec(),
             periods: rates.len() as u32,
             present_value,
             future_value,
+        };
+        if CALL_INVARIANT {
+            solution.invariant();
         }
+        solution
     }
 
     /// Returns a variant of [`TvmVariable`] showing which value was calculated, either the present
@@ -736,7 +739,7 @@ impl TvmScheduleSolution {
     ///
     /// # Examples
     /// ```
-    /// let solution = finance_solution::present_value_schedule_solution(&[0.011, 0.012, 0.009], 75_000);
+    /// let solution = finance_solution::core::present_value_schedule_solution(&[0.011, 0.012, 0.009], 75_000);
     /// assert!(solution.calculated_field().is_present_value());
     /// ```
     pub fn calculated_field(&self) -> &TvmVariable {
@@ -753,7 +756,7 @@ impl TvmScheduleSolution {
     ///
     /// # Examples
     /// ```
-    /// let solution = finance_solution::future_value_schedule_solution(&[0.05, 0.07, 0.05], 100_000);
+    /// let solution = finance_solution::core::future_value_schedule_solution(&[0.05, 0.07, 0.05], 100_000);
     /// assert_eq!(3, solution.periods());
     /// ```
     pub fn periods(&self) -> u32 {
@@ -782,7 +785,7 @@ impl TvmScheduleSolution {
     /// ```
     /// // The initial investment is $10,000.12, the interest rate is 1.5% per month, and the
     /// // investment will grow for 24 months using simple compounding.
-    /// let solution = finance_solution::future_value_solution(0.015, 24, 10_000.12, false);
+    /// let solution = finance_solution::core::future_value_solution(0.015, 24, 10_000.12, false);
     /// dbg!(&solution);
     ///
     /// // Calculate the period-by-period details.
@@ -1077,9 +1080,6 @@ fn series_internal(
     TvmSeries::new(series)
 }
 
-
-
-
 fn round_fractional_periods(fractional_periods: f64) -> u32 {
     round_4(fractional_periods).ceil() as u32
 }
@@ -1087,6 +1087,7 @@ fn round_fractional_periods(fractional_periods: f64) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::cashflow::payment;
 
     #[test]
     fn test_tvm_symmetry_one() {
@@ -1290,7 +1291,7 @@ mod tests {
         if !continuous_in && rate_in > -1.0 {
             // Check that we can use the given values in a payment calculation and get zero for the
             // payment.
-            let payment_calc = payment(rate_in, periods_in, present_value_in, future_value_calc, false);
+            let payment_calc = payment::payment(rate_in, periods_in, present_value_in, future_value_calc, false);
             assert_approx_equal!(0.0, payment_calc);
         }
     }
@@ -1887,5 +1888,75 @@ mod tests {
                 dbg!(&solution, solution.present_value_solution(false, Some(*one_compounding_period)));
             }
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct ScenarioList {
+    pub setup: String,
+    pub input_variable: TvmVariable,
+    pub output_variable: TvmVariable,
+    pub entries: Vec<ScenarioEntry>,
+}
+
+pub struct ScenarioEntry {
+    pub input: f64,
+    pub output: f64,
+    input_precision: usize,
+    output_precision: usize,
+}
+
+impl ScenarioList {
+
+    pub(crate) fn new(setup: String, input_variable: TvmVariable, output_variable: TvmVariable, entries: Vec<(f64, f64)>) -> Self {
+        let input_precision = match input_variable {
+            TvmVariable::Periods => 0,
+            TvmVariable::Rate => 6,
+            _ => 4,
+        };
+        let output_precision = match output_variable {
+            TvmVariable::Periods => 0,
+            TvmVariable::Rate => 6,
+            _ => 4,
+        };
+        let entries= entries.iter().map(|entry| ScenarioEntry::new(entry.0, entry.1, input_precision, output_precision)).collect();
+        Self {
+            setup,
+            input_variable,
+            output_variable,
+            entries,
+        }
+    }
+
+    pub fn print_table(&self) {
+        self.print_table_locale_opt(None, None);
+    }
+
+    pub fn print_table_locale(&self, locale: &num_format::Locale, precision: usize) {
+        self.print_table_locale_opt(Some(locale), Some(precision));
+    }
+
+    fn print_table_locale_opt(&self, locale: Option<&num_format::Locale>, precision: Option<usize>) {
+        let columns = vec![self.input_variable.table_column_spec(true), self.output_variable.table_column_spec(true)];
+        // let columns = columns_with_strings.iter().map(|x| &x.0[..], &x.1[..], x.2);
+        let data = self.entries.iter()
+            .map(|entry| vec![entry.input.to_string(), entry.output.to_string()])
+            .collect::<Vec<_>>();
+        print_table_locale_opt(&columns, data, locale, precision);
+    }
+
+}
+
+impl ScenarioEntry {
+    pub(crate) fn new(input: f64, output: f64, input_precision: usize, output_precision: usize) -> Self {
+        Self { input, output, input_precision, output_precision }
+    }
+}
+
+impl Debug for ScenarioEntry {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        let input = format_float_locale_opt(self.input, None, Some(self.input_precision));
+        let output = format_float_locale_opt(self.output, None, Some(self.output_precision));
+        write!(f, "{{ input: {}, output: {} }}", input, output)
     }
 }

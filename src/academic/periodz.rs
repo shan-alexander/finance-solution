@@ -8,8 +8,10 @@
 //!
 
 // Import needed for the function references in the Rustdoc comments.
-#[allow(unused_imports)]
+// #[allow(unused_imports)]
+
 use crate::*;
+use crate::core::tvm;
 
 /// Academic function for periods. Returns a solution struct.
 pub fn periodz<P, F>(rate: f64, present_value: P, future_value: F) -> tvm::TvmSolution
@@ -18,10 +20,10 @@ pub fn periodz<P, F>(rate: f64, present_value: P, future_value: F) -> tvm::TvmSo
     let solution = tvm::periods_solution(rate, present_value.into(), -future_value.into(), false);
     tvm::TvmSolution::new(
         *solution.calculated_field(),
-        TvmCalculationType::Academic,
+        CalculationType::Academic,
         solution.continuous_compounding(),
-        solution.rate(), 
-        solution.periods(), 
+        solution.rate(),
+        solution.periods(),
         solution.present_value(),
         -solution.future_value(),
         &ConcreteFormula::fv(solution.rate(), solution.periods(), solution.present_value(), -solution.future_value()),

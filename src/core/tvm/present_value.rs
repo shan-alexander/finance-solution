@@ -63,7 +63,9 @@
 
 use log::warn;
 
-use super::tvm::*;
+use super::*;
+
+// use super::tvm::*;
 
 /// Returns the current value of a future amount using a fixed rate.
 ///
@@ -91,7 +93,7 @@ use super::tvm::*;
 /// # Examples
 /// Investment that grows month by month.
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::core::*;
 ///
 /// // The investment will grow by 1.1% per month.
 /// let rate = 0.011;
@@ -109,7 +111,7 @@ use super::tvm::*;
 /// dbg!(&present_value);
 ///
 /// // Confirm that the present value is correct to four decimal places (one hundredth of a cent).
-/// assert_rounded_4(-43_848.6409, present_value);
+/// assert_rounded_4!(-43_848.6409, present_value);
 /// ```
 /// Error case: The investment loses 105% per year. There's no way to work out what this means so
 /// the call to present_value() will panic.
@@ -118,7 +120,7 @@ use super::tvm::*;
 /// let periods = 6;
 /// let present_value = -10_000.75;
 /// let continuous_compounding = false;
-/// let present_value = finance_solution::present_value(rate, periods, present_value, continuous_compounding);
+/// let present_value = finance_solution::core::present_value(rate, periods, present_value, continuous_compounding);
 /// ```
 pub fn present_value<T>(rate: f64, periods: u32, future_value: T, continuous_compounding: bool) -> f64
     where T: Into<f64> + Copy
@@ -153,7 +155,7 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T, continuous_com
 /// # Examples
 /// Calculate a present value and examine the period-by-period values.
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::core::*;
 ///
 /// // The rate is 8.45% per year.
 /// let rate = 0.0845;
@@ -172,7 +174,7 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T, continuous_com
 /// dbg!(&solution);
 ///
 /// let present_value = solution.present_value();
-/// assert_rounded_4(present_value, -30_732.1303);
+/// assert_rounded_4!(present_value, -30_732.1303);
 ///
 /// // Examine the formulas.
 /// let formula = solution.formula();
@@ -190,7 +192,7 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T, continuous_com
 /// fixed but the number of periods varies, then filter the results.
 /// ```
 /// // The rate is 0.9% per month.
-/// # use finance_solution::*;
+/// # use finance_solution::core::*;
 /// let rate = 0.009;
 ///
 /// // The final value is $100,000.
@@ -235,7 +237,7 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T, continuous_com
 /// Error case: The investment loses 111% per year. There's no way to work out what this means so
 /// the call to present_value() will panic.
 /// ```should_panic
-/// # use finance_solution::*;
+/// # use finance_solution::core::*;
 /// let rate = -1.11;
 /// let periods = 12;
 /// let present_value = 100_000.85;
@@ -275,7 +277,7 @@ pub fn present_value_solution<T>(rate: f64, periods: u32, future_value: T, conti
 /// let future_value = 30_000.00;
 ///
 /// // Calculate the present value.
-/// let present_value = finance_solution::present_value_schedule(&rates, future_value);
+/// let present_value = finance_solution::core::present_value_schedule(&rates, future_value);
 /// dbg!(&present_value);
 /// ```
 pub fn present_value_schedule<T>(rates: &[f64], future_value: T) -> f64
@@ -319,7 +321,7 @@ pub fn present_value_schedule<T>(rates: &[f64], future_value: T) -> f64
 /// Calculate the value of an investment whose rates vary by year, then view only those periods
 /// where the rate is negative.
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::core::*;
 ///
 /// // The quarterly rate varies from -0.5% to 4%.
 /// let rates = [0.04, 0.008, 0.0122, -0.005];
@@ -334,7 +336,7 @@ pub fn present_value_schedule<T>(rates: &[f64], future_value: T) -> f64
 /// dbg!(&solution);
 ///
 /// let present_value = solution.present_value();
-/// assert_rounded_4(present_value, -23_678.6383);
+/// assert_rounded_4!(present_value, -23_678.6383);
 ///
 /// // Calculate the value for each period.
 /// let series = solution.series();
@@ -378,7 +380,7 @@ pub(crate) fn present_value_solution_internal(rate: f64, periods: f64, future_va
         let symbolic_formula = SYMBOLIC_FORMULAS.pv_excel;
         (formula, symbolic_formula)
     };
-    TvmSolution::new_fractional_periods(TvmVariable::PresentValue, TvmCalculationType::Excel, continuous_compounding, rate, periods, present_value, future_value, &formula, symbolic_formula)
+    TvmSolution::new_fractional_periods(TvmVariable::PresentValue, CalculationType::Core, continuous_compounding, rate, periods, present_value, future_value, &formula, symbolic_formula)
 }
 
 fn check_present_value_parameters(rate: f64, periods: f64, future_value: f64) {
@@ -398,52 +400,51 @@ fn check_present_value_parameters(rate: f64, periods: f64, future_value: f64) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::*;
-    
+
     #[test]
     fn test_present_value_schedule() {
         let rates = [0.04, 0.07, -0.12, -0.03, 0.11];
         let future_value = 100_000.25;
 
         let present_value = present_value_schedule(&rates, future_value);
-        assert_rounded_4(-94843.2841, present_value);
+        assert_rounded_4!(-94843.2841, present_value);
 
         let solution = present_value_schedule_solution(&rates, future_value);
-        assert_rounded_4(100000.2500, solution.future_value());
-        assert_rounded_4(-94843.2841, solution.present_value());
+        assert_rounded_4!(100000.2500, solution.future_value());
+        assert_rounded_4!(-94843.2841, solution.present_value());
 
         let series = solution.series();
         assert_eq!(6, series.len());
 
         let period = &series[0];
         assert_eq!(0, period.period());
-        assert_rounded_6(0.0, period.rate());
-        assert_rounded_4(-present_value,period.value());
+        assert_rounded_6!(0.0, period.rate());
+        assert_rounded_4!(-present_value,period.value());
 
         let period = &series[1];
         assert_eq!(1, period.period());
-        assert_rounded_6(0.04, period.rate());
-        assert_rounded_4(98_637.0154,period.value());
+        assert_rounded_6!(0.04, period.rate());
+        assert_rounded_4!(98_637.0154,period.value());
 
         let period = &series[2];
         assert_eq!(2, period.period());
-        assert_rounded_6(0.07, period.rate());
-        assert_rounded_4(105_541.6065,period.value());
+        assert_rounded_6!(0.07, period.rate());
+        assert_rounded_4!(105_541.6065,period.value());
 
         let period = &series[3];
         assert_eq!(3, period.period());
-        assert_rounded_6(-0.12, period.rate());
-        assert_rounded_4(92_876.6137,period.value());
+        assert_rounded_6!(-0.12, period.rate());
+        assert_rounded_4!(92_876.6137,period.value());
 
         let period = &series[4];
         assert_eq!(4, period.period());
-        assert_rounded_6(-0.03, period.rate());
-        assert_rounded_4(90_090.3153, period.value());
+        assert_rounded_6!(-0.03, period.rate());
+        assert_rounded_4!(90_090.3153, period.value());
 
         let period = &series[5];
         assert_eq!(5, period.period());
-        assert_rounded_6(0.11, period.rate());
-        assert_rounded_4(100_000.2500, period.value());
+        assert_rounded_6!(0.11, period.rate());
+        assert_rounded_4!(100_000.2500, period.value());
     }
 
     /*

@@ -1,5 +1,3 @@
-#![allow(unused_imports)]
-
 //! **Future value _annuity_ calculations**. Given a series of cashflows, a number of periods such as years, and a fixed
 //! interest rate, what is the value of the series of cashflows (annuity) at the final payment?
 //! 
@@ -8,7 +6,7 @@
 //! ## Example
 //! ```
 //! let (rate, periods, annuity, due) = (0.034, 10, 500, false);
-//! let fv_ann = finance_solution::future_value_annuity_solution(rate, periods, annuity, due);
+//! let fv_ann = finance_solution::core::future_value_annuity_solution(rate, periods, annuity, due);
 //! dbg!(fv_ann);
 //! ```
 //! Outputs to terminal:
@@ -29,13 +27,16 @@
 //! ```
 //! 
 
+use super::*;
+use crate::core::tvm::present_value::present_value;
+
 // to-do: add "use log::warn;" and helper logs
 
 // Needed for the Rustdoc comments and module.
-use crate::future_value::future_value;
-use crate::present_value::present_value;
-use crate::cashflow::*;
-use crate::assert_approx_equal;
+// use crate::future_value::future_value;
+// use crate::present_value::present_value;
+// use crate::cashflow::*;
+// use crate::assert_approx_equal;
 
 fn check_future_value_annuity_parameters(rate:f64, periods:u32, cashflow:f64) {
     assert!(rate > -1.0);
@@ -70,7 +71,7 @@ fn check_future_value_annuity_parameters(rate:f64, periods:u32, cashflow:f64) {
 /// # Examples
 /// Quick Glance, how to use:
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::core::*;
 /// let (rate, periods, payment, due_at_beginning) = (0.034, 5, 500, false);
 /// let my_annuity = future_value_annuity(rate, periods, payment, due_at_beginning);
 /// assert_approx_equal!(my_annuity, -2_675.8789282); 
@@ -78,7 +79,7 @@ fn check_future_value_annuity_parameters(rate:f64, periods:u32, cashflow:f64) {
 /// 
 /// Or use the solution struct (recommended, more helpful to debugging and for student-learning)
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::core::*;
 /// let (rate, periods, pmt, due_at_beginning) = (0.034, 5, 500, false);
 /// let my_annuity = future_value_annuity_solution(rate, periods, pmt, due_at_beginning);
 /// dbg!(&my_annuity);
@@ -100,7 +101,7 @@ fn check_future_value_annuity_parameters(rate:f64, periods:u32, cashflow:f64) {
 /// }
 /// ```
 /// ```
-/// # use finance_solution::*;
+/// # use finance_solution::core::*;
 /// # let (rate, periods, pmt, due_at_beginning) = (0.034, 5, 500, false);
 /// # let my_annuity = future_value_annuity_solution(rate, periods, pmt, due_at_beginning);
 /// // call the value as a method to get the solution value
@@ -109,7 +110,7 @@ fn check_future_value_annuity_parameters(rate:f64, periods:u32, cashflow:f64) {
 /// 
 /// Another example: Future value of a series of $2000 cashflows.
 /// ```
-/// # use finance_solution::*;
+/// # use finance_solution::core::*;
 /// // The rate is 2.1% per month.
 /// let rate = 0.021;
 ///
@@ -186,7 +187,7 @@ pub fn future_value_annuity<T>(rate: f64, periods: u32, annuity: T, due_at_begin
 /// # Examples
 /// Future value of a $500 annuity (a series of $500 cashflows) at 3.4% for 10 years.
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::core::*;
 /// let (rate, periods, cashflow, due_at_beginning) = (0.034, 10, 500, false);
 /// let my_annuity = future_value_annuity_solution(rate, periods, cashflow, due_at_beginning);
 /// dbg!(&my_annuity);

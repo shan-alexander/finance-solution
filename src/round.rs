@@ -24,38 +24,39 @@ pub fn round_8(val: f64) -> f64 {
     (val * 100_000_000.0).round() / 100_000_000.0
 }
 
+/*
 #[inline(always)]
-pub fn assert_rounded_2(val_1: f64, val_2: f64) {
+pub fn assert_rounded_2!(val_1: f64, val_2: f64) {
     assert!(val_1.is_finite());
     assert!(val_2.is_finite());
     assert_eq!(round_2(val_1), round_2(val_2));
 }
 
 #[inline(always)]
-pub fn assert_rounded_4(val_1: f64, val_2: f64) {
+pub fn assert_rounded_4!(val_1: f64, val_2: f64) {
     assert!(val_1.is_finite());
     assert!(val_2.is_finite());
     assert_eq!(round_4(val_1), round_4(val_2));
 }
 
 #[inline(always)]
-pub fn assert_rounded_6(val_1: f64, val_2: f64) {
+pub fn assert_rounded_6!(val_1: f64, val_2: f64) {
     assert!(val_1.is_finite());
     assert!(val_2.is_finite());
     assert_eq!(round_6(val_1), round_6(val_2));
 }
 
 #[inline(always)]
-pub fn assert_rounded_8(val_1: f64, val_2: f64) {
+pub fn assert_rounded_8!(val_1: f64, val_2: f64) {
     assert!(val_1.is_finite());
     assert!(val_2.is_finite());
     assert_eq!(round_8(val_1), round_8(val_2));
 }
+*/
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::*;
 
     #[test]
     fn test_equals_zero() {
@@ -94,6 +95,7 @@ mod tests {
         assert_ne!(295_489.94512333, round_8(295_489.9451249999));
     }
 
+    /*
     #[test]
     fn test_assert_rounded_2_nominal() {
         assert_rounded_2!(53_243.7448, 53_243.7401);
@@ -117,7 +119,7 @@ mod tests {
     fn test_assert_approx_equal_panic() {
         assert_rounded_2!(53_243.8123, 53_243.7401);
     }
-
+    */
 }
 
 

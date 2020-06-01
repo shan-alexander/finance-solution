@@ -8,10 +8,13 @@
 //! > <img src="http://i.upmath.me/svg/payment%20%3D%20%5Cfrac%7Bprincipal%20%5Ctimes%20%5Cleft(1%2Brate%5Cright)%5E%7Bmonths%7D%20%5Ctimes%20rate%7D%7B%5Cleft(1%2Brate%5Cright)%5E%7Bmonths%7D%20-%201%7D%7D" />
 
 // Import needed for the function references in the Rustdoc comments.
-#[allow(unused_imports)]
-use crate::*;
+// #[allow(unused_imports)]
 
-const RUN_INVARIANTS: bool = false;
+use crate::*;
+use crate::core::cashflow::payment::*;
+use crate::core::cashflow::CashflowPeriod;
+
+// const RUN_INVARIANTS: bool = false;
 
 /// A record of an amortized loan calculation.
 #[derive(Clone, Debug)]
@@ -104,10 +107,10 @@ impl LoanSolution {
     ///
     /// # Examples
     /// ```
-    /// // use finance_solution::simple::*;
+    /// // use finance_solution::academic::*;
     ///
     /// // $20,000 loan at 15% APR for 5 years.
-    /// let solution = finance_solution::simple::loan_solution(20_000, 0.15, 5 * 12);
+    /// let solution = finance_solution::academic::loan_solution(20_000, 0.15, 5 * 12);
     /// dbg!(&solution);
     ///
     /// // Calculate the month-by-month details including the principal and interest paid every month.
@@ -141,7 +144,7 @@ impl LoanSolution {
     ///
     /// # Examples
     /// ```
-    /// finance_solution::simple::loan_solution(200_000, 0.06, 180)
+    /// finance_solution::academic::loan_solution(200_000, 0.06, 180)
     ///     .print_table();
     /// ```
     /// Output (showing only the first five periods):
@@ -173,7 +176,7 @@ impl LoanSolution {
     /// // including remaining amounts columns like `principal_remaining`.
     /// let include_running_totals = true;
     /// let include_remaining_amounts = false;
-    /// finance_solution::simple::loan_solution(200_000, 0.06, 180)
+    /// finance_solution::academic::loan_solution(200_000, 0.06, 180)
     ///     .print_table_custom(include_running_totals, include_remaining_amounts);
     /// ```
     /// Output (showing only the first five periods):
@@ -209,7 +212,7 @@ impl LoanSolution {
     /// let include_remaining_amounts = true;
     /// let locale = num_format::Locale::en;
     /// let precision = 0; // Round money amounts to whole numbers.
-    /// finance_solution::simple::loan_solution(200_000, 0.06, 180)
+    /// finance_solution::academic::loan_solution(200_000, 0.06, 180)
     ///     .print_table_locale(include_running_totals, include_remaining_amounts, &locale, precision);
     /// ```
     /// Output (showing only the first five periods):
@@ -245,7 +248,7 @@ impl LoanSolution {
     /// # Examples
     /// ```
     /// // $200,000 at 6% APR for 15 years.
-    /// let solution_six_pct = finance_solution::simple::loan_solution(200_000, 0.06, 180);
+    /// let solution_six_pct = finance_solution::academic::loan_solution(200_000, 0.06, 180);
     ///
     /// // Create a variation on the first loan with a 5% APR.
     /// let solution_five_pct = solution_six_pct.with_apr(0.05);
@@ -293,7 +296,7 @@ impl LoanSolution {
     /// # Examples
     /// ```
     /// // $200,000 at 6% APR for 15 years.
-    /// let solution_six_pct = finance_solution::simple::loan_solution(200_000, 0.06, 180);
+    /// let solution_six_pct = finance_solution::academic::loan_solution(200_000, 0.06, 180);
     ///
     /// // Create a variation on the first loan with a 5% APR.
     /// let solution_five_pct = solution_six_pct.with_apr(0.05);
@@ -349,7 +352,7 @@ impl LoanSolution {
     /// # Examples
     /// ```
     /// // $200,000 at 6% APR for 15 years.
-    /// let solution_six_pct = finance_solution::simple::loan_solution(200_000, 0.06, 180);
+    /// let solution_six_pct = finance_solution::academic::loan_solution(200_000, 0.06, 180);
     ///
     /// // Create a variation on the first loan with a 5% APR.
     /// let solution_five_pct = solution_six_pct.with_apr(0.05);
@@ -457,7 +460,7 @@ impl LoanSolution {
     /// # Examples
     /// ```
     /// // $200,000 at 6% APR for 15 years.
-    /// let solution_200 = finance_solution::simple::loan_solution(200_000, 0.06, 180);
+    /// let solution_200 = finance_solution::academic::loan_solution(200_000, 0.06, 180);
     ///
     /// // Create a variation on the first loan with a lower principal.
     /// let solution_180 = solution_200.with_principal(180_000);
@@ -492,7 +495,7 @@ impl LoanSolution {
     /// # Examples
     /// ```
     /// // $200,000 at 6% APR for 15 years.
-    /// let solution_six_pct = finance_solution::simple::loan_solution(200_000, 0.06, 180);
+    /// let solution_six_pct = finance_solution::academic::loan_solution(200_000, 0.06, 180);
     ///
     /// // Create a variation on the first loan with a 5% APR.
     /// let solution_five_pct = solution_six_pct.with_apr(0.05);
@@ -528,7 +531,7 @@ impl LoanSolution {
     /// # Examples
     /// ```
     /// // $200,000 at 6% APR for 15 years.
-    /// let solution_15_years = finance_solution::simple::loan_solution(200_000, 0.06, 15 * 12);
+    /// let solution_15_years = finance_solution::academic::loan_solution(200_000, 0.06, 15 * 12);
     ///
     /// // Create a variation on the first loan that runs for 20 years.
     /// let solution_20_years = solution_15_years.with_months(20 * 12);
@@ -586,7 +589,7 @@ impl LoanSeries {
     /// # Examples
     /// ```
     /// let principal = 200_000;
-    /// let series = finance_solution::simple::loan_solution(principal, 0.06, 180)
+    /// let series = finance_solution::academic::loan_solution(principal, 0.06, 180)
     ///     .series();
     ///
     /// // Print the first five and last five monthly entries.
@@ -650,7 +653,7 @@ impl LoanSeries {
     ///
     /// # Examples
     /// ```
-    /// finance_solution::simple::loan_solution(200_000, 0.06, 180)
+    /// finance_solution::academic::loan_solution(200_000, 0.06, 180)
     ///     .series()
     ///     .summarize_by_year()
     ///     .print_table();
@@ -677,7 +680,7 @@ impl LoanSeries {
 /// month-by-month details such as the amount of the payment that goes to principal and interest.
 /// ```
 /// use finance_solution::*;
-/// use finance_solution::simple::*;
+/// use finance_solution::academic::*;
 ///
 /// // This is a mortgage loan for $200,000.
 /// let principal = 200_000;
@@ -709,10 +712,10 @@ impl LoanSeries {
 /// ```
 /// ```
 /// # use finance_solution::*;
-/// # use finance_solution::simple::*;
+/// # use finance_solution::academic::*;
 /// # let principal = 200_000;
 /// # let months = 15 * 12;
-/// # let solution = finance_solution::simple::loan_solution(principal, 0.06, months);
+/// # let solution = finance_solution::academic::loan_solution(principal, 0.06, months);
 /// // The payment is $1,687.71/month.
 /// assert_rounded_2!(solution.payment(), 1687.71);
 ///
@@ -753,8 +756,8 @@ impl LoanSeries {
 /// ```
 /// ```
 /// # use finance_solution::*;
-/// # use finance_solution::simple::*;
-/// # let solution = finance_solution::simple::loan_solution(200_000, 0.06, 180);
+/// # use finance_solution::academic::*;
+/// # let solution = finance_solution::academic::loan_solution(200_000, 0.06, 180);
 /// // Print the period-by-period values in a formatted table.
 /// solution.print_table();
 /// ```

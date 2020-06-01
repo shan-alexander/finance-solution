@@ -7,8 +7,10 @@
 //!
 
 // Import needed for the function references in the Rustdoc comments.
-#[allow(unused_imports)]
+// #[allow(unused_imports)]
+
 use crate::*;
+use crate::core::tvm;
 
 /// Academic function for future value. Returns a solution struct.
 pub fn fv<T>(rate: f64, periods: u32, present_value: T) -> tvm::TvmSolution
@@ -17,7 +19,7 @@ pub fn fv<T>(rate: f64, periods: u32, present_value: T) -> tvm::TvmSolution
     let solution = tvm::future_value_solution(rate, periods, present_value.into(), false);
     tvm::TvmSolution::new(
         *solution.calculated_field(),
-        TvmCalculationType::Academic,
+        CalculationType::Academic,
         solution.continuous_compounding(),
         solution.rate(), 
         solution.periods(), 

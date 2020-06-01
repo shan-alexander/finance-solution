@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use finance_solution::tvm::present_value::*;
-use finance_solution::cashflow::present_value_annuity::*;
+use finance_solution::core::tvm::present_value::*;
+use finance_solution::core::cashflow::present_value_annuity::*;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
 

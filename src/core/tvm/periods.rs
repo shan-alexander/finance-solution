@@ -77,7 +77,8 @@
 
 // use log::warn;
 
-use super::tvm::*;
+use crate::*;
+use super::*;
 
 /// Returns the number of periods given a periodic rate along with the present and future values,
 /// using simple compounding.
@@ -123,7 +124,7 @@ use super::tvm::*;
 ///
 /// # Examples
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::core::*;
 ///
 /// // The interest rate is 8% per year.
 /// let rate = 0.08;
@@ -139,7 +140,7 @@ use super::tvm::*;
 /// // Calculate the number of years required.
 /// let fractional_periods = periods(rate, present_value, future_value, false);
 /// dbg!(&fractional_periods);
-/// assert_rounded_2(4.37, fractional_periods);
+/// assert_rounded_2!(4.37, fractional_periods);
 ///
 /// // Round up to get a whole number of years.
 /// let periods = fractional_periods.ceil() as u32;
@@ -165,9 +166,7 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F, continuous_co
 /// See the [periods](./index.html) module page for the formulas.
 ///
 /// Related functions:
-/// * To calculate the periods as a single number with simple compounding use [periods](fn.periods.html).
-/// * To calculate the periods using continuous compounding use [periods_continuous](fn.periods_continuous.html)
-/// or [periods_continuous_solution](fn.periods_continuous_solution.html).
+/// * To calculate the periods as a single number use [periods](fn.periods.html).
 ///
 /// # Arguments
 /// * `rate` - The rate at which the investment grows or shrinks per period, expressed as a
@@ -199,7 +198,7 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F, continuous_co
 ///
 /// # Examples
 /// ```
-/// use finance_solution::*;
+/// use finance_solution::core::*;
 ///
 /// // The interest rate is 3.5% per quarter.
 /// let rate = 0.035;
@@ -220,7 +219,7 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F, continuous_co
 ///
 /// let fractional_quarters = solution.fractional_periods();
 /// dbg!(&fractional_quarters);
-/// assert_rounded_2(20.15, fractional_quarters);
+/// assert_rounded_2!(20.15, fractional_quarters);
 ///
 /// // Get the whole number of quarters.
 /// let quarters = solution.periods();
@@ -240,7 +239,7 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F, continuous_co
 ///
 /// let last_entry = series.last().unwrap();
 /// dbg!(&last_entry);
-/// assert_rounded_4(200_000.0, last_entry.value());
+/// assert_rounded_4!(200_000.0, last_entry.value());
 ///
 /// // Create a reduced series with the value at the end of each year.
 /// let filtered_series = series
@@ -254,10 +253,10 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F, continuous_co
 /// ```
 /// // The interest rate is -6% per year and the value falls from $15,000.00 to
 /// // $12,000.00.
-/// # use finance_solution::*;
+/// # use finance_solution::core::*;
 /// let solution = periods_solution(-0.06, -15_000.00, 12_000.00, false);
 /// dbg!(&solution);
-/// assert_rounded_2(3.61, solution.fractional_periods());
+/// assert_rounded_2!(3.61, solution.fractional_periods());
 /// assert_eq!(4, solution.periods());
 ///
 /// // Print the period-by-period values as a formatted table.
@@ -314,7 +313,7 @@ pub(crate) fn periods_solution_internal(rate: f64, present_value: f64, future_va
         let symbolic_formula = "n = log(-fv / pv, base (1 + r))";
         (formula, symbolic_formula)
     };
-    TvmSolution::new_fractional_periods(TvmVariable::Periods, TvmCalculationType::Excel, continuous_compounding, rate, fractional_periods, present_value, future_value, &formula, symbolic_formula)
+    TvmSolution::new_fractional_periods(TvmVariable::Periods, CalculationType::Core, continuous_compounding, rate, fractional_periods, present_value, future_value, &formula, symbolic_formula)
 }
 
 fn check_periods_parameters(rate: f64, present_value: f64, future_value: f64) {
@@ -333,20 +332,19 @@ fn check_periods_parameters(rate: f64, present_value: f64, future_value: f64) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::*;
 
     #[test]
     fn test_periods_edge() {
         // Present and future values add up to zero so no periods are needed.
-        assert_rounded_2(0.0, periods(0.04, 10_000.0, -10_000.0, false));
+        assert_rounded_2!(0.0, periods(0.04, 10_000.0, -10_000.0, false));
 
         // The present value is negative and the future value is zero, which works only if the rate
         // is exactly -1.0%.
-        assert_rounded_6(1.0, periods(-1.0, -10_000.0, 0.0, false));
+        assert_rounded_6!(1.0, periods(-1.0, -10_000.0, 0.0, false));
 
         // The present value is positive and the future value is zero, which works only if the rate
         // is exactly -1.0%.
-        assert_rounded_6(1.0, periods(-1.0, 10_000.0, 0.0, false));
+        assert_rounded_6!(1.0, periods(-1.0, 10_000.0, 0.0, false));
     }
 
     #[should_panic]
