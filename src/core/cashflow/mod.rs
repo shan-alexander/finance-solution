@@ -612,11 +612,15 @@ mod tests {
         let present_value = 100_000_000;
         let pmt_solution = payment_solution(rate, periods, present_value, 0, false);
         let pmt_amount = pmt_solution.payment();
-        assert_approx_equal!(present_value_annuity_solution(rate, periods, pmt_amount, false).present_value(), present_value as f64);
+        let pv_solution = present_value_annuity_solution(rate, periods, pmt_amount, false);
+        assert_approx_equal!(pv_solution.present_value(), present_value as f64);
+        assert_approx_equal!(pv_solution.future_value(), pmt_solution.future_value());
         let future_value = 400_000_000;
         let pmt_solution = payment_solution(rate, periods, 0, future_value, false);
         let pmt_amount = pmt_solution.payment();
-        assert_approx_equal!(future_value_annuity_solution(rate, periods, pmt_amount, false).future_value(), future_value as f64);
+        let fv_solution = future_value_annuity_solution(rate, periods, pmt_amount, false);
+        assert_approx_equal!(fv_solution.future_value(), future_value as f64);
+        assert_approx_equal!(fv_solution.present_value(), pmt_solution.present_value());
     }
 
 }
