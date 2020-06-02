@@ -598,3 +598,25 @@ pub fn print_series_table_filtered(series: &[CashflowPeriod], predicate: P, prec
 {
 }
 */
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::*;
+
+#[test]
+    fn test_symmetry_payment_annuities_simple() {
+        let rate = 0.034;
+        let periods = 36;
+        let present_value = 100_000_000;
+        let pmt_solution = payment_solution(rate, periods, present_value, 0, false);
+        let pmt_amount = pmt_solution.payment();
+        assert_approx_equal!(present_value_annuity_solution(rate, periods, pmt_amount, false).present_value(), present_value as f64);
+        let future_value = 400_000_000;
+        let pmt_solution = payment_solution(rate, periods, 0, future_value, false);
+        let pmt_amount = pmt_solution.payment();
+        assert_approx_equal!(future_value_annuity_solution(rate, periods, pmt_amount, false).future_value(), future_value as f64);
+    }
+
+}
