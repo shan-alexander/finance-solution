@@ -208,7 +208,7 @@ pub fn future_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T, du
     let formula = format!("-{} * ((1. - (1. / (1. + {})).powf({})) / {});", annuity, rate, periods, rate);
     let formula_symbolic = format!("-annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate);");
     // let fv = future_value_annuity(rate, periods, cashflow);
-    let pv = present_value(rate, periods, fv, false);
+    let pv = 0.0;
     CashflowSolution::new(fvann_type, rate, periods, pv, fv, due_at_beginning, annuity, &formula, &formula_symbolic)
 }
 
@@ -294,6 +294,16 @@ mod tests {
         let annuity = 13_000;
         let fv = future_value_annuity(rate, periods, annuity, false);
         assert_eq!(-13_013.01301, (fv * 100000.).round() / 100000.);
+    }
+
+    #[test]
+    fn test_future_value_annuity_8() {
+        // due function
+        let rate = 0.039;
+        let periods = 320;
+        let annuity = -13_000;
+        let fv = future_value_annuity(rate, periods, annuity, true);
+        assert_eq!(71_856_724_730.749, (fv * 10000.).round() / 10000.);
     }
 
 }
