@@ -256,8 +256,8 @@ pub fn present_value_annuity_solution<T>(rate: f64, periods: u32, cashflow: T, d
     // check_present_value__annuity_varying_parameters(rate, periods, cashflow);
     let formula = format!("-{} * ((1. - (1. / (1. + {})).powf({})) / {}) * (1 + ({} * {}));", annuity, rate, periods, rate, rate, due_at_beginning as u32 as f64);
     let formula_symbolic = format!("-annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate) * (1. + (rate * due));");
-    // let fv = future_value_annuity(rate, periods, cashflow);
-    let fv = future_value(rate, periods, pv, false);
+    // let fv = future_value_annuity(rate, periods, cashflow, false);
+    let fv = 0.0;
     CashflowSolution::new(pvann_type, rate, periods, pv, fv, due_at_beginning, annuity, &formula, &formula_symbolic)
 }
 
