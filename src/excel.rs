@@ -60,5 +60,3 @@ pub fn rate<N, M, P, F, G>(nper: N, pmt: M, pv: P, fv: F, type_: u8, guess: Opti
 
 
 
-
-

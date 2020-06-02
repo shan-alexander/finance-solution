@@ -31,7 +31,11 @@ pub mod nper;
 #[doc(inline)]
 pub use nper::*;
 
-#[derive(Debug, Clone)]
+/// Enumeration used in [CashflowSolution](././struct.CashflowSolution.html) to keep track of what
+/// value was calculated such as the payment, future value or net present value.
+///
+/// It can be checked with [CashflowSolution::calculated_field](././struct.CashflowSolution.html#method.calculated_field).
+#[derive(Clone, Copy, Debug, Hash, PartialEq)]
 pub enum CashflowVariable {
     PresentValueAnnuity,
     PresentValueAnnuityDue,
@@ -114,7 +118,7 @@ impl fmt::Display for CashflowVariable {
     }
 }
 
-/// A record of a cash flow calculation such as payment, net present value, or the present value or
+/// **A record of a cash flow calculation** such as payment, net present value, or the present value or
 /// future value of an annuity.
 #[derive(Clone, Debug)]
 pub struct CashflowSolution {
@@ -233,6 +237,7 @@ impl Debug for CashflowSolution {
 */
 
 #[derive(Clone, Debug)]
+/// **The period-by-period details** of a cash flow calculation.
 pub struct CashflowSeries(Vec<CashflowPeriod>);
 
 impl CashflowSeries {
@@ -386,6 +391,7 @@ impl Deref for CashflowSeries {
     }
 }
 
+/// **The values at the end of one period** for a cash flow calculation.
 #[derive(Clone, Debug)]
 pub struct CashflowPeriod {
     period: u32,

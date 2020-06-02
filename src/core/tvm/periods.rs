@@ -260,7 +260,7 @@ pub fn periods<P, F>(rate: f64, present_value: P, future_value: F, continuous_co
 /// assert_eq!(4, solution.periods());
 ///
 /// // Print the period-by-period values as a formatted table.
-/// solution.print_series_table();
+/// solution.print_table();
 /// ```
 pub fn periods_solution<P, F>(rate: f64, present_value: P, future_value: F, continuous_compounding: bool) -> TvmSolution
     where

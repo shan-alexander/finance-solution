@@ -24,9 +24,12 @@ pub use rate::*;
 
 const CALL_INVARIANT: bool = true;
 
-/// Enumeration used for the `calculated_field` field in [`TvmSolution`] and [`TvmSchedule`] to keep
-/// track of what was calculated, either the periodic rate, the number of periods, the present
-/// value, or the future value.
+/// Enumeration used in [TvmSolution](././struct.TvmSolution.html) and
+/// [TvmScheduleSolution](././struct.TvmScheduleSolution.html) to keep track of which value was
+/// calculated, either the periodic rate, the number of periods, the present value, or the future
+/// value.
+///
+/// It can be checked with [TvmSolution::calculated_field](././struct.TvmSolution.html#method.calculated_field).
 #[derive(Clone, Copy, Debug, Hash, PartialEq)]
 pub enum TvmVariable {
     Rate,
@@ -35,6 +38,12 @@ pub enum TvmVariable {
     FutureValue,
 }
 
+/// **A record of a Time Value of Money calculation** using a fixed rate.
+///
+/// It's produced by calling [rate_solution](./fn.rate_solution.html),
+/// [periods_solution](./fn.periods_solution.html),
+/// [present_value_solution](./fn.present_value_solution.html), or
+/// [future_value_solution](./fn.future_value_solution.html).
 #[derive(Clone, Debug)]
 pub struct TvmSolution {
     calculated_field: TvmVariable,
@@ -49,10 +58,10 @@ pub struct TvmSolution {
     symbolic_formula: String,
 }
 
-/// A record of a Time Value of Money calculation where the rate may vary by period.
+/// **A record of a Time Value of Money calculation** where the rate may vary by period.
 ///
-/// It's the result of calling [FutureValueScheduleSolution.tvm_solution](./struct.FutureValueScheduleSolution.html#method.tvm_solution)
-/// or [PresentValueScheduleSolution.tvm_solution](./struct.PresentValueScheduleSolution.html#method.tvm_solution)
+/// It's the result of calling [future_value_schedule_solution](./fn.future_value_schedule_solution.html)
+/// or [present_value_schedule_solution](./fn.present_value_schedule_solution.html)
 #[derive(Clone, Debug)]
 pub struct TvmScheduleSolution {
     calculated_field: TvmVariable,
@@ -62,17 +71,12 @@ pub struct TvmScheduleSolution {
     future_value: f64,
 }
 
+/// **The period-by-period details** of a Time Value of Money calculation.
 #[derive(Clone, Debug)]
 pub struct TvmSeries(Vec<TvmPeriod>);
 
-/// The value of an investment at the end of a given period, part of a Time Value of Money
+/// **The value of an investment at the end of a given period**, part of a Time Value of Money
 /// calculation.
-///
-/// This is either:
-/// * Part of [`TvmSolution`] produced by calling [`rate_solution`], [`periods_solution`],
-/// [`present_value_solution`], or [`future_value_solution`].
-/// * Part of [`TvmSchedule`] produced by calling [`present_value_schedule`] or
-/// [`future_value_schedule`].
 #[derive(Clone, Debug)]
 pub struct TvmPeriod {
     period: u32,
@@ -83,7 +87,7 @@ pub struct TvmPeriod {
 }
 
 impl TvmVariable {
-    /// Returns true if the variant is TvmVariable::Rate indicating that the periodic rate was
+    /// Returns true if the variant is `TvmVariable::Rate` indicating that the periodic rate was
     /// calculated from the number of periods, the present value, and the future value.
     pub fn is_rate(&self) -> bool {
         match self {
@@ -92,7 +96,7 @@ impl TvmVariable {
         }
     }
 
-    /// Returns true if the variant is TvmVariable::Periods indicating that the number of periods
+    /// Returns true if the variant is `TvmVariable::Periods` indicating that the number of periods
     /// was calculated from the periocic rate, the present value, and the future value.
     pub fn is_periods(&self) -> bool {
         match self {
@@ -101,7 +105,7 @@ impl TvmVariable {
         }
     }
 
-    /// Returns true if the variant is TvmVariable::PresentValue indicating that the present value
+    /// Returns true if the variant is `TvmVariable::PresentValue` indicating that the present value
     /// was calculated from one or more periocic rates, the number of periods, and the future value.
     pub fn is_present_value(&self) -> bool {
         match self {
@@ -110,7 +114,7 @@ impl TvmVariable {
         }
     }
 
-    /// Returns true if the variant is TvmVariable::FutureValue indicating that the future value
+    /// Returns true if the variant is `TvmVariable::FutureValue` indicating that the future value
     /// was calculated from one or more periocic rates, the number of periods, and the present value.
     pub fn is_future_value(&self) -> bool {
         match self {
@@ -155,24 +159,6 @@ impl Display for TvmVariable {
     }
 }
 
-impl CalculationType {
-    /// Returns true if the variant is TvmCalculationType::Excel.
-    pub fn is_excel(&self) -> bool {
-        match self {
-            CalculationType::Excel => true,
-            _ => false,
-        }
-    }
-
-    /// Returns true if the variant is TvmCalculationType::Academic.
-    pub fn is_academic(&self) -> bool {
-        match self {
-            CalculationType::Academic => true,
-            _ => false,
-        }
-    }
-}
-
 impl Eq for TvmVariable {}
 
 impl TvmSolution {
@@ -213,8 +199,8 @@ impl TvmSolution {
     /// Calculates the value of an investment after each period.
     ///
     /// # Examples
-    /// Calculates the period-by-period details of a future value calculation. Uses
-    /// [`future_value_solution`].
+    /// Calculate a future value using [future_value_solution](./fn.future_value_solution.html) then
+    /// view the period-by-period details.
     /// ```
     /// // The initial investment is $10,000.12, the interest rate is 1.5% per month, and the
     /// // investment will grow for 24 months using simple compounding.
@@ -238,33 +224,9 @@ impl TvmSolution {
     /// dbg!(&filtered_series);
     /// assert_eq!(7, filtered_series.len());
     /// ```
-    /// Calculate a present value with a fixed rate then examine the period-by-period values. Uses
-    /// [`present_value_solution`].
-    /// ```
-    /// // The interest rate is 7.8% per year, the investment will grow for 10 years using simple
-    /// // compounding, and the final value will be 8_112.75.
-    /// let solution = finance_solution::core::present_value_solution(0.078, 10, 8_112.75, false);
-    ///
-    /// // Calculate the value at the end of each period.
-    /// let series = solution.series();
-    /// dbg!(&series);
-    ///
-    /// // Confirm that we have one entry for the present value, that is the
-    /// // initial value before any interest is applied, and one entry for each
-    /// // period.
-    /// assert_eq!(11, series.len());
-    ///
-    /// // Create a reduced vector with every other period not including period 0,
-    /// // the initial state.
-    /// let filtered_series = series
-    ///     .iter()
-    ///     .filter(|x| x.period() % 2 == 0 && x.period() != 0)
-    ///     .collect::<Vec<_>>();
-    /// dbg!(&filtered_series);
-    /// assert_eq!(5, filtered_series.len());
-    /// ```
-    /// Calculate a present value with varying rates then examine the period-by-period values. Uses
-    /// [`present_value_schedule`].
+    /// Calculate a present value with varying rates using
+    /// [present_value_schedule_solution](./fn.present_value_schedule_solution.html) then examine
+    /// the period-by-period values.
     /// ```
     /// // The annual rate varies from -12% to 11%.
     /// let rates = [0.04, 0.07, -0.12, -0.03, 0.11];
@@ -298,17 +260,17 @@ impl TvmSolution {
         series_internal(self.calculated_field.clone(), self.continuous_compounding, &rates, self.fractional_periods, self.present_value, self.future_value)
     }
 
-    /// Prints a formatted table with the period-by-period details of a time-value-of-money
+    /// Prints a formatted table with the period-by-period details of a Time Value of Money
     /// calculation.
     ///
     /// Money amounts are rounded to four decimal places, rates to six places, and numbers are
     /// formatted similar to Rust constants such as "10_000.0322". For more control over formatting
-    /// use [`TvmSolution::print_series_table_locale'].
+    /// use [print_table_locale](struct.TvmSolution.html#method.print_table_locale).
     ///
     /// # Examples
     /// ```
     /// finance_solution::core::future_value_solution(0.045, 5, 10_000, false)
-    ///     .print_series_table();
+    ///     .print_table();
     /// ```
     /// Output:
     /// ```text
@@ -321,7 +283,7 @@ impl TvmSolution {
     ///      4  0.045000  11_925.1860
     ///      5  0.045000  12_461.8194
     /// ```
-    pub fn print_series_table(&self) {
+    pub fn print_table(&self) {
         self.series().print_table();
     }
 
@@ -329,7 +291,7 @@ impl TvmSolution {
     /// calculation.
     ///
     /// For a simpler function that doesn't require a locale use
-    /// [`TvmSolution::print_series_table'].
+    /// [print_table](struct.TvmSolution.html#method.print_table).
     ///
     /// # Arguments
     /// * `locale` - A locale constant from the `num-format` crate such as `Locale::en` for English
@@ -348,7 +310,7 @@ impl TvmSolution {
     /// let precision = 2;
     ///
     /// finance_solution::core::future_value_solution(0.11, 4, 5_000, false)
-    ///     .print_series_table_locale(&locale, precision);
+    ///     .print_table_locale(&locale, precision);
     /// ```
     /// Output:
     /// ```text
@@ -360,13 +322,13 @@ impl TvmSolution {
     ///      3  0.110000  6,838.16
     ///      4  0.110000  7,590.35
     /// ```
-    pub fn print_series_table_locale(&self, locale: &num_format::Locale, precision: usize) {
+    pub fn print_table_locale(&self, locale: &num_format::Locale, precision: usize) {
         self.series().print_table_locale(locale, precision);
     }
 
-    /// Returns a variant of [`TvmVariable`] showing which value was calculated, either the periodic
+    /// Returns a variant of `TvmVariable` showing which value was calculated, either the periodic
     /// rate, number of periods, present value, or future value. To test for the enum variant use
-    /// functions like `TvmVariable::is_rate`.
+    /// functions like [TvmVariable::is_rate](enum.TvmVariable.html#method.is_rate).
     ///
     /// # Examples
     /// ```
@@ -378,46 +340,52 @@ impl TvmSolution {
         &self.calculated_field
     }
 
-    /// Returns the type of calculation (Excel or Academic). To test for the enum variant, use 
-    /// functions like `TvmCalculationType::is_excel` or `TvmCalculationType::is_academic`.
+    /// Returns the API that was used to make the calculation, either [core](../core/index.html),
+    /// [academic](../academic/index.html), or [excel](../excel/index.html). To test for the
+    /// enum variant use functions like
+    /// [CalculationType::is_academic](../enum.CalculationType.html#method.is_academic).
     pub fn calculation_type(&self) -> &CalculationType {
         &self.calculation_type
     }
 
-    /// Returns true if the value is compounded continuously rather than period-by-period.
+    /// Returns true if the interest was compounded continuously rather than period-by-period.
     pub fn continuous_compounding(&self) -> bool {
         self.continuous_compounding
     }
 
     /// Returns the periodic rate which is a calculated value if this `TvmSolution` struct is the
-    /// result of a call to [`rate_solution`] and otherwise is one of the input values.
+    /// result of a call to [rate_solution](./fn.rate_solution.html) and otherwise is one of the
+    /// input values.
     pub fn rate(&self) -> f64 {
         self.rate
     }
 
     /// Returns the number of periods as a whole number. This is a calculated value if this
-    /// `TvmSolution` struct is the result of a call to [`periods_solution`] and otherwise it's
-    /// one of the input values. If the value was calculated the true result may not have been a
-    /// whole number so this is that number rounded away from zero.
+    /// `TvmSolution` struct is the result of a call to
+    /// [periods_solution](./fn.periods_solution.html) and otherwise it's one of the input values.
+    /// If the value was calculated the true result may not have been a whole number so this is that
+    /// number rounded away from zero.
     pub fn periods(&self) -> u32 {
         self.periods
     }
 
     /// Returns the number of periods as a floating point number. This is a calculated value if this
-    /// `TvmSolution` struct is the result of a call to [`periods_solution`] and otherwise it's
-    /// one of the input values.
+    /// `TvmSolution` struct is the result of a call to
+    /// [periods_solution](./fn.periods_solution.html) and otherwise it's one of the input values.
     pub fn fractional_periods(&self) -> f64 {
         self.fractional_periods
     }
 
     /// Returns the present value which is a calculated value if this `TvmSolution` struct is the
-    /// result of a call to [`present_value_solution`] and otherwise is one of the input values.
+    /// result of a call to [present_value_solution](./fn.present_value_solution.html) and otherwise
+    /// is one of the input values.
     pub fn present_value(&self) -> f64 {
         self.present_value
     }
 
     /// Returns the future value which is a calculated value if this `TvmSolution` struct is the
-    /// result of a call to [`future_value_solution`] and otherwise is one of the input values.
+    /// result of a call to [future_value_solution](./fn.future_value_solution.html) and otherwise
+    /// is one of the input values.
     pub fn future_value(&self) -> f64 {
         self.future_value
     }
@@ -432,21 +400,125 @@ impl TvmSolution {
 
     /// Returns a text version of the formula used to calculate the result which may have been the
     /// periodic rate, number of periods, present value, or future value depending on which function
-    /// was called. The formula uses variables such as n for the number of periods. For the formula
-    /// with the actual values rather than variables call [formula](./struct.TvmSolution.html#method.formula).
+    /// was called. The formula uses variables such as "n" for the number of periods. For the
+    /// formula with the actual numbers rather than variables call
+    /// [formula](./struct.TvmSolution.html#method.formula).
     pub fn symbolic_formula(&self) -> &str {
         &self.symbolic_formula
     }
-    
+
+    /// Returns a new calculation where we start with the current calculation and solve for the
+    /// periodic rate leaving the periods, present value, and future value constant; optionally
+    /// switching between normal and continuous compounding or changing the number of compounding periods.
+    ///
+    /// This works for any Time Value of Money result, not only those that calculated a periodic
+    /// rate. For instance, we can call [present_value_solution](./fn.present_value_solution.html) to
+    /// calculate a present value, then call this method to calculate a new rate while changing to
+    /// continuous compounding.
+    ///
+    /// # Arguments
+    /// * `continuous_compounding` - If true, use continuous compounding. Otherwise use
+    /// period-by-period compounding.
+    /// * `compounding_periods` - If None, use the periods from the original calculation. If given a
+    /// value like `Some(12)` change the number of compounding periods while keeping everything else
+    /// the same. The periodic rate from the original calculation will be adjusted.
+    ///
+    /// # Examples
+    /// For an example of changing the compounding periods see
+    /// [future_value_solution](./struct.TvmSolution.html#method.future_value_solution).
+    ///
+    /// Calculate a future value then use that as a basis for calculating a new rate by switching
+    /// to continuous compounding.
+    /// ```
+    /// use finance_solution::core::*;
+    ///
+    /// // First calculate a future value given the other three inputs. $10,000 grows at 10% per year
+    /// // for 12 years using period-by-period compounding.
+    /// let solution_fv = future_value_solution(0.1, 12, -10_000, false);
+    /// dbg!(&solution_fv);
+    /// assert_rounded_2!(31_384.28, solution_fv.future_value());
+    ///
+    /// // Find out what the rate would have to be to get the same results with continuous compounding
+    /// // instead of compounding once per year.
+    /// let continuous = true;
+    /// let compounding_periods = None; // Don't change the periods.
+    /// let solution_continuous = solution_fv.rate_solution(continuous, compounding_periods);
+    /// dbg!(&solution_continuous);
+    ///
+    /// // Compare the two calculations.
+    /// solution_fv.print_ab_comparison(&solution_continuous, false);
+    /// ```
+    /// The output of that last statement is below. Note that:
+    /// * The calculated field changed from future value to rate.
+    /// * Only the second calculation used continuous compounding.
+    /// * The rate is slightly smaller in the second case which we'd expect because we switched
+    /// to continuous compounding while keeping the same end result.
+    /// * The periods, present value, and future value haven't changed.
+    /// * The formulas are quite different because we're calculating different values.
+    /// ```text
+    /// calculated_field a: Future Value
+    /// calculated_field b: Rate
+    /// calculation_type: Core
+    /// continuous_compounding a: false
+    /// continuous_compounding b: true
+    /// rate a: 0.100000
+    /// rate b: 0.095310
+    /// periods: 12
+    /// present_value: -10_000.0000
+    /// future_value: 31_384.2838
+    /// formula a: 31384.2838 = 10000.0000 * (1.100000 ^ 12)
+    /// formula b: 0.095310 = ln(-31384.2838 / -10000.0000) / 12
+    /// symbolic_formula a: fv = -pv * (1 + r)^n
+    /// symbolic_formula b: r = ln(-fv / pv) / t
+    /// ```
     pub fn rate_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> TvmSolution {
         let periods= compounding_periods.unwrap_or(self.periods);
         rate_solution_internal(periods, self.present_value, self.future_value, continuous_compounding)
     }
 
+    /// Returns a new calculation where we start with the current calculation and solve for the
+    /// number of periods leaving the rate, present value, and future value constant; optionally switching
+    /// between normal and continuous compounding.
+    ///
+    /// This works for any Time Value of Money result, not only those that calculated the number of
+    /// periods.
+    ///
+    /// # Arguments
+    /// * `continuous_compounding` - If true, use continuous compounding. Otherwise use
+    /// period-by-period compounding.
+    ///
+    /// # Examples
+    /// For an example of switching to continuous compounding see
+    /// [rate_solution](./struct.TvmSolution.html#method.rate_solution). The only difference is that
+    /// the current method doesn't have a `compounding_periods` argument.
     pub fn periods_solution(&self, continuous_compounding: bool) -> TvmSolution {
         periods_solution_internal(self.rate, self.present_value, self.future_value, continuous_compounding)
     }
 
+    /// Returns a new calculation where we start with the current calculation and solve for the
+    /// present value leaving the rate, periods, and future value constant; optionally switching
+    /// between normal and continuous compounding or changing the number of compounding periods.
+    ///
+    /// This works for any Time Value of Money result, not only those that calculated a present
+    /// value.
+    ///
+    /// If the goal is to compare present values given several different compounding periods, that
+    /// can be done in one step with
+    /// [present_value_vary_periods](./struct.TvmSolution.html#method.present_value_vary_periods).
+    ///
+    /// # Arguments
+    /// * `continuous_compounding` - If true, use continuous compounding. Otherwise use
+    /// period-by-period compounding.
+    /// * `compounding_periods` - If None, use the periods from the original calculation. If given a
+    /// value like `Some(12)` change the number of compounding periods while keeping everything else
+    /// the same. The periodic rate from the original calculation will be adjusted.
+    ///
+    /// # Examples
+    /// For an example of switching to continuous compounding see
+    /// [rate_solution](./struct.TvmSolution.html#method.rate_solution).
+    ///
+    /// For an example of changing the compounding periods see
+    /// [future_value_solution](./struct.TvmSolution.html#method.future_value_solution).
     pub fn present_value_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> TvmSolution {
         let (rate, periods) = match compounding_periods {
             Some(periods) => ((self.rate * self.fractional_periods) / periods as f64, periods as f64),
@@ -455,6 +527,76 @@ impl TvmSolution {
         present_value_solution_internal(rate, periods, self.future_value, continuous_compounding)
     }
 
+    /// Returns a new calculation where we start with the current calculation and solve for the
+    /// future value leaving the rate, periods, and present value constant; optionally switching
+    /// between normal and continuous compounding or changing the number of compounding periods.
+    ///
+    /// This works for any Time Value of Money result, not only those that calculated a future
+    /// value.
+    ///
+    /// If the goal is to compare future values given several different compounding periods, that
+    /// can be done in one step with
+    /// [future_value_vary_periods](./struct.TvmSolution.html#method.future_value_vary_periods).
+    ///
+    /// # Arguments
+    /// * `continuous_compounding` - If true, use continuous compounding. Otherwise use
+    /// period-by-period compounding.
+    /// * `compounding_periods` - If None, use the periods from the original calculation. If given a
+    /// value like `Some(12)` change the number of compounding periods while keeping everything else
+    /// the same. The periodic rate from the original calculation will be adjusted.
+    ///
+    /// # Examples
+    /// For an example of switching to continuous compounding see
+    /// [rate_solution](./struct.TvmSolution.html#method.rate_solution).
+    ///
+    /// Calculate a future value then see how that would change with more frequent compounding.
+    /// ```
+    /// use finance_solution::core::*;
+    ///
+    /// // First calculate a future value given the other three inputs. $10,000 grows at 10% per year
+    /// // for 12 years using year-by-year compounding.
+    /// let years = 12;
+    /// let solution_annual = future_value_solution(0.1, years, -10_000, false);
+    /// dbg!(&solution_annual);
+    /// assert_rounded_2!(31_384.28, solution_annual.future_value());
+    ///
+    /// // Calculate what the future value would be if we compounded quarterly instead of annualy. We
+    /// // could have started with something other than a future value calculation such as present value
+    /// // or periods, but for this example we'll calculate the future value both times.
+    /// let continuous = false;
+    /// let compounding_periods = Some(years * 4);
+    /// let solution_quarterly = solution_annual.future_value_solution(continuous, compounding_periods);
+    /// dbg!(&solution_quarterly);
+    ///
+    /// // The rate was automatically changed to 2.5% (10% / 4) because each period is now a quarter
+    /// // instead of a year. Had we used the original rate the future value would have been
+    /// // completely different and the calculation would not have made sense.
+    /// assert_rounded_4!(0.0250, solution_quarterly.rate());
+    ///
+    /// // The future value is slightly higher as we'd expect from increasing the frequency of
+    /// // compounding while holding everything else constant.
+    /// assert_rounded_2!(32_714.90, solution_quarterly.future_value());
+    ///
+    /// // Compare the two calculations.
+    /// solution_annual.print_ab_comparison(&solution_quarterly, false);
+    /// ```
+    /// The output of that last statement is below. Note that the rate in the second case is one
+    /// fourth of that in the first case while the number of periods has quadrupled.
+    /// ```text
+    /// calculated_field: Future Value
+    /// calculation_type: Core
+    /// continuous_compounding: false
+    /// rate a: 0.100000
+    /// rate b: 0.025000
+    /// periods a: 12
+    /// periods b: 48
+    /// present_value: -10_000.0000
+    /// future_value a: 31_384.2838
+    /// future_value b: 32_714.8956
+    /// formula a: 31384.2838 = 10000.0000 * (1.100000 ^ 12)
+    /// formula b: 32714.8956 = 10000.0000 * (1.025000 ^ 48)
+    /// symbolic_formula: fv = -pv * (1 + r)^n
+    /// ```
     pub fn future_value_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> TvmSolution {
         let (rate, periods) = match compounding_periods {
             Some(periods) => ((self.rate * self.fractional_periods) / periods as f64, periods as f64),
@@ -474,7 +616,7 @@ impl TvmSolution {
     ///
     /// # Examples
     /// For a more detailed example with a related function see
-    /// [future_value_vary_compounding_periods](./struct.TVMoneySolution.html#method.future_value_vary_compounding_periods)
+    /// [future_value_vary_periods](./struct.TvmSolution.html#method.future_value_vary_periods)
     /// ```
     /// // Calculate the future value of an investment that starts at $83.33 and grows 20% in one
     /// // year using simple compounding. Note that we're going to examine how the present value
@@ -495,7 +637,7 @@ impl TvmSolution {
     ///
     /// // Compile a list of the present values needed to arrive at the calculated future value of $100
     /// // each of the above compounding periods as well a continous compounding.
-    /// let scenarios = solution.present_value_vary_compounding_periods(&compounding_periods, include_continuous_compounding);
+    /// let scenarios = solution.present_value_vary_periods(&compounding_periods, include_continuous_compounding);
     /// dbg!(&scenarios);
     ///
     /// // Print the results in a formatted table.
@@ -522,7 +664,7 @@ impl TvmSolution {
     /// or quarterly but then is affected less and less as we compound more frequently:
     ///
     /// <img src="http://i.upmath.me/svg/%24%24%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D12%2C%0A%09width%3D9.0cm%2Cheight%3D6.4cm%2C%0A%09xmin%3D0%2C%20xmax%3D12%2C%0A%09ymin%3D80.5%2C%20ymax%3D84.5%2C%0A%09restrict%20y%20to%20domain%3D0%3A1000%2C%0A%09ytick%3D%7B81%2C%2082%2C%2083%2C%2084%7D%2C%0A%09xtick%3D%7B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%7D%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24n%24%2Cylabel%3D%24pv%24%5D%0A%5Caddplot%5Bblue%2Cdomain%3D1%3A12%2Csemithick%2C%20only%20marks%5D%7B100%2F((1%2B(0.2%2Fx))%5Ex)%7D%3B%0A%5Caddplot%5Bblack%2Cdomain%3D1%3A12%2C%20thick%5D%7B100%2F(e%5E(0.2))%7D%3B%0A%5Caddplot%5B%5D%20coordinates%20%7B(2.3%2C81.53)%7D%20node%7B%24pv%3D%7B100%20%5Cover%20e%5E%7B0.2%7D%7D%24%7D%3B%0A%5Caddplot%5Bblue%5D%20coordinates%20%7B(4.5%2C82.8)%7D%20node%7B%24pv%3D%7B100%20%5Cover%20(1%2B%7B0.2%20%5Cover%20n%7D)%5En%7D%24%7D%3B%0A%5Cpath%20(axis%20cs%3A0%2C83)%20node%20%5Banchor%3Dnorth%20west%2Cyshift%3D-0.07cm%5D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D%24%24" />
-    pub fn present_value_vary_compounding_periods(&self, compounding_periods: &[u32], include_continuous_compounding: bool) -> ScenarioList {
+    pub fn present_value_vary_periods(&self, compounding_periods: &[u32], include_continuous_compounding: bool) -> ScenarioList {
         let rate_for_single_period = self.rate * self.fractional_periods;
         let mut entries = vec![];
         for periods in compounding_periods {
@@ -575,7 +717,7 @@ impl TvmSolution {
     ///
     /// // Compile a list of the future values with each of the above compounding periods as well as
     /// // continous compounding.
-    /// let scenarios = solution.future_value_vary_compounding_periods(&compounding_periods, include_continuous_compounding);
+    /// let scenarios = solution.future_value_vary_periods(&compounding_periods, include_continuous_compounding);
     /// // The description in the `setup` field states that the rate is 20% since that's 5% times the
     /// // number of periods in the original calculation. The final entry has `input: inf` indicating
     /// // that we used continuous compounding.
@@ -630,7 +772,7 @@ impl TvmSolution {
     /// compounding periods for clarity:
     ///
     /// <img src="http://i.upmath.me/svg/%24%24%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%5Csmall%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D12%2C%0A%09width%3D9.0cm%2Cheight%3D6.4cm%2C%0A%09xmin%3D0%2C%20xmax%3D12%2C%0A%09ymin%3D119%2C%20ymax%3D123%2C%0A%09restrict%20y%20to%20domain%3D0%3A1000%2C%0A%09ytick%3D%7B120%2C%20121%2C%20122%7D%2C%0A%09xtick%3D%7B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%7D%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24n%24%2Cylabel%3D%24fv%24%5D%0A%5Caddplot%5Bblue%2Cdomain%3D1%3A12%2Cthick%2C%20only%20marks%5D%7B100*((1%2B(0.2%2Fx))%5Ex)%7D%3B%0A%5Caddplot%5Bblack%2Cdomain%3D1%3A12%2Cthick%5D%7B100*(e%5E(0.2))%7D%3B%0A%5Caddplot%5B%5D%20coordinates%20%7B(2.5%2C122.4)%7D%20node%7B%24fv%3D100e%5E%7B0.2%7D%24%7D%3B%0A%5Caddplot%5Bblue%5D%20coordinates%20%7B(4.8%2C120.7)%7D%20node%7B%24fv%3D100(1%2B%7B0.2%20%5Cover%20n%7D)%5En%24%7D%3B%0A%5Cpath%20(axis%20cs%3A0%2C122)%20node%20%5Banchor%3Dnorth%20west%2Cyshift%3D-0.07cm%5D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D%24%24" />
-    pub fn future_value_vary_compounding_periods(&self, compounding_periods: &[u32], include_continuous_compounding: bool) -> ScenarioList {
+    pub fn future_value_vary_periods(&self, compounding_periods: &[u32], include_continuous_compounding: bool) -> ScenarioList {
         let rate_for_single_period = self.rate * self.fractional_periods;
         let mut entries = vec![];
         for periods in compounding_periods {
@@ -650,30 +792,111 @@ impl TvmSolution {
         ScenarioList::new(setup, TvmVariable::Periods, TvmVariable::FutureValue, entries)
     }
 
-    pub fn print_ab_comparison(
-        &self,
-        other: &TvmSolution)
+    /// Compares the results of two Time Value of Money calculations, such as from two calls to
+    /// [future_value_solution](./fn.future_value_solution.html) with different periodic rates.
+    ///
+    /// It's fine to compare calculations that solved for different variables such as a rate
+    /// calculation vs. a present value calculation.
+    ///
+    /// The first solution is labeled "a" and the second is "b". Money amounts are rounded to four
+    /// decimal places, rates to six places, and numbers are formatted similar to Rust constants
+    /// such as "10_000.0322". For more control over formatting use
+    /// [print_ab_comparison_locale](struct.TvmSolution.html#method.print_ab_comparison_locale).
+    ///
+    /// # Arguments
+    /// * `other` - The second `TvmSolution` in the comparison which will be labeled "b".
+    /// * `include_period_detail` - If true, print the month-by-month details of both calculations.
+    ///
+    /// # Examples
+    /// See [future_value_solution](./struct.TvmSolution.html#method.future_value_solution).
+    /// The last line of the example calls this method and the text output is shown right after
+    /// that.
+    pub fn print_ab_comparison(&self, other: &TvmSolution, include_period_detail: bool)
     {
-        self.print_ab_comparison_locale_opt(other, None, None);
+        self.print_ab_comparison_locale_opt(other, include_period_detail, None, None);
     }
 
+    /// Compares the results of two Time Value of Money calculations, such as from two calls to
+    /// [rate_solution](./fn.rate_solution.html) with different numbers of periods. The method has
+    /// options for formatting numbers.
+    ///
+    /// It's fine to compare calculations that solved for different variables such as a rate
+    /// calculation vs. a present value calculation.
+    ///
+    /// The first solution is labeled "a" and the second is "b".
+    ///
+    /// For a simpler method that doesn't require locale information use
+    /// [print_ab_comparison](struct.TvmSolution.html#method.print_ab_comparison).
+    ///
+    /// # Arguments
+    /// * `other` - The second `TvmSolution` in the comparison which will be labeled "b".
+    /// * `include_period_detail` - If true, print the month-by-month details of both calculations.
+    /// * `locale` - A variant of the num_format::Locale enum which determines the characters used
+    /// for thousands separators and the decimal separator
+    /// * `precision` - The number of decimal places. Rates always appear with at least six places
+    /// regardless of this value.
+    ///
+    /// # Examples
+    /// ```
+    /// use finance_solution::core::*;
+    ///
+    /// // Two future value calculations that are the same except for the interest rate.
+    /// let rate_a = 0.021;
+    /// let rate_b = 0.023;
+    /// let periods = 60;
+    /// let present_value = -10_000;
+    /// let continuous = false;
+    /// let solution_a = future_value_solution(rate_a, periods, present_value, continuous);
+    /// let solution_b = future_value_solution(rate_b, periods, present_value, continuous);
+    ///
+    /// // Compare the two calculations using English number formatting and two decimal places.
+    /// let include_period_detail = true;
+    /// let locale = num_format::Locale::en;
+    /// let precision = 2;
+    /// solution_a.print_ab_comparison_locale(&solution_b, include_period_detail, &locale, precision);
+    /// ```
+    /// Output (with only the first few periods shown):
+    /// ```text
+    /// calculated_field: Future Value
+    /// calculation_type: Core
+    /// continuous_compounding: false
+    /// rate a: 0.021000
+    /// rate b: 0.023000
+    /// periods: 60
+    /// present_value: -10,000.00
+    /// future_value a: 34,797.22
+    /// future_value b: 39,132.54
+    /// formula a: 34797.2181 = 10000.0000 * (1.021000 ^ 60)
+    /// formula b: 39132.5386 = 10000.0000 * (1.023000 ^ 60)
+    /// symbolic_formula: fv = -pv * (1 + r)^n
+    ///
+    /// period    rate_a    rate_b    value_a    value_b
+    /// ------  --------  --------  ---------  ---------
+    ///      0  0.000000  0.000000  10,000.00  10,000.00
+    ///      1  0.021000  0.023000  10,209.00  10,230.00
+    ///      2  0.021000  0.023000  10,424.41  10,465.29
+    ///      3  0.021000  0.023000  10,643.32  10,705.99
+    /// ```
     pub fn print_ab_comparison_locale(
         &self,
         other: &TvmSolution,
+        include_period_detail: bool,
         locale: &num_format::Locale,
         precision: usize)
     {
-        self.print_ab_comparison_locale_opt(other, Some(locale), Some(precision));
+        self.print_ab_comparison_locale_opt(other, include_period_detail,Some(locale), Some(precision));
     }
 
     fn print_ab_comparison_locale_opt(
         &self,
         other: &TvmSolution,
+        include_period_detail: bool,
         locale: Option<&num_format::Locale>,
         precision: Option<usize>)
     {
         println!();
         print_ab_comparison_values_string("calculated_field", &self.calculated_field.to_string(), &other.calculated_field.to_string());
+        print_ab_comparison_values_string("calculation_type", &self.calculation_type.to_string(), &other.calculation_type.to_string());
         print_ab_comparison_values_bool("continuous_compounding", self.continuous_compounding, other.continuous_compounding);
         print_ab_comparison_values_rate("rate", self.rate, other.rate, locale, precision);
         print_ab_comparison_values_int("periods", self.periods as i128, other.periods as i128, locale);
@@ -685,7 +908,9 @@ impl TvmSolution {
         print_ab_comparison_values_string("formula", &self.formula, &other.formula);
         print_ab_comparison_values_string("symbolic_formula", &self.symbolic_formula, &other.symbolic_formula);
 
-        self.series().print_ab_comparison_locale_opt(&other.series(), locale, precision);
+        if include_period_detail {
+            self.series().print_ab_comparison_locale_opt(&other.series(), locale, precision);
+        }
     }
 
     pub(crate) fn invariant(&self) {

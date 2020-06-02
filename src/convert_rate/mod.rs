@@ -409,7 +409,6 @@ pub fn convert_apr_to_epr_solution(apr: f64, compounding_periods_in_year: u32) -
     self::apr(apr, compounding_periods_in_year)
 }
 
-
 /// Convert an EAR to APR. Returns f64.
 ///  
 /// Related Functions:

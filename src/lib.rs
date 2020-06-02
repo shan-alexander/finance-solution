@@ -202,13 +202,42 @@ macro_rules! repeating_vec {
     }};
 }
 
-/// Enumeration used for the `calculation_type` field in [`TvmSolution`] and [`TvmSchedule`] to identify
+/// Enumeration used for the `calculation_type` field in [TvmSolution](./core/struct.TvmSolution.html) and [TvmScheduleSolution](./core/struct.TvmScheduleSolution.html) to identify
 /// if the formula used is for bookkeeping (matches Excel) or for academic (matches textbooks) purposes.
 #[derive(Clone, Debug)]
 pub enum CalculationType {
     Core,
     Academic,
     Excel,
+}
+
+impl CalculationType {
+    /// Returns true if the variant is `TvmCalculationType::Core` indicating that the calculation
+    /// was done using one of the functions in the [core](./core/index.html) module.
+    pub fn is_core(&self) -> bool {
+        match self {
+            CalculationType::Core => true,
+            _ => false,
+        }
+    }
+
+    /// Returns true if the variant is `TvmCalculationType::Academic` indicating that the
+    /// calculation was done using one of the functions in the [academic](./academic/index.html) module.
+    pub fn is_academic(&self) -> bool {
+        match self {
+            CalculationType::Academic => true,
+            _ => false,
+        }
+    }
+
+    /// Returns true if the variant is `TvmCalculationType::Excel` indicating that the calculation
+    /// was done using one of the functions in the [excel](./excel/index.html) module.
+    pub fn is_excel(&self) -> bool {
+        match self {
+            CalculationType::Excel => true,
+            _ => false,
+        }
+    }
 }
 
 impl Display for CalculationType {

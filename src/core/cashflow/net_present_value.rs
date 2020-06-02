@@ -297,7 +297,7 @@ where C: Into<f64> + Copy
     NpvSolution::new(rates, periods, initial_investment, cashflows, sum_of_cashflows, sum_of_discounted_cashflows, net_present_value)
 }
 
-/// The custom solution information of a NPV scenario. 
+/// **The custom solution information of a NPV scenario.**
 /// The struct values are immutable by the user of the library.
 #[derive(Debug)]
 pub struct NpvSolution {
