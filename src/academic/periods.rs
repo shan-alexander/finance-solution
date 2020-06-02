@@ -14,7 +14,7 @@ use crate::*;
 use crate::core::tvm;
 
 /// Academic function for periods. Returns a solution struct.
-pub fn periodz<P, F>(rate: f64, present_value: P, future_value: F) -> tvm::TvmSolution
+pub fn periods<P, F>(rate: f64, present_value: P, future_value: F) -> tvm::TvmSolution
     where P: Into<f64> + Copy, F: Into<f64> + Copy
 {
     let solution = tvm::periods_solution(rate, present_value.into(), -future_value.into(), false);

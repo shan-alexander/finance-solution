@@ -10,8 +10,6 @@
 // http://mupfc.marshall.edu/~brozik/timevalueweb.pdf
 
 // use finance_solution::{present_value_solution, future_value_solution, future_value, periods_solution, periods};
-use finance_solution::*;
-use finance_solution::core::*;
 use finance_solution::academic::*;
 use num_format::{Locale};
 
@@ -30,8 +28,8 @@ pub fn main() {
     // fv_annuity_problem_1();
 
     // retirement_problem_1();
-
-    dbg!(pv(0.034, 10, 1000));
+    dbg!(periods(0.034, 1000, 3000));
+    // dbg!(pv(0.034, 10, 1000));
 
 
 }
@@ -44,11 +42,11 @@ fn pv_problem_1() {
     let future_value = 140_000;
     let periods = 13;
     let rate = 0.14;
-    let pv_problem_1 = present_value_solution(rate, periods, future_value, false);
+    let pv_problem_1 = pv(rate, periods, future_value);
     dbg!(&pv_problem_1); // Outputs solution struct.
     dbg!(pv_problem_1.present_value()); // Outputs 25489.71433359101 from solution struct.
-    dbg!(present_value(rate, periods, future_value, false)); // Outputs 25489.71433359101 from f64 fn.
-    assert_rounded_2!(-25_489.71, pv_problem_1.present_value());
+    dbg!(finance_solution::core::present_value(rate, periods, future_value, false)); // Outputs 25489.71433359101 from f64 fn.
+    assert_rounded_2!(25_489.71, pv_problem_1.present_value());
 }
 
 // What will $247,000 grow to be in 9 years if it is invested today 
@@ -58,10 +56,10 @@ fn fv_problem_1() {
     let present_value = 247_000;
     let periods = 9;
     let rate = 0.11;
-    let fv_problem_1 = future_value_solution(rate, periods, present_value, false);
+    let fv_problem_1 = fv(rate, periods, present_value);
     dbg!(&fv_problem_1); // Outputs solution struct.
     dbg!(fv_problem_1.future_value()); // Outputs 631835.1203234661 from solution struct.
-    dbg!(future_value(rate, periods, present_value, false)); // Outputs 631835.1203234661 from f64 fn.
+    dbg!(fv(rate, periods, present_value)); // Outputs 631835.1203234661 from f64 fn.
     assert_rounded_2!(-631_835.12, fv_problem_1.future_value());
 }
 
@@ -72,26 +70,26 @@ fn nper_problem_1() {
     let present_value = 136_000;
     let future_value = -468_000;
     let rate = 0.08;
-    let nper_problem_1 = periods_solution(rate, present_value, future_value, false);
+    let nper_problem_1 = finance_solution::academic::periods(rate, present_value, future_value);
     dbg!(&nper_problem_1); // Outputs solution struct.
     dbg!(nper_problem_1.periods()); // Outputs 17 from solution struct.
     dbg!(nper_problem_1.fractional_periods()); // Outputs 16.057649324100133 from solution struct.
-    dbg!(periods(rate, present_value, future_value, false)); // Outputs 16.057649324100133 from f64 fn.
+    dbg!(finance_solution::core::periods(rate, present_value, future_value, false)); // Outputs 16.057649324100133 from f64 fn.
     assert_rounded_2!(16.06, nper_problem_1.fractional_periods());
 }
 
 // At what annual interest rate must $137,000 be invested 
 // so that it will grow to be $475,000 in 14 years?
 // Expect 9.29%
-fn rate_problem_1() { 
-    let pv = 137_000;
-    let fv = -475_000;
-    let periods = 14;
-    let rate_problem_1 = rate_solution(periods, pv, fv, false);
-    dbg!(&rate_problem_1);
-    dbg!(&rate_problem_1.rate());
-    assert_rounded_4!(0.0929, rate_problem_1.rate());
-}
+// fn rate_problem_1() { 
+//     let pv = 137_000;
+//     let fv = -475_000;
+//     let periods = 14;
+//     let rate_problem_1 = rate_solution(periods, pv, fv, false);
+//     dbg!(&rate_problem_1);
+//     dbg!(&rate_problem_1.rate());
+//     assert_rounded_4!(0.0929, rate_problem_1.rate());
+// }
 
 // If you wish to accumulate $197,000 in 5 years, 
 // how much must you deposit today in an account that pays
@@ -113,7 +111,7 @@ fn pv_problem_2() {
     // There is one period per year. This works only because we're using the EAR calculated above.
     let periods = years;
 
-    let pv_problem_2_ear = present_value_solution(ear, periods, fv, false);
+    let pv_problem_2_ear = finance_solution::core::present_value_solution(ear, periods, fv, false);
     dbg!(&pv_problem_2_ear);
     assert_rounded_2!(-104_947.03, pv_problem_2_ear.present_value());
 
@@ -130,7 +128,7 @@ fn pv_problem_2() {
     // number of years.
     let periods = years * 2;
 
-    let pv_problem_2_epr = present_value_solution(epr, periods, fv, false);
+    let pv_problem_2_epr = finance_solution::academic::pv(epr, periods, fv);
     dbg!(&pv_problem_2_epr);
     assert_rounded_2!(-104_947.03, pv_problem_2_epr.present_value());
 
@@ -147,7 +145,7 @@ fn fv_problem_2() {
     let periods = 13 * 12;
     let apr = 0.10;
     let epr = convert_apr_to_epr(apr, 12);
-    let fv = future_value(epr, periods, pv, false);
+    let fv = fv(epr, periods, pv);
 }
 
 
@@ -165,7 +163,7 @@ fn periods_problem_2() {
     // periodic rate per month.
     let rate = convert_apr_to_epr(apr, 12);
 
-    let months = periods(rate, present_value, future_value, false);
+    let months = finance_solution::core::periods(rate, present_value, future_value, false);
     dbg!(months);
 
     // We know the number of months, which may contain a fractional amount. Convert to years.
@@ -184,7 +182,7 @@ fn rate_problem_2() {
     let periods_per_year = 52;
     let periods = years * periods_per_year;
 
-    let weekly_rate = rate(periods, present_value, future_value, false);
+    let weekly_rate = finance_solution::core::rate(periods, present_value, future_value, false);
     dbg!(weekly_rate);
 
     let apr = convert_epr_to_apr(weekly_rate, periods_per_year);
@@ -224,7 +222,7 @@ fn pv_annuity_problem_1() {
     let annuity = -24_000; // payments/annuities are typically negative, to indicate cashflow direction
     let periods = 11;
     let rate = 0.13;
-    let pv_annuity_problem_1 = present_value_annuity_solution(rate, periods, annuity, false);
+    let pv_annuity_problem_1 = finance_solution::core::present_value_annuity_solution(rate, periods, annuity, false);
     dbg!(pv_annuity_problem_1); 
 }
 
@@ -237,7 +235,7 @@ fn fv_annuity_problem_1() {
     let rate= 0.14;
     let periods = 12;
     let payment = -16_000; // payments/annuities are typically negative, to indicate cashflow direction
-    let fv_annuity_problem_1 = future_value_annuity_solution(rate, periods, payment, false);
+    let fv_annuity_problem_1 = finance_solution::core::future_value_annuity_solution(rate, periods, payment, false);
     dbg!(&fv_annuity_problem_1);
 }
 
@@ -371,12 +369,12 @@ fn retirement_problem_1() {
     // the present value at the time of retirement.
     let due_at_beginning = true;
     // Use the negative of the retirement income so that the value ends up positive.
-    let value_at_retirement_for_income= present_value_annuity(rate_after_retire, live_how_many_years_after_retirement, -retirement_income, due_at_beginning);
+    let value_at_retirement_for_income= finance_solution::core::present_value_annuity(rate_after_retire, live_how_many_years_after_retirement, -retirement_income, due_at_beginning);
     dbg!(value_at_retirement_for_income);
 
     // What amount of money is needed at the moment of retirement so that it can be invested and
     // eventually grow to $2.5 million at the moment of death?
-    let value_at_retirement_for_inheritance = present_value(rate_after_retire, live_how_many_years_after_retirement, total_inheritance, false);
+    let value_at_retirement_for_inheritance = finance_solution::core::present_value(rate_after_retire, live_how_many_years_after_retirement, total_inheritance, false);
     dbg!(value_at_retirement_for_inheritance);
 
     let total_at_retirement = value_at_retirement_for_income + value_at_retirement_for_inheritance;
@@ -386,7 +384,7 @@ fn retirement_problem_1() {
     // Calculate the payments needed from now until retirement to end up with the total amount
     // needed at retirement. In this case we'll call payment_solution() to get a struct containing
     // more information.
-    let payment_before_retirement = payment_solution(rate_before_retire, retire_in, 0, total_at_retirement, due_at_beginning);
+    let payment_before_retirement = finance_solution::core::payment_solution(rate_before_retire, retire_in, 0, total_at_retirement, due_at_beginning);
     dbg!(&payment_before_retirement);
     // Since the desired future value was positive the payment is negative.
     assert_rounded_2!(-8_874.79, payment_before_retirement.payment());
@@ -398,7 +396,7 @@ fn retirement_problem_1() {
     // investment after 33 years, that is at the moment of retirement?
     let payment = payment_before_retirement.payment();
     let due_at_beginning = false;
-    let check_value_at_retirement = future_value_annuity(rate_before_retire, retire_in, payment, due_at_beginning);
+    let check_value_at_retirement = finance_solution::core::future_value_annuity(rate_before_retire, retire_in, payment, due_at_beginning);
     dbg!(total_at_retirement, check_value_at_retirement);
     // Compare this to the total amount at retirement we calculated earlier by working backward from
     // the amounts needed at the moment of death.
@@ -413,7 +411,7 @@ fn retirement_problem_1() {
     let future_value = -total_inheritance;
     // The retirement income will be taken at the beginning of each year.
     let due_at_beginning = true;
-    let check_payment_after_retirement = payment_solution(rate, periods, present_value, future_value, due_at_beginning);
+    let check_payment_after_retirement = finance_solution::core::payment_solution(rate, periods, present_value, future_value, due_at_beginning);
     dbg!(&check_payment_after_retirement);
     assert_approx_equal!(-retirement_income as f64, check_payment_after_retirement.payment());
 }

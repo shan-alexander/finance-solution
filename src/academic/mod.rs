@@ -13,6 +13,6 @@ pub mod fv;
 #[doc(inline)]
 pub use fv::*;
 
-pub mod periodz;
+pub mod periods;
 #[doc(inline)]
-pub use periodz::*;
+pub use periods::*;
