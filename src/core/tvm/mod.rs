@@ -1,3 +1,5 @@
+#![warn(missing_docs)]
+
 //! The internal module which supports the solution struct for the family of Time-value-of-money equations
 //! which do not involve payments. For example, future value, present value, rate, and periods.
 //!
@@ -75,8 +77,6 @@
 //! [future_value_vary_periods](struct.TvmSolution.html#method.future_value_vary_periods)
 //! and [present_value_vary_periods](struct.TvmSolution.html#method.present_value_vary_periods).
 
-//#![warn(missing_docs)]
-
 use std::ops::Deref;
 use std::fmt::{Display, Formatter, Error};
 
@@ -108,6 +108,7 @@ const CALL_INVARIANT: bool = true;
 /// It can be checked with [TvmSolution::calculated_field](struct.TvmSolution.html#method.calculated_field)
 /// or [TvmScheduleSolution::calculated_field](struct.TvmScheduleSolution.html#method.calculated_field).
 #[derive(Clone, Copy, Debug, Hash, PartialEq)]
+#[allow(missing_docs)]
 pub enum TvmVariable {
     Rate,
     Periods,
@@ -1379,6 +1380,202 @@ impl TvmPeriod {
     }
 }
 
+/// A result from a function such as
+/// [present_value_vary_periods](struct.TvmSolution.html#method.present_value_vary_periods) that
+/// calculates a list of answers corresponding to a list of alternative inputs.
+#[derive(Debug)]
+pub struct ScenarioList {
+    setup: String,
+    input_variable: TvmVariable,
+    output_variable: TvmVariable,
+    entries: Vec<ScenarioEntry>,
+}
+
+/// An entry in a [ScenarioList](struct.ScenarioList.html) containing one input value paired with
+/// one output (result) value. For instance after a call to
+/// [future_value_vary_periods](struct.TvmSolution.html#method.future_value_vary_periods) each entry
+/// would have as its input a number of periods and as its output a future value corresponding to
+/// that number of periods.
+pub struct ScenarioEntry {
+    input: f64,
+    output: f64,
+    input_precision: usize,
+    output_precision: usize,
+}
+
+impl ScenarioList {
+    pub(crate) fn new(setup: String, input_variable: TvmVariable, output_variable: TvmVariable, entries: Vec<(f64, f64)>) -> Self {
+        let input_precision = match input_variable {
+            TvmVariable::Periods => 0,
+            TvmVariable::Rate => 6,
+            _ => 4,
+        };
+        let output_precision = match output_variable {
+            TvmVariable::Periods => 0,
+            TvmVariable::Rate => 6,
+            _ => 4,
+        };
+        let entries= entries.iter().map(|entry| ScenarioEntry::new(entry.0, entry.1, input_precision, output_precision)).collect();
+        Self {
+            setup,
+            input_variable,
+            output_variable,
+            entries,
+        }
+    }
+
+    /// Returns a description of the setup for the alternate scenarios to give the context for the
+    /// detailed results.
+    ///
+    /// # Examples
+    /// ```
+    /// use finance_solution::core::*;
+    ///
+    /// // Calculate the future value for $100 that will grow at 5% per quarter for one year.
+    /// let solution = future_value_solution(0.05, 4, -100, false);
+    ///
+    /// // Compile a list of the future values with several compounding periods as well as continous
+    /// // compounding.
+    /// let compounding_periods = [1, 4, 12, 52, 365];
+    /// let include_continuous_compounding = true;
+    /// let scenarios = solution.future_value_vary_periods(&compounding_periods, include_continuous_compounding);
+    ///
+    /// // The setup description states that the rate is 20% since that's 5% times the number of
+    /// // periods in the original calculation.
+    /// dbg!(scenarios.setup());
+    /// assert_eq!(scenarios.setup(), "Compare future values with different compounding periods where the rate is 0.200000 and the present value is -100.0000.");
+    /// ```
+    pub fn setup(&self) -> &str {
+        &self.setup
+    }
+
+    /// Returns a variant of [TvmVariable](enum.TvmVariable.html) indicating what the input values in the
+    /// individual entries mean. For instance if the current struct was the result of a call to
+    /// [present_value_vary_periods](struct.TvmSolution.html#method.present_value_vary_periods) the
+    /// input variable would be `TvmVariable::Periods`. That function takes a list of periods as an
+    /// argument and shows how each number of periods affects the present value.
+    pub fn input_variable(&self) -> TvmVariable {
+        self.input_variable
+    }
+
+    /// Returns a variant of [TvmVariable](enum.TvmVariable.html) indicating what the output values in the
+    /// individual entries mean. For instance if the current struct was the result of a call to
+    /// [future_value_vary_periods](struct.TvmSolution.html#method.future_value_vary_periods) the
+    /// output variable would be `TvmVariable::FutureValue`. That function takes a list of periods
+    /// as an argument and shows how each number of periods affects the future value.
+    pub fn output_variable(&self) -> TvmVariable {
+        self.output_variable
+    }
+
+    /// Returns the results of the calculations as a list of entries. Each entry has one of the
+    /// provided input values and the corresponding output value.
+    /// # Examples
+    /// This is the same as the example for [print_table_locale](#method.print_table_locale) except
+    /// for the last line.
+    /// ```
+    /// use finance_solution::core::*;
+    ///
+    /// // Calculate the future value for $100 that will grow at 1.5% per month for one year.
+    /// let solution = future_value_solution(0.015, 12, -100, false);
+    ///
+    /// // Compile a list of the future values with several compounding periods.
+    /// let scenarios = solution.future_value_vary_periods(&[1, 4, 12, 52, 365], false);
+    /// dbg!(scenarios.entries());
+    /// ```
+    /// Output:
+    /// ```text
+    /// scenarios.entries() = [
+    ///     { input: 1, output: 118.0000 },
+    ///     { input: 4, output: 119.2519 },
+    ///     { input: 12, output: 119.5618 },
+    ///     { input: 52, output: 119.6845 },
+    ///     { input: 365, output: 119.7164 },
+    /// ]
+    /// ```
+    /// Within each entry the input is some number of periods and the output is the future value
+    /// corresponding to that number of periods.
+    pub fn entries(&self) -> &[ScenarioEntry] {
+        self.entries.as_slice()
+    }
+
+    /// Prints the results of the calculations in a formatted table.
+    ///
+    /// # Examples
+    /// See [print_table_locale](#method.print_table_locale). The only difference is that the last
+    /// line would be simply:
+    /// ```
+    /// # let scenarios = finance_solution::core::future_value_solution(0.015, 12, -100, false)
+    /// #     .future_value_vary_periods(&[1, 4, 12, 52, 365], false);
+    /// scenarios.print_table();
+    /// ```
+    pub fn print_table(&self) {
+        self.print_table_locale_opt(None, None);
+    }
+
+    /// Prints the results of the calculations in a formatted table with options for number
+    /// formatting.
+    ///
+    /// # Examples
+    /// This is the same as the example for [entries](#method.entries) except for the last line.
+    /// ```
+    /// use finance_solution::core::*;
+    ///
+    /// // Calculate the future value for $100 that will grow at 1.5% per month for one year.
+    /// let solution = future_value_solution(0.015, 12, -100, false);
+    ///
+    /// // Compile a list of the future values with several compounding periods.
+    /// let scenarios = solution.future_value_vary_periods(&[1, 4, 12, 52, 365], false);
+    /// scenarios.print_table_locale(&num_format::Locale::en, 2);
+    /// ```
+    /// Output:
+    /// ```text
+    /// Periods  Future Value
+    /// -------  ------------
+    ///       1        118.00
+    ///       4        119.25
+    ///      12        119.56
+    ///      52        119.68
+    ///     365        119.72
+    /// ```
+    pub fn print_table_locale(&self, locale: &num_format::Locale, precision: usize) {
+        self.print_table_locale_opt(Some(locale), Some(precision));
+    }
+
+    fn print_table_locale_opt(&self, locale: Option<&num_format::Locale>, precision: Option<usize>) {
+        let columns = vec![self.input_variable.table_column_spec(true), self.output_variable.table_column_spec(true)];
+        // let columns = columns_with_strings.iter().map(|x| &x.0[..], &x.1[..], x.2);
+        let data = self.entries.iter()
+            .map(|entry| vec![entry.input.to_string(), entry.output.to_string()])
+            .collect::<Vec<_>>();
+        print_table_locale_opt(&columns, data, locale, precision);
+    }
+
+}
+
+impl ScenarioEntry {
+    pub(crate) fn new(input: f64, output: f64, input_precision: usize, output_precision: usize) -> Self {
+        Self { input, output, input_precision, output_precision }
+    }
+
+    /// Returns the input value for this entry such as a number of periods.
+    pub fn input(&self) -> f64 {
+        self.input
+    }
+
+    /// Returns the output (result) value for this entry such as a future value.
+    pub fn output(&self) -> f64 {
+        self.input
+    }
+}
+
+impl Debug for ScenarioEntry {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        let input = format_float_locale_opt(self.input, None, Some(self.input_precision));
+        let output = format_float_locale_opt(self.output, None, Some(self.output_precision));
+        write!(f, "{{ input: {}, output: {} }}", input, output)
+    }
+}
+
 /*
 impl Debug for TvmPeriod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -2324,72 +2521,3 @@ mod tests {
     }
 }
 
-#[derive(Debug)]
-pub struct ScenarioList {
-    pub setup: String,
-    pub input_variable: TvmVariable,
-    pub output_variable: TvmVariable,
-    pub entries: Vec<ScenarioEntry>,
-}
-
-pub struct ScenarioEntry {
-    pub input: f64,
-    pub output: f64,
-    input_precision: usize,
-    output_precision: usize,
-}
-
-impl ScenarioList {
-
-    pub(crate) fn new(setup: String, input_variable: TvmVariable, output_variable: TvmVariable, entries: Vec<(f64, f64)>) -> Self {
-        let input_precision = match input_variable {
-            TvmVariable::Periods => 0,
-            TvmVariable::Rate => 6,
-            _ => 4,
-        };
-        let output_precision = match output_variable {
-            TvmVariable::Periods => 0,
-            TvmVariable::Rate => 6,
-            _ => 4,
-        };
-        let entries= entries.iter().map(|entry| ScenarioEntry::new(entry.0, entry.1, input_precision, output_precision)).collect();
-        Self {
-            setup,
-            input_variable,
-            output_variable,
-            entries,
-        }
-    }
-
-    pub fn print_table(&self) {
-        self.print_table_locale_opt(None, None);
-    }
-
-    pub fn print_table_locale(&self, locale: &num_format::Locale, precision: usize) {
-        self.print_table_locale_opt(Some(locale), Some(precision));
-    }
-
-    fn print_table_locale_opt(&self, locale: Option<&num_format::Locale>, precision: Option<usize>) {
-        let columns = vec![self.input_variable.table_column_spec(true), self.output_variable.table_column_spec(true)];
-        // let columns = columns_with_strings.iter().map(|x| &x.0[..], &x.1[..], x.2);
-        let data = self.entries.iter()
-            .map(|entry| vec![entry.input.to_string(), entry.output.to_string()])
-            .collect::<Vec<_>>();
-        print_table_locale_opt(&columns, data, locale, precision);
-    }
-
-}
-
-impl ScenarioEntry {
-    pub(crate) fn new(input: f64, output: f64, input_precision: usize, output_precision: usize) -> Self {
-        Self { input, output, input_precision, output_precision }
-    }
-}
-
-impl Debug for ScenarioEntry {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        let input = format_float_locale_opt(self.input, None, Some(self.input_precision));
-        let output = format_float_locale_opt(self.output, None, Some(self.output_precision));
-        write!(f, "{{ input: {}, output: {} }}", input, output)
-    }
-}
