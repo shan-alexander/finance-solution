@@ -1,5 +1,79 @@
 //! The internal module which supports the solution struct for the family of Time-value-of-money equations
 //! which do not involve payments. For example, future value, present value, rate, and periods.
+//!
+//! # Continuous Compounding
+//!
+//! Most of the functions in this module have an option for continuous compounding. In each case the
+//! formula is quite different but the result is similar to using period-by-period compounding with
+//! a lot of compounding periods.
+//!
+//! For example, say we have an investment that starts at $100 and grows at 20% per year for a
+//! single year. There's one compounding period so the future value is simply $100 x 1.2 = $120.
+//! We could instead compound the interest twice during the year, each time using a rate of
+//! 20% / 2 = 10%. That would give a slightly larger future amount, $100 x 1.1 x 1.1 = $121. We
+//! could compound the interest quarterly using a rate of 20% / 4 = 5%. Each time we increase the
+//! number of compounding periods the future value gets a little higher:
+//!
+//! > <img src="http://i.upmath.me/svg/%24%24%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%5Csmall%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D12%2C%0A%09width%3D9.0cm%2Cheight%3D6.4cm%2C%0A%09xmin%3D0%2C%20xmax%3D12%2C%0A%09ymin%3D119%2C%20ymax%3D123%2C%0A%09restrict%20y%20to%20domain%3D0%3A1000%2C%0A%09ytick%3D%7B120%2C%20121%2C%20122%7D%2C%0A%09xtick%3D%7B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%7D%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24n%24%2Cylabel%3D%24fv%24%5D%0A%5Caddplot%5Bblue%2Cdomain%3D1%3A12%2Cthick%2C%20only%20marks%5D%7B100*((1%2B(0.2%2Fx))%5Ex)%7D%3B%0A%5Caddplot%5Bblue%5D%20coordinates%20%7B(4.8%2C120.7)%7D%20node%7B%24fv%3D100(1%2B%7B0.2%20%5Cover%20n%7D)%5En%24%7D%3B%0A%5Cpath%20(axis%20cs%3A0%2C122)%20node%20%5Banchor%3Dnorth%20west%2Cyshift%3D-0.07cm%5D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D%24%24" />
+//!
+//! `n` is the number of compounding periods and `fv` is the future value based on that number of
+//! periods. The formula in the chart is the general solution for calculating the future value with
+//! any finite number of periods. For instance with one million periods the future value is about
+//! $122.140273.
+//!
+//! The increase in the future value keeps getting smaller so it seems to be approaching some value.
+//! No matter how many compounding periods we use there's some limit to the future value. And that's
+//! what we can find with continuous compounding. Using continuous compounding rather than a lot of
+//! compounding periods this limit turns out to be about $122.140276, very slightly higher than the
+//! future value using one million periods. This is the limit that we were approaching by using 1
+//! through 12 periods. Here the black line and formula show the result with continuous compounding:
+//!
+//! > <img src="http://i.upmath.me/svg/%24%24%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%5Csmall%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D12%2C%0A%09width%3D9.0cm%2Cheight%3D6.4cm%2C%0A%09xmin%3D0%2C%20xmax%3D12%2C%0A%09ymin%3D119%2C%20ymax%3D123%2C%0A%09restrict%20y%20to%20domain%3D0%3A1000%2C%0A%09ytick%3D%7B120%2C%20121%2C%20122%7D%2C%0A%09xtick%3D%7B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%7D%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24n%24%2Cylabel%3D%24fv%24%5D%0A%5Caddplot%5Bblue%2Cdomain%3D1%3A12%2Cthick%2C%20only%20marks%5D%7B100*((1%2B(0.2%2Fx))%5Ex)%7D%3B%0A%5Caddplot%5Bblack%2Cdomain%3D1%3A12%2Cthick%5D%7B100*(e%5E(0.2))%7D%3B%0A%5Caddplot%5B%5D%20coordinates%20%7B(3.7%2C122.4)%7D%20node%7B%24fv%3D100e%5E%7B0.2%7D%24%5Capprox122.14%24%7D%3B%0A%5Caddplot%5Bblue%5D%20coordinates%20%7B(4.8%2C120.7)%7D%20node%7B%24fv%3D100(1%2B%7B0.2%20%5Cover%20n%7D)%5En%24%7D%3B%0A%5Cpath%20(axis%20cs%3A0%2C122)%20node%20%5Banchor%3Dnorth%20west%2Cyshift%3D-0.07cm%5D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D%24%24" />
+//!
+//! When we started with a fixed rate and present value and increased the number of compounding
+//! periods, the future value rose each time. The converse would be starting with a fixed future
+//! value and seeing how the present value changes by increasing the compounding periods.
+//!
+//! Suppose we have the same 20% rate but this time it's the _future value_ that's $100.
+//! Compounding only once the calculation for the present value is $100 / 1.2 ≈ $83.33. As we
+//! compound the interest more frequently we need a slightly smaller present value to reach the same
+//! future value of $100 in one year. With more frequent compounding the required present value
+//! approaches $81.87, the value needed with continuous compounding that's shown here with a black
+//! line and formula:
+//!
+//! > <img src="http://i.upmath.me/svg/%24%24%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D12%2C%0A%09width%3D9.0cm%2Cheight%3D6.4cm%2C%0A%09xmin%3D0%2C%20xmax%3D12%2C%0A%09ymin%3D80.5%2C%20ymax%3D84.5%2C%0A%09restrict%20y%20to%20domain%3D0%3A1000%2C%0A%09ytick%3D%7B81%2C%2082%2C%2083%2C%2084%7D%2C%0A%09xtick%3D%7B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%7D%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24n%24%2Cylabel%3D%24pv%24%5D%0A%5Caddplot%5Bblue%2Cdomain%3D1%3A12%2Csemithick%2C%20only%20marks%5D%7B100%2F((1%2B(0.2%2Fx))%5Ex)%7D%3B%0A%5Caddplot%5Bblack%2Cdomain%3D1%3A12%2C%20thick%5D%7B100%2F(e%5E(0.2))%7D%3B%0A%5Caddplot%5B%5D%20coordinates%20%7B(3.3%2C81.53)%7D%20node%7B%24pv%3D%7B100%20%5Cover%20e%5E%7B0.2%7D%7D%5Capprox81.87%24%7D%3B%0A%5Caddplot%5Bblue%5D%20coordinates%20%7B(4.5%2C82.8)%7D%20node%7B%24pv%3D%7B100%20%5Cover%20(1%2B%7B0.2%20%5Cover%20n%7D)%5En%7D%24%7D%3B%0A%5Cpath%20(axis%20cs%3A0%2C83)%20node%20%5Banchor%3Dnorth%20west%2Cyshift%3D-0.07cm%5D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D%24%24" />
+//!
+//! It's fine for a calculation to specify more than one period and continuous compounding at the
+//! same time. All this means is that the interest for each period is done with continuous
+//! compounding. It works out to the same answer as if there were only one period with the rate
+//! adjusted accordingly. For instance these three calculations produce the same future value:
+//! ```
+//! use finance_solution::core::*;
+//!
+//! let present_value = 100;
+//! let continuous = true;
+//!
+//! // 1% per month compounded over twelve months.
+//! let fv_12_months = future_value(0.01, 12, present_value, continuous);
+//!
+//! // 12% applied only once at the end of the year.
+//! let fv_1_year = future_value(0.12, 1, present_value, continuous);
+//! dbg!(fv_12_months, fv_1_year);
+//! assert_eq!(fv_12_months, fv_1_year);
+//!
+//! // 3% per quarter compounded over four quarters.
+//! let fv_4_quarters = future_value(0.03, 4, present_value, continuous);
+//! dbg!(fv_4_quarters);
+//! assert_eq!(fv_12_months, fv_4_quarters);
+//! ```
+//! This works only with continuous compounding. With period-by-period compounding the future value
+//! for four quarters would be higher than that for one year and the value for twelve months would
+//! be higher than that.
+//!
+//! The library has a convenient way to check multiple what-if scenarios with different numbers of
+//! compounding periods and with continuous compounding. See
+//! [future_value_vary_periods](struct.TvmSolution.html#method.future_value_vary_periods)
+//! and [present_value_vary_periods](struct.TvmSolution.html#method.present_value_vary_periods).
 
 use std::ops::Deref;
 use std::fmt::{Display, Formatter, Error};
@@ -72,6 +146,9 @@ pub struct TvmScheduleSolution {
 }
 
 /// **The period-by-period details** of a Time Value of Money calculation.
+///
+/// It's produced by calling [TvmSolution::series](./struct.TvmSolution.html#method.series) or
+/// [TvmScheduleSolution::series](./struct.TvmScheduleSolution.html#method.series).
 #[derive(Clone, Debug)]
 pub struct TvmSeries(Vec<TvmPeriod>);
 
@@ -217,10 +294,7 @@ impl TvmSolution {
     /// series.print_table();
     ///
     /// // Create a vector with every fourth period.
-    /// let filtered_series = series
-    ///     .iter()
-    ///     .filter(|x| x.period() % 4 == 0)
-    ///     .collect::<Vec<_>>();
+    /// let filtered_series = series.filter(|x| x.period() % 4 == 0);
     /// dbg!(&filtered_series);
     /// assert_eq!(7, filtered_series.len());
     /// ```
@@ -248,10 +322,7 @@ impl TvmSolution {
     /// assert_eq!(6, series.len());
     ///
     /// // Create a filtered list of periods, only those with a negative rate.
-    /// let filtered_series = series
-    ///     .iter()
-    ///     .filter(|x| x.rate() < 0.0)
-    ///     .collect::<Vec<_>>();
+    /// let filtered_series = series.filter(|x| x.rate() < 0.0);
     /// dbg!(&filtered_series);
     /// assert_eq!(2, filtered_series.len());
     /// ```
@@ -288,9 +359,9 @@ impl TvmSolution {
     }
 
     /// Prints a formatted table with the period-by-period details of a time-value-of-money
-    /// calculation.
+    /// calculation, with options for formatting numbers.
     ///
-    /// For a simpler function that doesn't require a locale use
+    /// For a simpler method that doesn't require a locale use
     /// [print_table](struct.TvmSolution.html#method.print_table).
     ///
     /// # Arguments
@@ -606,7 +677,11 @@ impl TvmSolution {
     }
 
     /// Returns a struct with a set of what-if scenarios for the present value needed with a variety
-    /// of compounding periods.
+    /// of compounding periods, with an option for continuous compounding.
+    ///
+    /// For an overview of the effects of increasing the compounding periods or using continuous
+    /// compounding see [Continuous Compounding](./index.html#continuous-compounding). The last
+    /// graph in that section use the same setup as the example below.
     ///
     /// # Arguments
     /// * `compounding_periods` - The compounding periods to include in the scenarios. The result
@@ -658,12 +733,6 @@ impl TvmSolution {
     /// As we compound the interest more frequently we need a slightly smaller initial value to
     /// reach the same final value of $100 in one year. With more frequent compounding the required
     /// initial value approaches $81.87, the present value needed with continuous compounding.
-    ///
-    /// If we plot this using between 1 and 12 compounding periods it's clear that the required
-    /// present value drops sharply if we go from compounding annually to compounding semiannually
-    /// or quarterly but then is affected less and less as we compound more frequently:
-    ///
-    /// <img src="http://i.upmath.me/svg/%24%24%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D12%2C%0A%09width%3D9.0cm%2Cheight%3D6.4cm%2C%0A%09xmin%3D0%2C%20xmax%3D12%2C%0A%09ymin%3D80.5%2C%20ymax%3D84.5%2C%0A%09restrict%20y%20to%20domain%3D0%3A1000%2C%0A%09ytick%3D%7B81%2C%2082%2C%2083%2C%2084%7D%2C%0A%09xtick%3D%7B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%7D%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24n%24%2Cylabel%3D%24pv%24%5D%0A%5Caddplot%5Bblue%2Cdomain%3D1%3A12%2Csemithick%2C%20only%20marks%5D%7B100%2F((1%2B(0.2%2Fx))%5Ex)%7D%3B%0A%5Caddplot%5Bblack%2Cdomain%3D1%3A12%2C%20thick%5D%7B100%2F(e%5E(0.2))%7D%3B%0A%5Caddplot%5B%5D%20coordinates%20%7B(2.3%2C81.53)%7D%20node%7B%24pv%3D%7B100%20%5Cover%20e%5E%7B0.2%7D%7D%24%7D%3B%0A%5Caddplot%5Bblue%5D%20coordinates%20%7B(4.5%2C82.8)%7D%20node%7B%24pv%3D%7B100%20%5Cover%20(1%2B%7B0.2%20%5Cover%20n%7D)%5En%7D%24%7D%3B%0A%5Cpath%20(axis%20cs%3A0%2C83)%20node%20%5Banchor%3Dnorth%20west%2Cyshift%3D-0.07cm%5D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D%24%24" />
     pub fn present_value_vary_periods(&self, compounding_periods: &[u32], include_continuous_compounding: bool) -> ScenarioList {
         let rate_for_single_period = self.rate * self.fractional_periods;
         let mut entries = vec![];
@@ -685,7 +754,11 @@ impl TvmSolution {
     }
 
     /// Returns a struct with a set of what-if scenarios for the future value of an investment given
-    /// a variety of compounding periods.
+    /// a variety of compounding periods, with an option for continuous compounding.
+    ///
+    /// For an overview of the effects of increasing the compounding periods or using continuous
+    /// compounding see [Continuous Compounding](./index.html#continuous-compounding). The first two
+    /// graphs in that section use the same setup as the example below.
     ///
     /// # Arguments
     /// * `compounding_periods` - The compounding periods to include in the scenarios. The result
@@ -707,7 +780,6 @@ impl TvmSolution {
     /// let continuous_compounding = false;
     ///
     /// let solution = finance_solution::core::future_value_solution(rate, periods, present_value, continuous_compounding);
-    /// dbg!(&solution);
     ///
     /// // We'll experiment with compounding annually, quarterly, monthly, weekly, and daily.
     /// let compounding_periods = [1, 4, 12, 52, 365];
@@ -728,19 +800,6 @@ impl TvmSolution {
     /// ```
     /// Output:
     /// ```text
-    /// &solution = FutureValueSolution {
-    ///     tvm_solution: TvmSolution {
-    ///     calculated_field: FutureValue,
-    ///     continuous_compounding: false,
-    ///     rate: 0.05,
-    ///     periods: 4,
-    ///     fractional_periods: 4.0,
-    ///     present_value: 100.0,
-    ///     future_value: 121.55062500000003,
-    ///     formula: "121.5506 = 100.0000 * (1.050000 ^ 4)",
-    ///     symbolic_formula: "fv = pv * (1 + r)^n",
-    /// },
-    ///
     /// &scenarios = ScenarioList {
     ///     setup: "Compare future values with different compounding periods where the rate is 0.200000 and the present value is 100.0000.",
     ///     input_variable: Periods,
@@ -767,11 +826,6 @@ impl TvmSolution {
     /// With the same interest rate and overall time period, an amount grows faster if we compound
     /// the interest more frequently. As the number of compounding periods grows the future value
     /// approaches the limit of $122.14 that we get with continuous compounding.
-    ///
-    /// As a chart it looks like this, here using only 1 through 12
-    /// compounding periods for clarity:
-    ///
-    /// <img src="http://i.upmath.me/svg/%24%24%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%5Csmall%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D12%2C%0A%09width%3D9.0cm%2Cheight%3D6.4cm%2C%0A%09xmin%3D0%2C%20xmax%3D12%2C%0A%09ymin%3D119%2C%20ymax%3D123%2C%0A%09restrict%20y%20to%20domain%3D0%3A1000%2C%0A%09ytick%3D%7B120%2C%20121%2C%20122%7D%2C%0A%09xtick%3D%7B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%7D%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24n%24%2Cylabel%3D%24fv%24%5D%0A%5Caddplot%5Bblue%2Cdomain%3D1%3A12%2Cthick%2C%20only%20marks%5D%7B100*((1%2B(0.2%2Fx))%5Ex)%7D%3B%0A%5Caddplot%5Bblack%2Cdomain%3D1%3A12%2Cthick%5D%7B100*(e%5E(0.2))%7D%3B%0A%5Caddplot%5B%5D%20coordinates%20%7B(2.5%2C122.4)%7D%20node%7B%24fv%3D100e%5E%7B0.2%7D%24%7D%3B%0A%5Caddplot%5Bblue%5D%20coordinates%20%7B(4.8%2C120.7)%7D%20node%7B%24fv%3D100(1%2B%7B0.2%20%5Cover%20n%7D)%5En%24%7D%3B%0A%5Cpath%20(axis%20cs%3A0%2C122)%20node%20%5Banchor%3Dnorth%20west%2Cyshift%3D-0.07cm%5D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D%24%24" />
     pub fn future_value_vary_periods(&self, compounding_periods: &[u32], include_continuous_compounding: bool) -> ScenarioList {
         let rate_for_single_period = self.rate * self.fractional_periods;
         let mut entries = vec![];
@@ -1051,6 +1105,20 @@ impl TvmSeries {
         }
     }
 
+    /// Produces a series with a subset of the entries from the current series. This is intended to
+    /// be used to help with examining and troubleshooting calculations since the resulting filtered
+    /// series wouldn't make much sense on its own.
+    ///
+    /// # Arguments
+    /// * `predicate` - A function that takes a reference to a [TvmPeriod](./struct.TvmPeriod.html)
+    /// and returns a boolean. For instance the closure `|entry| entry.rate() < 0.0` would return
+    /// `true` for all entries with a negative rate, and those entries would be included in the new
+    /// series.
+    ///
+    /// # Examples
+    /// Both of the examples for [series](./struct.TvmSolution.html#method.series) end with a call
+    /// to this method.
+    ///
     pub fn filter<P>(&self, predicate: P) -> Self
         where P: Fn(&&TvmPeriod) -> bool
     {
@@ -1059,10 +1127,92 @@ impl TvmSeries {
         }
     }
 
+    /// Prints a formatted table with the period-by-period details.
+    ///
+    /// Money amounts are rounded to four decimal places, rates to six places, and numbers are
+    /// formatted similar to Rust constants such as "10_000.0322". For more control over formatting
+    /// use [print_table_locale](struct.TvmSeries.html#method.print_table_locale).
+    ///
+    /// # Examples
+    /// ```
+    /// finance_solution::core::future_value_solution(0.045, 5, 10_000, false)
+    ///     .solution()
+    ///     .print_table();
+    /// ```
+    /// Output:
+    /// ```text
+    /// period      rate        value
+    /// ------  --------  -----------
+    ///      0  0.000000  10_000.0000
+    ///      1  0.045000  10_450.0000
+    ///      2  0.045000  10_920.2500
+    ///      3  0.045000  11_411.6612
+    ///      4  0.045000  11_925.1860
+    ///      5  0.045000  12_461.8194
+    /// ```
+    /// Note that since [TvmSolution](struct.TvmSolution.html) has its own
+    /// [print_table](struct.TvmSolution.html#method.print_table) method this would produce the same
+    /// results without doing the interim step of creating the series:
+    /// ```
+    /// finance_solution::core::future_value_solution(0.045, 5, 10_000, false)
+    ///     .print_table();
+    /// ```
+    /// So the only reason to use this method is if the series has been changed in some way such as
+    /// being filtered or summarized.
     pub fn print_table(&self) {
         self.print_table_locale_opt(None, None);
     }
 
+    /// Prints a formatted table with the period-by-period details and options for formatting
+    /// numbers.
+    ///
+    /// For a simpler method that doesn't require a locale use
+    /// [print_table](struct.TvmSeries.html#method.print_table).
+    ///
+    /// # Arguments
+    /// * `locale` - A locale constant from the `num-format` crate such as `Locale::en` for English
+    /// or `Locale::vi` for Vietnamese. The locale determines the thousands separator and decimal
+    /// separator.
+    /// * `precision` - The number of decimal places for money amounts. Rates will appear with at
+    /// least six places regardless of this argument.
+    ///
+    /// # Examples
+    /// ```
+    /// use finance_solution::core::*;
+    ///
+    /// // English formatting with "," for the thousands separator and "." for the decimal
+    /// // separator.
+    /// let locale = num_format::Locale::en;
+    ///
+    /// // Show money amounts to two decimal places.
+    /// let precision = 2;
+    ///
+    /// future_value_solution(0.11, 4, 5_000, false)
+    ///     .series()
+    ///     .print_table_locale(&locale, precision);
+    /// ```
+    /// Output:
+    /// ```text
+    /// period      rate     value
+    /// ------  --------  --------
+    ///      0  0.000000  5,000.00
+    ///      1  0.110000  5,550.00
+    ///      2  0.110000  6,160.50
+    ///      3  0.110000  6,838.16
+    ///      4  0.110000  7,590.35
+    /// ```
+    /// [TvmSolution](struct.TvmSolution.html) has its own
+    /// [print_table_locale](struct.TvmSolution.html#method.print_table_locale) method so this would
+    /// produce the same results without doing the interim step of creating the series:
+    /// ```
+    /// # use finance_solution::core::*;
+    /// # let locale = num_format::Locale::en;
+    /// # let precision = 2;
+    /// future_value_solution(0.11, 4, 5_000, false)
+    ///     .print_table_locale(&locale, precision);
+    /// ```
+    /// Therefore the only reason to use this method is if the series has been changed in some way
+    /// such as being filtered or summarized.
     pub fn print_table_locale(&self, locale: &num_format::Locale, precision: usize) {
         self.print_table_locale_opt(Some(locale), Some(precision));
     }
@@ -1075,6 +1225,31 @@ impl TvmSeries {
         print_table_locale_opt(&columns, data, locale, precision);
     }
 
+    /// Compares the results of two series, such as the results from two calls to
+    /// [future_value_solution](./fn.future_value_solution.html) with different periodic rates.
+    ///
+    /// It's fine to compare calculations that solved for different variables such as a rate
+    /// calculation vs. a present value calculation.
+    ///
+    /// The column headers for values from the first series end in "_a" and those for the second
+    /// series end in "_b". Money amounts are rounded to four decimal places, rates to six places,
+    /// and numbers are formatted similar to Rust constants such as "10_000.0322". For more control
+    /// over formatting use
+    /// [print_ab_comparison_locale](struct.TvmSeries.html#method.print_ab_comparison_locale).
+    ///
+    /// # Arguments
+    /// * `other` - The second `TvmSeries` in the comparison which will be labeled "b".
+    ///
+    /// # Examples
+    /// See [print_ab_comparison_locale](struct.TvmSeries.html#method.print_ab_comparison_locale).
+    /// The only difference is that there are no `locale` and `precision` arguments so the last line
+    /// would simply be:
+    /// ```
+    /// # use finance_solution::core::*;
+    /// # let series_a = future_value_solution(0.01, 1, 1, false).series();
+    /// # let series_b = series_a.clone();
+    /// series_a.print_ab_comparison(&series_b);
+    /// ```
     pub fn print_ab_comparison(
         &self,
         other: &TvmSeries)
@@ -1082,6 +1257,53 @@ impl TvmSeries {
         self.print_ab_comparison_locale_opt(other, None, None);
     }
 
+    /// Compares the results of two series such as the results from two calls to
+    /// [rate_solution](./fn.rate_solution.html) with different future values. The method has
+    /// options for formatting numbers.
+    ///
+    /// It's fine to compare calculations that solved for different variables such as a rate
+    /// calculation vs. a present value calculation.
+    ///
+    /// The column headers for values from the first series end in "_a" and those for the second
+    /// series end in "_b". For a simpler method that doesn't require locale information use
+    /// [print_ab_comparison](struct.TvmSeries.html#method.print_ab_comparison).
+    ///
+    /// # Arguments
+    /// * `other` - The second `TvmSeries` in the comparison which will be labeled "b".
+    /// * `locale` - A variant of the num_format::Locale enum which determines the characters used
+    /// for thousands separators and the decimal separator
+    /// * `precision` - The number of decimal places. Rates always appear with at least six places
+    /// regardless of this value.
+    ///
+    /// # Examples
+    /// ```
+    /// use finance_solution::core::*;
+    ///
+    /// // Two future value calculations that are the same except for the interest rate.
+    /// let rate_a = 0.021;
+    /// let rate_b = 0.023;
+    /// let periods = 60;
+    /// let present_value = -10_000;
+    /// let continuous = false;
+    /// let series_a = future_value_solution(rate_a, periods, present_value, continuous)
+    ///     .series();
+    /// let series_b = future_value_solution(rate_b, periods, present_value, continuous)
+    ///     .series();
+    ///
+    /// // Compare the two series using English number formatting and two decimal places.
+    /// let locale = num_format::Locale::en;
+    /// let precision = 2;
+    /// series_a.print_ab_comparison_locale(&series_b, &locale, precision);
+    /// ```
+    /// Output (with only the first few periods shown):
+    /// ```text
+    /// period    rate_a    rate_b    value_a    value_b
+    /// ------  --------  --------  ---------  ---------
+    ///      0  0.000000  0.000000  10,000.00  10,000.00
+    ///      1  0.021000  0.023000  10,209.00  10,230.00
+    ///      2  0.021000  0.023000  10,424.41  10,465.29
+    ///      3  0.021000  0.023000  10,643.32  10,705.99
+    /// ```
     pub fn print_ab_comparison_locale(
         &self,
         other: &TvmSeries,
