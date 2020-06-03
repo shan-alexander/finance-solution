@@ -72,11 +72,8 @@
 //!
 //! The library has a convenient way to check multiple what-if scenarios with different numbers of
 //! compounding periods and with continuous compounding. See
-//! [future_value_vary_periods](../../core/tvm/struct.TvmSolution.html#method.future_value_vary_periods)
-//! and [present_value_vary_periods](../../core/tvm/struct.TvmSolution.html#method.present_value_vary_periods).
-//!
-//! [future_value_vary_periods](finance_solution/core/tvm/struct.TvmSolution.html#method.future_value_vary_periods)
-//! and [present_value_vary_periods](finance_solution::core::tvm::TvmSolution).
+//! [future_value_vary_periods](struct.TvmSolution.html#method.future_value_vary_periods)
+//! and [present_value_vary_periods](struct.TvmSolution.html#method.present_value_vary_periods).
 
 //#![warn(missing_docs)]
 
@@ -86,11 +83,11 @@ use std::fmt::{Display, Formatter, Error};
 use crate::*;
 
 pub mod future_value;
-#[doc(inline)]
+// #[doc(inline)]
 pub use future_value::*;
 
 pub mod present_value;
-#[doc(inline)]
+// #[doc(inline)]
 pub use present_value::*;
 
 pub mod periods;
@@ -98,18 +95,18 @@ pub mod periods;
 pub use periods::*;
 
 pub mod rate;
-#[doc(inline)]
+// #[doc(inline)]
 pub use rate::*;
 
 const CALL_INVARIANT: bool = true;
 
-/// Enumeration used in [TvmSolution](../../core/tvm/struct.TvmSolution.html) and
-/// [TvmScheduleSolution](../../core/tvm/struct.TvmScheduleSolution.html) to keep track of which value was
+/// Enumeration used in [TvmSolution](struct.TvmSolution.html) and
+/// [TvmScheduleSolution](struct.TvmScheduleSolution.html) to keep track of which value was
 /// calculated, either the periodic rate, the number of periods, the present value, or the future
 /// value.
 ///
-/// It can be checked with [TvmSolution::calculated_field](../../core/tvm/struct.TvmSolution.html#method.calculated_field)
-/// or [TvmScheduleSolution::calculated_field](../../core/tvm/struct.TvmScheduleSolution.html#method.calculated_field).
+/// It can be checked with [TvmSolution::calculated_field](struct.TvmSolution.html#method.calculated_field)
+/// or [TvmScheduleSolution::calculated_field](struct.TvmScheduleSolution.html#method.calculated_field).
 #[derive(Clone, Copy, Debug, Hash, PartialEq)]
 pub enum TvmVariable {
     Rate,
@@ -120,10 +117,10 @@ pub enum TvmVariable {
 
 /// **A record of a Time Value of Money calculation** using a fixed rate.
 ///
-/// It's produced by calling [rate_solution](../../core/tvm/rate/fn.rate_solution.html),
-/// [periods_solution](../../core/tvm/periods/fn.periods_solution.html),
-/// [present_value_solution](../../core/tvm/present_value/fn.present_value_solution.html), or
-/// [future_value_solution](../../core/tvm/future_value/fn.future_value_solution.html).
+/// It's produced by calling [rate_solution](rate/fn.rate_solution.html),
+/// [periods_solution](periods/fn.periods_solution.html),
+/// [present_value_solution](present_value/fn.present_value_solution.html), or
+/// [future_value_solution](future_value/fn.future_value_solution.html).
 #[derive(Clone, Debug)]
 pub struct TvmSolution {
     calculated_field: TvmVariable,
@@ -140,8 +137,8 @@ pub struct TvmSolution {
 
 /// **A record of a Time Value of Money calculation** where the rate may vary by period.
 ///
-/// It's the result of calling [future_value_schedule_solution](fn.future_value_schedule_solution.html)
-/// or [present_value_schedule_solution](fn.present_value_schedule_solution.html)
+/// It's the result of calling [future_value_schedule_solution](future_value/fn.future_value_schedule_solution.html)
+/// or [present_value_schedule_solution](present_value/fn.present_value_schedule_solution.html)
 #[derive(Clone, Debug)]
 pub struct TvmScheduleSolution {
     calculated_field: TvmVariable,
@@ -282,7 +279,7 @@ impl TvmSolution {
     /// Calculates the value of an investment after each period.
     ///
     /// # Examples
-    /// Calculate a future value using [future_value_solution](fn.future_value_solution.html) then
+    /// Calculate a future value using [future_value_solution](future_value/fn.future_value_solution.html) then
     /// view the period-by-period details.
     /// ```
     /// // The initial investment is $10,000.12, the interest rate is 1.5% per month, and the
@@ -314,7 +311,7 @@ impl TvmSolution {
     ///
     /// Money amounts are rounded to four decimal places, rates to six places, and numbers are
     /// formatted similar to Rust constants such as "10_000.0322". For more control over formatting
-    /// use [print_table_locale](struct.TvmSolution.html#method.print_table_locale).
+    /// use [print_table_locale](#method.print_table_locale).
     ///
     /// # Examples
     /// ```
@@ -340,7 +337,7 @@ impl TvmSolution {
     /// calculation, with options for formatting numbers.
     ///
     /// For a simpler method that doesn't require a locale use
-    /// [print_table](struct.TvmSolution.html#method.print_table).
+    /// [print_table](#method.print_table).
     ///
     /// # Arguments
     /// * `locale` - A locale constant from the `num-format` crate such as `Locale::en` for English
@@ -392,7 +389,7 @@ impl TvmSolution {
     /// Returns the API that was used to make the calculation, either [core](../../core/index.html),
     /// [academic](../../academic/index.html), or [excel](../../excel/index.html). To test for the
     /// enum variant use functions like
-    /// [CalculationType::is_academic](../enum.CalculationType.html#method.is_academic).
+    /// [CalculationType::is_academic](../../enum.CalculationType.html#method.is_academic).
     pub fn calculation_type(&self) -> &CalculationType {
         &self.calculation_type
     }
@@ -403,7 +400,7 @@ impl TvmSolution {
     }
 
     /// Returns the periodic rate which is a calculated value if this `TvmSolution` struct is the
-    /// result of a call to [rate_solution](fn.rate_solution.html) and otherwise is one of the
+    /// result of a call to [rate_solution](rate/fn.rate_solution.html) and otherwise is one of the
     /// input values.
     pub fn rate(&self) -> f64 {
         self.rate
@@ -411,7 +408,7 @@ impl TvmSolution {
 
     /// Returns the number of periods as a whole number. This is a calculated value if this
     /// `TvmSolution` struct is the result of a call to
-    /// [periods_solution](fn.periods_solution.html) and otherwise it's one of the input values.
+    /// [periods_solution](periods/fn.periods_solution.html) and otherwise it's one of the input values.
     /// If the value was calculated the true result may not have been a whole number so this is that
     /// number rounded away from zero.
     pub fn periods(&self) -> u32 {
@@ -420,20 +417,20 @@ impl TvmSolution {
 
     /// Returns the number of periods as a floating point number. This is a calculated value if this
     /// `TvmSolution` struct is the result of a call to
-    /// [periods_solution](fn.periods_solution.html) and otherwise it's one of the input values.
+    /// [periods_solution](periods/fn.periods_solution.html) and otherwise it's one of the input values.
     pub fn fractional_periods(&self) -> f64 {
         self.fractional_periods
     }
 
     /// Returns the present value which is a calculated value if this `TvmSolution` struct is the
-    /// result of a call to [present_value_solution](fn.present_value_solution.html) and otherwise
+    /// result of a call to [present_value_solution](present_value/fn.present_value_solution.html) and otherwise
     /// is one of the input values.
     pub fn present_value(&self) -> f64 {
         self.present_value
     }
 
     /// Returns the future value which is a calculated value if this `TvmSolution` struct is the
-    /// result of a call to [future_value_solution](fn.future_value_solution.html) and otherwise
+    /// result of a call to [future_value_solution](future_value/fn.future_value_solution.html) and otherwise
     /// is one of the input values.
     pub fn future_value(&self) -> f64 {
         self.future_value
@@ -461,7 +458,7 @@ impl TvmSolution {
     /// switching between normal and continuous compounding or changing the number of compounding periods.
     ///
     /// This works for any Time Value of Money result, not only those that calculated a periodic
-    /// rate. For instance, we can call [present_value_solution](fn.present_value_solution.html) to
+    /// rate. For instance, we can call [present_value_solution](present_value/fn.present_value_solution.html) to
     /// calculate a present value then call this method to calculate a new rate while changing to
     /// continuous compounding.
     ///
@@ -474,7 +471,7 @@ impl TvmSolution {
     ///
     /// # Examples
     /// For an example of changing the compounding periods see
-    /// [future_value_solution](struct.TvmSolution.html#method.future_value_solution).
+    /// [future_value_solution](#method.future_value_solution).
     ///
     /// Calculate a future value then use that as a basis for calculating a new rate by switching
     /// to continuous compounding.
@@ -669,7 +666,7 @@ impl TvmSolution {
     ///
     /// # Examples
     /// For a more detailed example with a related function see
-    /// [future_value_vary_periods](./struct.TvmSolution.html#method.future_value_vary_periods)
+    /// [future_value_vary_periods](#method.future_value_vary_periods)
     /// ```
     /// // Calculate the future value of an investment that starts at $83.33 and grows 20% in one
     /// // year using simple compounding. Note that we're going to examine how the present value
@@ -735,7 +732,7 @@ impl TvmSolution {
     /// a variety of compounding periods, with an option for continuous compounding.
     ///
     /// For an overview of the effects of increasing the compounding periods or using continuous
-    /// compounding see [Continuous Compounding](./index.html#continuous-compounding). The first two
+    /// compounding see [Continuous Compounding](index.html#continuous-compounding). The first two
     /// graphs in that section use the same setup as the example below.
     ///
     /// # Arguments
@@ -825,7 +822,7 @@ impl TvmSolution {
     }
 
     /// Compares the results of two Time Value of Money calculations, such as from two calls to
-    /// [future_value_solution](./fn.future_value_solution.html) with different periodic rates.
+    /// [future_value_solution](future_value/fn.future_value_solution.html) with different periodic rates.
     ///
     /// It's fine to compare calculations that solved for different variables such as a rate
     /// calculation vs. a present value calculation.
@@ -833,14 +830,14 @@ impl TvmSolution {
     /// The first solution is labeled "a" and the second is "b". Money amounts are rounded to four
     /// decimal places, rates to six places, and numbers are formatted similar to Rust constants
     /// such as "10_000.0322". For more control over formatting use
-    /// [print_ab_comparison_locale](struct.TvmSolution.html#method.print_ab_comparison_locale).
+    /// [print_ab_comparison_locale](#method.print_ab_comparison_locale).
     ///
     /// # Arguments
     /// * `other` - The second `TvmSolution` in the comparison which will be labeled "b".
     /// * `include_period_detail` - If true, print the month-by-month details of both calculations.
     ///
     /// # Examples
-    /// See [future_value_solution](./struct.TvmSolution.html#method.future_value_solution).
+    /// See [future_value_solution](#method.future_value_solution).
     /// The last line of the example calls this method and the text output is shown right after
     /// that.
     pub fn print_ab_comparison(&self, other: &TvmSolution, include_period_detail: bool)
@@ -849,7 +846,7 @@ impl TvmSolution {
     }
 
     /// Compares the results of two Time Value of Money calculations, such as from two calls to
-    /// [rate_solution](./fn.rate_solution.html) with different numbers of periods. The method has
+    /// [rate_solution](rate/fn.rate_solution.html) with different numbers of periods. The method has
     /// options for formatting numbers.
     ///
     /// It's fine to compare calculations that solved for different variables such as a rate
@@ -858,7 +855,7 @@ impl TvmSolution {
     /// The first solution is labeled "a" and the second is "b".
     ///
     /// For a simpler method that doesn't require locale information use
-    /// [print_ab_comparison](struct.TvmSolution.html#method.print_ab_comparison).
+    /// [print_ab_comparison](#method.print_ab_comparison).
     ///
     /// # Arguments
     /// * `other` - The second `TvmSolution` in the comparison which will be labeled "b".
@@ -1022,7 +1019,7 @@ impl TvmScheduleSolution {
 
     /// Returns the present value which is a calculated value if this `TvmScheduleSolution` struct
     /// is the result of a call to
-    /// [present_value_schedule_solution](fn.present_value_schedule_solution.html)
+    /// [present_value_schedule_solution](present_value/fn.present_value_schedule_solution.html)
     /// and otherwise is one of the input values.
     pub fn present_value(&self) -> f64 {
         self.present_value
@@ -1030,7 +1027,7 @@ impl TvmScheduleSolution {
 
     /// Returns the future value which is a calculated value if this `TvmScheduleSolution` struct
     /// is the result of a call to
-    /// [future_value_schedule_solution](fn.future_value_schedule_solution.html)
+    /// [future_value_schedule_solution](future_value/fn.future_value_schedule_solution.html)
     /// and otherwise is one of the input values.
     pub fn future_value(&self) -> f64 {
         self.future_value
@@ -1041,7 +1038,7 @@ impl TvmScheduleSolution {
     ///
     /// # Examples
     /// Print the period-by-period details of a future value calculation. Uses
-    /// [future_value_schedule_solution](fn.future_value_schedule_solution.html).
+    /// [future_value_schedule_solution](future_value/fn.future_value_schedule_solution.html).
     /// ```
     /// use finance_solution::core::*;
     ///
@@ -1099,14 +1096,14 @@ impl TvmSeries {
     /// series wouldn't make much sense on its own.
     ///
     /// # Arguments
-    /// * `predicate` - A function that takes a reference to a [TvmPeriod](./struct.TvmPeriod.html)
+    /// * `predicate` - A function that takes a reference to a [TvmPeriod](struct.TvmPeriod.html)
     /// and returns a boolean. For instance the closure `|entry| entry.rate() < 0.0` would return
     /// `true` for all entries with a negative rate, and those entries would be included in the new
     /// series.
     ///
     /// # Examples
-    /// Both of the examples for [series](./struct.TvmSolution.html#method.series) end with a call
-    /// to this method.
+    /// The example for [series](struct.TvmSolution.html#method.series) ends with a call to this
+    /// method.
     ///
     pub fn filter<P>(&self, predicate: P) -> Self
         where P: Fn(&&TvmPeriod) -> bool
@@ -1120,7 +1117,7 @@ impl TvmSeries {
     ///
     /// Money amounts are rounded to four decimal places, rates to six places, and numbers are
     /// formatted similar to Rust constants such as "10_000.0322". For more control over formatting
-    /// use [print_table_locale](struct.TvmSeries.html#method.print_table_locale).
+    /// use [print_table_locale](#method.print_table_locale).
     ///
     /// # Examples
     /// ```
@@ -1155,8 +1152,7 @@ impl TvmSeries {
     /// Prints a formatted table with the period-by-period details and options for formatting
     /// numbers.
     ///
-    /// For a simpler method that doesn't require a locale use
-    /// [print_table](struct.TvmSeries.html#method.print_table).
+    /// For a simpler method that doesn't require a locale use [print_table](#method.print_table).
     ///
     /// # Arguments
     /// * `locale` - A locale constant from the `num-format` crate such as `Locale::en` for English
@@ -1215,7 +1211,7 @@ impl TvmSeries {
     }
 
     /// Compares the results of two series, such as the results from two calls to
-    /// [future_value_solution](./fn.future_value_solution.html) with different periodic rates.
+    /// [future_value_solution](future_value/fn.future_value_solution.html) with different periodic rates.
     ///
     /// It's fine to compare calculations that solved for different variables such as a rate
     /// calculation vs. a present value calculation.
@@ -1224,13 +1220,13 @@ impl TvmSeries {
     /// series end in "_b". Money amounts are rounded to four decimal places, rates to six places,
     /// and numbers are formatted similar to Rust constants such as "10_000.0322". For more control
     /// over formatting use
-    /// [print_ab_comparison_locale](struct.TvmSeries.html#method.print_ab_comparison_locale).
+    /// [print_ab_comparison_locale](#method.print_ab_comparison_locale).
     ///
     /// # Arguments
     /// * `other` - The second `TvmSeries` in the comparison which will be labeled "b".
     ///
     /// # Examples
-    /// See [print_ab_comparison_locale](struct.TvmSeries.html#method.print_ab_comparison_locale).
+    /// See [print_ab_comparison_locale](#method.print_ab_comparison_locale).
     /// The only difference is that there are no `locale` and `precision` arguments so the last line
     /// would simply be:
     /// ```
@@ -1247,7 +1243,7 @@ impl TvmSeries {
     }
 
     /// Compares the results of two series such as the results from two calls to
-    /// [rate_solution](./fn.rate_solution.html) with different future values. The method has
+    /// [rate_solution](rate/fn.rate_solution.html) with different future values. The method has
     /// options for formatting numbers.
     ///
     /// It's fine to compare calculations that solved for different variables such as a rate
@@ -1255,7 +1251,7 @@ impl TvmSeries {
     ///
     /// The column headers for values from the first series end in "_a" and those for the second
     /// series end in "_b". For a simpler method that doesn't require locale information use
-    /// [print_ab_comparison](struct.TvmSeries.html#method.print_ab_comparison).
+    /// [print_ab_comparison](#method.print_ab_comparison).
     ///
     /// # Arguments
     /// * `other` - The second `TvmSeries` in the comparison which will be labeled "b".
@@ -1377,7 +1373,7 @@ impl TvmPeriod {
 
     /// Returns a text version of the formula used to calculate the value for the current period.
     /// The formula includes variables such as r for the rate. For the formula with actual values
-    /// rather than variables call `formula`.
+    /// rather than variables call [formula](#method.formula).
     pub fn symbolic_formula(&self) -> &str {
         &self.symbolic_formula
     }
