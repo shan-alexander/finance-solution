@@ -16,7 +16,7 @@ pub mod future_value_annuity;
 pub use future_value_annuity::*;
 
 pub mod payment;
-#[doc(inline)]
+// #[doc(inline)]
 pub use payment::*;
 
 pub mod present_value_annuity;

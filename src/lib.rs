@@ -85,14 +85,17 @@ pub mod convert_rate;
 
 pub mod core;
 
-pub mod excel;
+// pub mod excel;
 
 pub mod round;
-#[doc(inline)]
+// #[doc(inline)]
 pub use round::*;
 
 use std::cmp::max;
 use std::fmt::{Debug, Formatter, Error, Display};
+
+#[allow(dead_code)]
+const NONE_LABEL: &str = "{none}";
 
 /*
 #[macro_export]
@@ -536,6 +539,24 @@ pub(crate) fn print_ab_comparison_values_int(field_name: &str, value_a: i128, va
     );
 }
 
+#[allow(dead_code)]
+pub(crate) fn print_ab_comparison_values_opt_int(field_name: &str, value_a: Option<i128>, value_b: Option<i128>, locale: Option<&num_format::Locale>) {
+    let value_a = match value_a {
+        Some(value) => format_int_locale_opt(value, locale),
+        None => NONE_LABEL.to_string(),
+    };
+    let value_b = match value_b {
+        Some(value) => format_int_locale_opt(value, locale),
+        None => NONE_LABEL.to_string(),
+    };
+    print_ab_comparison_values_internal(
+        field_name,
+        &value_a,
+        &value_b,
+        true
+    );
+}
+
 pub(crate) fn print_ab_comparison_values_float(field_name: &str, value_a: f64, value_b: f64, locale: Option<&num_format::Locale>, precision: Option<usize>) {
     print_ab_comparison_values_internal(
         field_name,
@@ -577,6 +598,10 @@ fn precision_opt_set_min(precision: Option<usize>, min: usize) -> Option<usize> 
         Some(precision) => precision.max(min),
         None => 6,
     })
+}
+
+pub(crate) fn round_fractional_periods(fractional_periods: f64) -> u32 {
+    round_4(fractional_periods).ceil() as u32
 }
 
 #[derive(Debug)]
