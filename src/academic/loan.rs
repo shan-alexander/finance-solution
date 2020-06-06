@@ -13,6 +13,7 @@
 use crate::*;
 use crate::core::cashflow::payment::*;
 use crate::core::cashflow::CashflowPeriod;
+use crate::core::CashflowSeries;
 
 // const RUN_INVARIANTS: bool = false;
 
@@ -410,7 +411,7 @@ impl LoanSolution {
         print_ab_comparison_values_string("formula", &self.formula, &other.formula);
         print_ab_comparison_values_string("symbolic_formula", &self.symbolic_formula, &other.symbolic_formula);
         if include_period_detail {
-            self.series().payment_series.print_ab_comparison_locale_opt(&other.series().payment_series, include_running_totals, include_remaining_amounts, locale, precision);
+            self.series().cashflow_series.print_ab_comparison_locale_opt(&other.series().cashflow_series, include_running_totals, include_remaining_amounts, locale, precision);
         }
     }
 
@@ -573,13 +574,13 @@ impl LoanSolution {
 
 #[derive(Clone, Debug)]
 pub struct LoanSeries {
-    payment_series: PaymentSeries,
+    cashflow_series: CashflowSeries,
 }
 
 impl LoanSeries {
-    pub(crate) fn new(payment_series: PaymentSeries) -> Self {
+    pub(crate) fn new(cashflow_series: CashflowSeries) -> Self {
         Self {
-            payment_series,
+            cashflow_series,
         }
     }
 
@@ -603,17 +604,17 @@ impl LoanSeries {
     pub fn filter<P>(&self, predicate: P) -> Self
         where P: Fn(&&CashflowPeriod) -> bool
     {
-        Self::new(PaymentSeries::new(self.payment_series.filter(predicate)))
+        Self::new(self.cashflow_series.filter(predicate))
     }
 
     pub fn print_table(&self)
     {
-        self.payment_series.print_table_locale_opt(true, true, None, Some(2));
+        self.cashflow_series.print_table_locale_opt(true, true, None, Some(2));
     }
 
     pub fn print_table_custom(&self, include_running_totals: bool, include_remaining_amounts: bool)
     {
-        self.payment_series.print_table_locale_opt(include_running_totals, include_remaining_amounts, None, Some(2));
+        self.cashflow_series.print_table_locale_opt(include_running_totals, include_remaining_amounts, None, Some(2));
     }
 
     pub fn print_table_locale(
@@ -622,7 +623,7 @@ impl LoanSeries {
         include_remaining_amounts: bool,
         locale: &num_format::Locale,
         precision: usize) {
-        self.payment_series.print_table_locale(include_running_totals, include_remaining_amounts, locale, precision);
+        self.cashflow_series.print_table_locale(include_running_totals, include_remaining_amounts, locale, precision);
     }
 
     pub fn print_ab_comparison(&self, other: &LoanSeries) {
@@ -635,7 +636,7 @@ impl LoanSeries {
         include_running_totals: bool,
         include_remaining_amounts: bool)
     {
-        self.payment_series.print_ab_comparison_locale_opt(&other.payment_series, include_running_totals, include_remaining_amounts, None, Some(2));
+        self.cashflow_series.print_ab_comparison_locale_opt(&other.cashflow_series, include_running_totals, include_remaining_amounts, None, Some(2));
     }
 
     pub fn print_ab_comparison_locale(
@@ -645,7 +646,7 @@ impl LoanSeries {
         include_remaining_amounts: bool,
         locale: &num_format::Locale,
         precision: usize) {
-        self.payment_series.print_ab_comparison_locale(&other.payment_series, include_running_totals, include_remaining_amounts, locale, precision);
+        self.cashflow_series.print_ab_comparison_locale(&other.cashflow_series, include_running_totals, include_remaining_amounts, locale, precision);
     }
 
     /// Groups the month-by-month details of the loan into one entry per year. This is mostly used
@@ -659,7 +660,7 @@ impl LoanSeries {
     ///     .print_table();
     /// ```
     pub fn summarize_by_year(&self) -> Self {
-        LoanSeries::new(PaymentSeries::new(self.payment_series.summarize(12)))
+        LoanSeries::new(self.cashflow_series.summarize(12))
     }
 
 }

@@ -1,11 +1,14 @@
+#![warn(missing_docs)]
+
 //! **Payment calculations.** What is the periodic payment needed for an amortized loan and how much
 //! of that is interest or principal?
 //! 
-//! For most common usages, we recommend the [`payment_solution`](./fn.payment_solution.html) function, which provides a better debugging experience and additional functionality.
+//! For most common usages, we recommend the [payment_solution](fn.payment_solution.html) function
+//! which provides a better debugging experience and additional functionality.
 //!
 //! ## Example
 //! ```
-//! let (rate, periods, present_value, future_value, due_at_beginning) = (0.034, 10, 1000, 0, false);
+//! let (rate, periods, present_value, future_value, due_at_beginning) = (0.034, 6, -1_000, 0, false);
 //! let solution = finance_solution::core::payment_solution(rate, periods, present_value, future_value, due_at_beginning);
 //! dbg!(&solution);
 //! ```
@@ -27,24 +30,20 @@
 //! ```
 //! ```
 //! # use finance_solution::core::*;
-//! # let (rate, periods, present_value, future_value, due_at_beginning) = (0.034, 10, 1000, 0, false);
-//! # let solution = payment_solution(rate, periods, present_value, future_value, due_at_beginning);
+//! let (rate, periods, present_value, future_value, due_at_beginning) = (0.034, 6, -1_000, 0, false);
+//! let solution = finance_solution::core::payment_solution(rate, periods, present_value, future_value, due_at_beginning);
 //! dbg!(solution.print_table());
 //! ```
 //! Outputs to terminal:
 //! ```text
-//! period  payments_to_date  payments_remaining  principal  principal_to_date  principal_remaining  interest  interest_to_date  interest_remaining
-//! ------  ----------------  ------------------  ---------  -----------------  -------------------  --------  ----------------  ------------------
-//!     1         -119.6361         -1_076.7248   -85.6361           -85.6361            -914.3639  -34.0000          -34.0000           -162.3609
-//!     2         -239.2722           -957.0887   -88.5477          -174.1838            -825.8162  -31.0884          -65.0884           -131.2725
-//!     3         -358.9083           -837.4526   -91.5583          -265.7421            -734.2579  -28.0778          -93.1661           -103.1947
-//!     4         -478.5443           -717.8165   -94.6713          -360.4134            -639.5866  -24.9648         -118.1309            -78.2300
-//!     5         -598.1804           -598.1804   -97.8901          -458.3036            -541.6964  -21.7459         -139.8768            -56.4840
-//!     6         -717.8165           -478.5443  -101.2184          -559.5220            -440.4780  -18.4177         -158.2945            -38.0663
-//!     7         -837.4526           -358.9083  -104.6598          -664.1818            -335.8182  -14.9763         -173.2708            -23.0901
-//!     8         -957.0887           -239.2722  -108.2183          -772.4001            -227.5999  -11.4178         -184.6886            -11.6723
-//!     9       -1_076.7248           -119.6361  -111.8977          -884.2978            -115.7022   -7.7384         -192.4270             -3.9339
-//!     10      -1_196.3609             -0.0000  -115.7022          -999.0000              -0.0000   -3.9339         -196.3609              0.0000
+//! period   payment  payments_to_date  payments_remaining  principal  principal_to_date  principal_remaining  interest  interest_to_date  interest_remaining
+//! ------  --------  ----------------  ------------------  ---------  -----------------  -------------------  --------  ----------------  ------------------
+//!      1  187.0522          187.0522            935.2611   153.0522           153.0522             846.9478   34.0000           34.0000             88.3133
+//!      2  187.0522          374.1044            748.2089   158.2560           311.3082             688.6918   28.7962           62.7962             59.5171
+//!      3  187.0522          561.1567            561.1567   163.6367           474.9449             525.0551   23.4155           86.2117             36.1016
+//!      4  187.0522          748.2089            374.1044   169.2003           644.1453             355.8547   17.8519          104.0636             18.2497
+//!      5  187.0522          935.2611            187.0522   174.9532           819.0984             180.9016   12.0991          116.1627              6.1507
+//!      6  187.0522        1_122.3133              0.0000   180.9016           999.0000               0.0000    6.1507          122.3133              0.0000
 //! ```
 //! # Payment Due at the Beginning vs. the End of the Period
 //!
@@ -87,9 +86,12 @@
 //! > <img src="http://i.upmath.me/svg/170%2C460.53%20%3D%20%7B172%2C165.14%20%5Cover%201.01%7D" />
 //!
 //! which is a relief. By the way, A/B comparisons like the table above are built into the crate.
-//! See [CashflowSolution::print_ab_comparison](././cashflow/struct.CashflowSolution.html#method.print_ab_comparison).
+//! See [print_ab_comparison](struct.PaymentSolution.html#method.print_ab_comparison).
 //!
 //! # Positive and Negative Amounts
+//!
+//! This module uses the bookkeeping convention found in Google Sheets and Excel in which flows of
+//! money in opposite directions have opposite signs.
 //!
 //! The example above was an amortized loan for $100,000 at 12% annual interest for ten years. Thus
 //! the present value (the original principal of the loan) was $10,000 and the future value (the
@@ -166,20 +168,17 @@
 
 use log::{warn};
 
-// Import needed for the function references in the Rustdoc comments.
-// #[allow(unused_imports)]
-// use crate::*;
 use std::ops::Deref;
 
 use super::*;
 
-const RUN_PAYMENT_INVARIANTS: bool = false;
+const RUN_PAYMENT_INVARIANTS: bool = true;
 
+/// **A record of an amortized loan calculation** with options for producing the period-by-period details.
+///
+/// It's produced by calling [payment_solution](fn.payment_solution.html).
 #[derive(Clone, Debug)]
 pub struct PaymentSolution(CashflowSolution);
-
-#[derive(Clone, Debug)]
-pub struct PaymentSeries(CashflowSeries);
 
 impl PaymentSolution {
     pub(crate) fn new(solution: CashflowSolution) -> Self {
@@ -187,15 +186,12 @@ impl PaymentSolution {
             0: solution,
         }
     }
-    pub fn print_table(&self) {
-        self.series().print_table(true, true)
-    }
 
     /// Calculates the period-by-period details of a payment calculation including how the payment
     /// is broken down between principal and interest.
     ///
     /// # Examples
-    /// An amortized loan. Uses [`payment`].
+    /// An amortized loan. Uses [payment](fn.payment.html).
     /// ```
     /// use finance_solution::core::*;
     ///
@@ -230,21 +226,21 @@ impl PaymentSolution {
     ///
     /// // Print the period detail numbers as a formatted table.
     /// let include_running_totals = true;
-    /// let include_remaining_amounts = true;
+    /// let include_remaining_amounts = false;
     /// let locale = num_format::Locale::en;
     /// let precision = 2; // Two decimal places.
     /// series.print_table_locale(include_running_totals, include_remaining_amounts, &locale, precision);
     ///
     /// // As above but print only the last period for every yeor of the loan, that is periods 12, 24,
-    /// // 36, 48, and 60; and use default formatting.
+    /// // 36, 48, and 60; and show all columns with default number formatting.
     /// series
     ///     .filter(|x| x.period() % 12 == 0)
-    ///     .print_table(include_running_totals, include_remaining_amounts);
+    ///     .print_table();
     /// ```
-    pub fn series(&self) -> PaymentSeries {
+    pub fn series(&self) -> CashflowSeries {
         let mut series = vec![];
         if self.future_value() != 0.0 {
-            return PaymentSeries::new(CashflowSeries::new(series));
+            return CashflowSeries::new(series);
         }
         let mut payments_to_date = 0.0;
         let mut principal_to_date = 0.0;
@@ -275,36 +271,360 @@ impl PaymentSolution {
                                                interest_to_date, interest_remaining, &formula, &symbolic_formula);
             series.push(entry);
         }
-        let payment_series = PaymentSeries::new(CashflowSeries::new(series));
+        let series = CashflowSeries::new(series);
         if RUN_PAYMENT_INVARIANTS {
-            payment_series.invariant(self);
+            payment_series_invariant(self, &series);
         }
-        payment_series
+        series
     }
 
-    pub fn print_ab_comparison(
-        &self,
-        other: &PaymentSolution,
-        include_running_totals: bool,
-        include_remaining_amounts: bool)
-    {
-        self.print_ab_comparison_locale_opt(other, include_running_totals, include_remaining_amounts, None, None);
+    /// Prints a formatted table with the period-by-period details of a loan calculation.
+    ///
+    /// For more control over which columns appear use
+    /// [print_table_custom](#method.print_table_custom).
+    ///
+    /// Money amounts are rounded to four decimal places, rates to six places, and numbers are
+    /// formatted similar to Rust constants such as "10_000.0322". For more control over formatting
+    /// use [print_table_locale](#method.print_table_locale) which also includes options for which
+    /// columns appear.
+    ///
+    /// # Examples
+    /// ```
+    /// let (rate, periods, present_value, future_value, due_at_beginning) = (0.01, 60, -10_000, 0.0, false);
+    /// finance_solution::core::payment_solution(rate, periods, present_value, future_value, due_at_beginning)
+    ///     .print_table();
+    /// ```
+    /// Output (only the first three and last three rows shown):
+    /// ```text
+    /// period   payment  payments_to_date  payments_remaining  principal  principal_to_date  principal_remaining  interest  interest_to_date  interest_remaining
+    /// ------  --------  ----------------  ------------------  ---------  -----------------  -------------------  --------  ----------------  ------------------
+    ///      1  222.4445          222.4445         13_124.2241   122.4445           122.4445           9_877.5555  100.0000          100.0000          3_246.6686
+    ///      2  222.4445          444.8890         12_901.7797   123.6689           246.1134           9_753.8866   98.7756          198.7756          3_147.8931
+    ///      3  222.4445          667.3334         12_679.3352   124.9056           371.0190           9_628.9810   97.5389          296.3144          3_050.3542
+    /// ...
+    ///     58  222.4445       12_901.7797            444.8890   215.9024         9_561.6965             438.3035    6.5421        3_340.0832              6.5855
+    ///     59  222.4445       13_124.2241            222.4445   218.0614         9_779.7579             220.2421    4.3830        3_344.4662              2.2024
+    ///     60  222.4445       13_346.6686              0.0000   220.2421         9_999.0000               0.0000    2.2024        3_346.6686              0.0000
+    /// ```
+    pub fn print_table(&self) {
+        self.series().print_table()
     }
 
-    pub fn print_ab_comparison_locale(
+    /// Prints a formatted table with the period-by-period details of a loan calculation with
+    /// options for which columns appear.
+    ///
+    /// For a simpler method that includes all columns use [print_table](#method.print_table). To
+    /// control number formatting use [print_table_locale](#method.print_table_locale).
+    ///
+    /// # Arguments
+    /// * `include_running_totals` - If true include the columns "payments_to_date",
+    /// "principal_to_date", and "interest_to_date".
+    /// * `include_remaining_amounts` - If true include the columns "payments_remaining",
+    /// "principal_remaining", and "interest_remaining".
+    ///
+    /// # Examples
+    /// ```
+    /// let include_running_totals = true;
+    /// let include_remaining_amounts = false;
+    /// let (rate, periods, present_value, future_value, due_at_beginning) = (0.01, 60, -10_000, 0.0, false);
+    /// finance_solution::core::payment_solution(rate, periods, present_value, future_value, due_at_beginning)
+    ///     .print_table_custom(include_running_totals, include_remaining_amounts);
+    /// ```
+    /// Output (only the first three and last three rows shown):
+    /// ```text
+    /// period   payment  payments_to_date  principal  principal_to_date  interest  interest_to_date
+    /// ------  --------  ----------------  ---------  -----------------  --------  ----------------
+    ///      1  222.4445          222.4445   122.4445           122.4445  100.0000          100.0000
+    ///      2  222.4445          444.8890   123.6689           246.1134   98.7756          198.7756
+    ///      3  222.4445          667.3334   124.9056           371.0190   97.5389          296.3144
+    /// ...
+    ///     58  222.4445       12_901.7797   215.9024         9_561.6965    6.5421        3_340.0832
+    ///     59  222.4445       13_124.2241   218.0614         9_779.7579    4.3830        3_344.4662
+    ///     60  222.4445       13_346.6686   220.2421         9_999.0000    2.2024        3_346.6686
+    /// ```
+    pub fn print_table_custom(&self, include_running_totals: bool, include_remaining_amounts: bool) {
+        self.series().print_table_custom(include_running_totals, include_remaining_amounts);
+    }
+
+    /// Prints a formatted table with the period-by-period details of a loan calculation with
+    /// options for which columns appear and how numbers are formatted.
+    ///
+    /// For a simpler method that doesn't require a locale but still has optional columns use
+    /// [print_table_custom](#method.print_table_custom). The simplest table method is
+    /// [print_table](#method.print_table) which prints all columns with default formatting.
+    ///
+    /// # Arguments
+    /// * `include_running_totals` - If true include the columns "payments_to_date",
+    /// "principal_to_date", and "interest_to_date".
+    /// * `include_remaining_amounts` - If true include the columns "payments_remaining",
+    /// "principal_remaining", and "interest_remaining".
+    /// * `locale` - A locale constant from the `num-format` crate such as `Locale::en` for English
+    /// or `Locale::vi` for Vietnamese. The locale determines the thousands separator and decimal
+    /// separator.
+    /// * `precision` - The number of decimal places for money amounts. Rates will appear with at
+    /// least six places regardless of this argument.
+    ///
+    /// # Examples
+    /// ```
+    /// // Exclude running totals columns but include remaining amounts columns.
+    /// let include_running_totals = false;
+    /// let include_remaining_amounts = true;
+    ///
+    /// // English formatting with "," for the thousands separator and "." for the decimal
+    /// // separator.
+    /// let locale = finance_solution::core::num_format::Locale::en;
+    ///
+    /// // Show money amounts to two decimal places.
+    /// let precision = 2;
+    ///
+    /// let (rate, periods, present_value, future_value, due_at_beginning) = (0.01, 60, -10_000, 0.0, false);
+    /// finance_solution::core::payment_solution(rate, periods, present_value, future_value, due_at_beginning)
+    ///     .print_table_locale(include_running_totals, include_remaining_amounts, &locale, precision);
+    /// ```
+    /// Output (only the first three and last three rows shown):
+    /// ```text
+    /// period  payment  payments_remaining  principal  principal_remaining  interest  interest_remaining
+    /// ------  -------  ------------------  ---------  -------------------  --------  ------------------
+    ///      1   222.44           13,124.22     122.44             9,877.56    100.00            3,246.67
+    ///      2   222.44           12,901.78     123.67             9,753.89     98.78            3,147.89
+    ///      3   222.44           12,679.34     124.91             9,628.98     97.54            3,050.35
+    /// ...
+    ///     58   222.44              444.89     215.90               438.30      6.54                6.59
+    ///     59   222.44              222.44     218.06               220.24      4.38                2.20
+    ///     60   222.44                0.00     220.24                 0.00      2.20                0.00
+    /// ```
+    pub fn print_table_locale(
         &self,
-        other: &PaymentSolution,
         include_running_totals: bool,
         include_remaining_amounts: bool,
         locale: &num_format::Locale,
         precision: usize)
     {
-        self.print_ab_comparison_locale_opt(other, include_running_totals, include_remaining_amounts, Some(locale), Some(precision));
+        self.series().print_table_locale(include_running_totals, include_remaining_amounts, locale, precision);
+    }
+
+    /// Compares the results of two loan calculations such as from two calls to
+    /// [payment_solution](fn.payment_solution.html) with different rates.
+    ///
+    /// The values from the first calculation are labeled "a" and those from the second calculation
+    /// are labeled "b". To control which columns appear in the table use
+    /// [print_ab_comparison_custom](#method.print_ab_comparison_custom).
+    ///
+    /// Money amounts are rounded to four decimal places, rates to six places, and numbers are
+    /// formatted similar to Rust constants such as "10_000.0322". For more control over formatting
+    /// use [print_ab_comparison_locale](#method.print_ab_comparison_locale).
+    ///
+    /// # Arguments
+    /// * `other` - The second `PaymentSolution` in the comparison which will be labeled "b".
+    /// * `include_period_detail` - If true, print the month-by-month details of both loans.
+    ///
+    /// # Examples
+    /// ```
+    /// use finance_solution::core::*;
+    ///
+    /// // Both loan calculations will have the same rate, periods, present value, and future value.
+    /// let (rate, periods, present_value, future_value) = (0.01, 60, -10_000, 0.0);
+    ///
+    /// // The first loan has the payment due at the end of the period, which is the usual case.
+    /// let due_at_beginning = false;
+    /// let solution_due_at_end = payment_solution(rate, periods, present_value, future_value, due_at_beginning);
+    ///
+    /// // The second loan has the payment due at the beginning of the period, and is otherwise the same
+    /// // as the first loan.
+    /// let due_at_beginning = true;
+    /// let solution_due_at_beginning = payment_solution(rate, periods, present_value, future_value, due_at_beginning);
+    ///
+    /// let include_period_detail = true;
+    /// solution_due_at_end.print_ab_comparison(&solution_due_at_beginning, include_period_detail);
+    /// ```
+    /// Output (in the table only the first three and last three rows are shown):
+    /// ```text
+    /// rate: 0.010000
+    /// periods: 60
+    /// present_value: -10_000.0000
+    /// future_value: 0.0000
+    /// due_at_beginning a: false
+    /// due_at_beginning b: true
+    /// payment a: 222.4445
+    /// payment b: 220.2421
+    /// sum_of_payments a: 13_346.6686
+    /// sum_of_payments b: 13_214.5234
+    /// sum_of_interest a: 3_346.6686
+    /// sum_of_interest b: 3_214.5234
+    /// formula a: 222.4445 = (-10000.0000 * 1.010000^60 * -0.010000) / (1.010000^60 - 1)
+    /// formula b: 220.2421 = (-10000.0000 * 1.010000^60 * -0.010000) / ((1.010000^60 - 1) * 1.010000)
+    /// symbolic_formula a: pmt = (pv * (1 + r)^n * -r) / ((1 + r)^n - 1)
+    /// symbolic_formula b: pmt = (pv * (1 + r)^n * -r) / (((1 + r)^n - 1) * (1 + r))
+    ///
+    /// period  payment_a  payment_b  pmt_to_date_a  pmt_to_date_b  pmt_remaining_a  pmt_remaining_b  principal_a  principal_b  princ_to_date_a  princ_to_date_b  princ_remaining_a  princ_remaining_b  interest_a  interest_b  int_to_date_a  int_to_date_b  int_remaining_a  int_remaining_b
+    /// ------  ---------  ---------  -------------  -------------  ---------------  ---------------  -----------  -----------  ---------------  ---------------  -----------------  -----------------  ----------  ----------  -------------  -------------  ---------------  ---------------
+    ///      1   222.4445   220.2421       222.4445       220.2421      13_124.2241      12_994.2813     122.4445     220.2421         122.4445         220.2421         9_877.5555         9_779.7579    100.0000      0.0000       100.0000         0.0000       3_246.6686       3_214.5234
+    ///      2   222.4445   220.2421       444.8890       440.4841      12_901.7797      12_774.0393     123.6689     122.4445         246.1134         342.6865         9_753.8866         9_657.3135     98.7756     97.7976       198.7756        97.7976       3_147.8931       3_116.7258
+    ///      3   222.4445   220.2421       667.3334       660.7262      12_679.3352      12_553.7972     124.9056     123.6689         371.0190         466.3555         9_628.9810         9_533.6445     97.5389     96.5731       296.3144       194.3707       3_050.3542       3_020.1527
+    /// ...
+    ///     58   222.4445   220.2421    12_901.7797    12_774.0393         444.8890         440.4841     215.9024     213.7648       9_561.6965       9_566.0361           438.3035           433.9639      6.5421      6.4773     3_340.0832     3_208.0031           6.5855           6.5203
+    ///     59   222.4445   220.2421    13_124.2241    12_994.2813         222.4445         220.2421     218.0614     215.9024       9_779.7579       9_781.9386           220.2421           218.0614      4.3830      4.3396     3_344.4662     3_212.3428           2.2024           2.1806
+    ///     60   222.4445   220.2421    13_346.6686    13_214.5234           0.0000           0.0000     220.2421     218.0614       9_999.0000       9_999.0000             0.0000             0.0000      2.2024      2.1806     3_346.6686     3_214.5234           0.0000           0.0000
+    /// ```
+    pub fn print_ab_comparison(&self, other: &PaymentSolution, include_period_detail: bool)
+    {
+        self.print_ab_comparison_locale_opt(other, include_period_detail, true, true, None, None);
+    }
+
+    /// Compares the results of two loan calculations with options for which columns appear in the
+    /// table. For a simpler method that includes all columns use
+    /// [print_ab_comparison](#method.print_ab_comparison).
+    ///
+    /// The values from the first calculation are labeled "a" and those from the second calculation
+    /// are labeled "b".
+    ///
+    /// Money amounts are rounded to four decimal places, rates to six places, and numbers are
+    /// formatted similar to Rust constants such as "10_000.0322". For more control over formatting
+    /// use [print_ab_comparison_locale](#method.print_ab_comparison_locale).
+    ///
+    /// # Arguments
+    /// * `other` - The second `PaymentSolution` in the comparison which will be labeled "b".
+    /// * `include_period_detail` - If true, print the month-by-month details of both loans.
+    /// * `include_running_totals` - If true include "payments_to_date_a" (from the first
+    /// calculation), "payments_to_date_b" (from the second calculation), and similar columns
+    /// in the table.
+    /// * `include_remaining_amounts` - If true include "principal_remaining_a" (from the first
+    /// calculation), "principal_remaining_b" (from the second calculation), and similar columns
+    /// in the table.
+    ///
+    /// # Examples
+    /// For a more detailed example including more of the output text see
+    /// [print_ab_comparison](#method.print_ab_comparison).
+    /// ```
+    /// use finance_solution::core::*;
+    ///
+    /// // The first loan has the payment due at the end of the period, and the second loan has the
+    /// // payment due at the beginning. All other inputs are the same.
+    /// let (rate, periods, present_value, future_value) = (0.01, 60, -10_000, 0.0);
+    /// let solution_due_at_end = payment_solution(rate, periods, present_value, future_value, false);
+    /// let solution_due_at_beginning = payment_solution(rate, periods, present_value, future_value, true);
+    ///
+    /// // In the table don't show the running totals or remaining amounts columns.
+    /// let include_period_detail = true;
+    /// let include_running_totals = false;
+    /// let include_remaining_amounts = false;
+    /// solution_due_at_end.print_ab_comparison_custom(&solution_due_at_beginning, include_period_detail, include_running_totals, include_remaining_amounts);
+    /// ```
+    /// In the output below only the first three and last three rows of the table are shown. For a
+    /// more complete example see [print_ab_comparison](#method.print_ab_comparison). Note that in
+    /// the first period there's no interest due for the second loan that has payments at the
+    /// beginning of the period (the "interest_b" column on the right ) and after that the interest
+    /// is always slightly lower than for the first loan with payments at the end of the period.
+    /// ```text
+    /// period  payment_a  payment_b  principal_a  principal_b  interest_a  interest_b
+    /// ------  ---------  ---------  -----------  -----------  ----------  ----------
+    ///      1   222.4445   220.2421     122.4445     220.2421    100.0000      0.0000
+    ///      2   222.4445   220.2421     123.6689     122.4445     98.7756     97.7976
+    ///      3   222.4445   220.2421     124.9056     123.6689     97.5389     96.5731
+    /// ...
+    ///     58   222.4445   220.2421     215.9024     213.7648      6.5421      6.4773
+    ///     59   222.4445   220.2421     218.0614     215.9024      4.3830      4.3396
+    ///     60   222.4445   220.2421     220.2421     218.0614      2.2024      2.1806
+    /// ```
+    pub fn print_ab_comparison_custom(&self, other: &PaymentSolution, include_period_detail: bool, include_running_totals: bool, include_remaining_amounts: bool)
+    {
+        self.print_ab_comparison_locale_opt(other, include_period_detail, include_running_totals, include_remaining_amounts, None, None);
+    }
+
+    /// Compares the results of two loan calculations with options for which columns appear in the
+    /// table and for how numbers should be formatted. For a simpler method that doesn't require a
+    /// locale use [print_ab_comparison_custom](#method.print_ab_comparison_custom). The simplest
+    /// A/B comparison method that displays all columns with default formatting is
+    /// [print_ab_comparison](#method.print_ab_comparison).
+    ///
+    /// The values from the first calculation are labeled "a" and those from the second calculation
+    /// are labeled "b".
+    ///
+    /// # Arguments
+    /// * `other` - The second `PaymentSolution` in the comparison which will be labeled "b".
+    /// * `include_period_detail` - If true, print the month-by-month details of both loans.
+    /// * `include_running_totals` - If true include "payments_to_date_a" (from the first
+    /// calculation), "payments_to_date_b" (from the second calculation), and similar columns
+    /// in the table.
+    /// * `include_remaining_amounts` - If true include "principal_remaining_a" (from the first
+    /// calculation), "principal_remaining_b" (from the second calculation), and similar columns
+    /// in the table.
+    /// * `locale` - A locale constant from the `num-format` crate such as `Locale::en` for English
+    /// or `Locale::vi` for Vietnamese. The locale determines the thousands separator and decimal
+    /// separator.
+    /// * `precision` - The number of decimal places for money amounts. Rates will appear with at
+    /// least six places regardless of this argument.
+    ///
+    /// # Examples
+    /// ```
+    /// use finance_solution::core::*;
+    ///
+    /// // The first loan has the payment due at the end of the period, and the second loan has the
+    /// // payment due at the beginning. All other inputs are the same.
+    /// let (rate, periods, present_value, future_value) = (0.01, 60, -10_000, 0.0);
+    /// let solution_end = payment_solution(rate, periods, present_value, future_value, false);
+    /// let solution_beginning = payment_solution(rate, periods, present_value, future_value, true);
+    ///
+    /// // Show the table and include the remaining amounts columns but but don't include the running
+    /// // totals columns.
+    /// let period_detail = true;
+    /// let running_totals = false;
+    /// let remaining_amounts = true;
+    ///
+    /// // English formatting with "," for the thousands separator and "." for the decimal
+    /// // separator.
+    /// let locale = finance_solution::core::num_format::Locale::en;
+    ///
+    /// // Show money amounts with two decimal places.
+    /// let precision = 2;
+    ///
+    /// solution_end.print_ab_comparison_locale(&solution_beginning, period_detail, running_totals, remaining_amounts, &locale, precision);
+    /// ```
+    /// Output (in the table only the first three and last three rows are shown):
+    /// ```text
+    /// rate: 0.010000
+    /// periods: 60
+    /// present_value: -10,000.00
+    /// future_value: 0.00
+    /// due_at_beginning a: false
+    /// due_at_beginning b: true
+    /// payment a: 222.44
+    /// payment b: 220.24
+    /// sum_of_payments a: 13,346.67
+    /// sum_of_payments b: 13,214.52
+    /// sum_of_interest a: 3,346.67
+    /// sum_of_interest b: 3,214.52
+    /// formula a: 222.4445 = (-10000.0000 * 1.010000^60 * -0.010000) / (1.010000^60 - 1)
+    /// formula b: 220.2421 = (-10000.0000 * 1.010000^60 * -0.010000) / ((1.010000^60 - 1) * 1.010000)
+    /// symbolic_formula a: pmt = (pv * (1 + r)^n * -r) / ((1 + r)^n - 1)
+    /// symbolic_formula b: pmt = (pv * (1 + r)^n * -r) / (((1 + r)^n - 1) * (1 + r))
+    ///
+    /// period  payment_a  payment_b  pmt_remaining_a  pmt_remaining_b  principal_a  principal_b  princ_remaining_a  princ_remaining_b  interest_a  interest_b  int_remaining_a  int_remaining_b
+    /// ------  ---------  ---------  ---------------  ---------------  -----------  -----------  -----------------  -----------------  ----------  ----------  ---------------  ---------------
+    ///      1     222.44     220.24        13,124.22        12,994.28       122.44       220.24           9,877.56           9,779.76      100.00        0.00         3,246.67         3,214.52
+    ///      2     222.44     220.24        12,901.78        12,774.04       123.67       122.44           9,753.89           9,657.31       98.78       97.80         3,147.89         3,116.73
+    ///      3     222.44     220.24        12,679.34        12,553.80       124.91       123.67           9,628.98           9,533.64       97.54       96.57         3,050.35         3,020.15
+    /// ...
+    ///     58     222.44     220.24           444.89           440.48       215.90       213.76             438.30             433.96        6.54        6.48             6.59             6.52
+    ///     59     222.44     220.24           222.44           220.24       218.06       215.90             220.24             218.06        4.38        4.34             2.20             2.18
+    ///     60     222.44     220.24             0.00             0.00       220.24       218.06               0.00               0.00        2.20        2.18             0.00             0.00
+    /// ```
+    pub fn print_ab_comparison_locale(
+        &self,
+        other: &PaymentSolution,
+        include_period_detail: bool,
+        include_running_totals: bool,
+        include_remaining_amounts: bool,
+        locale: &num_format::Locale,
+        precision: usize)
+    {
+        self.print_ab_comparison_locale_opt(other, include_period_detail, include_running_totals, include_remaining_amounts, Some(locale), Some(precision));
     }
 
     fn print_ab_comparison_locale_opt(
         &self,
         other: &PaymentSolution,
+        include_period_detail: bool,
         include_running_totals: bool,
         include_remaining_amounts: bool,
         locale: Option<&num_format::Locale>,
@@ -323,7 +643,9 @@ impl PaymentSolution {
         print_ab_comparison_values_string("formula", &self.formula(), &other.formula());
         print_ab_comparison_values_string("symbolic_formula", &self.symbolic_formula(), &other.symbolic_formula());
 
-        self.series().print_ab_comparison_locale_opt(&other.series(), include_running_totals, include_remaining_amounts, locale, precision);
+        if include_period_detail {
+            self.series().print_ab_comparison_locale_opt(&other.series(), include_running_totals, include_remaining_amounts, locale, precision);
+        }
     }
 
     fn invariant(&self) {
@@ -374,98 +696,82 @@ impl Deref for PaymentSolution {
     }
 }
 
-impl PaymentSeries {
-    pub(crate) fn new(series: CashflowSeries) -> Self {
-        Self {
-            0: series,
-        }
+fn payment_series_invariant(solution: &PaymentSolution, series: &CashflowSeries) {
+    let periods = solution.periods();
+    if solution.future_value() != 0.0 {
+        assert_eq!(0, series.len());
+    } else {
+        assert_eq!(periods as usize, series.len());
     }
-
-    fn invariant(&self, solution: &CashflowSolution) {
-        let periods = solution.periods();
-        if solution.future_value() != 0.0 {
-            assert_eq!(0, self.len());
+    if series.len() == 0 {
+        return;
+    }
+    let rate = solution.rate();
+    let present_value = solution.present_value();
+    let due_at_beginning = solution.due_at_beginning();
+    assert!(solution.calculated_field().is_payment());
+    let payment = solution.payment();
+    let sum_of_payments = solution.sum_of_payments();
+    let sum_of_interest = solution.sum_of_interest();
+    let mut running_sum_of_payments = 0.0;
+    let mut running_sum_of_principal = 0.0;
+    let mut running_sum_of_interest = 0.0;
+    let mut previous_principal: Option<f64> = None;
+    let mut previous_interest: Option<f64> = None;
+    for (index, entry) in series.iter().enumerate() {
+        running_sum_of_payments += entry.payment();
+        running_sum_of_principal += entry.principal();
+        running_sum_of_interest += entry.interest();
+        assert_eq!(rate, entry.rate());
+        assert_eq!(index + 1, entry.period() as usize);
+        assert_eq!(payment, entry.payment());
+        assert_approx_equal!(running_sum_of_payments, entry.payments_to_date());
+        assert_approx_equal!(sum_of_payments - running_sum_of_payments, entry.payments_remaining());
+        if present_value == 0.0 || rate == 0.0 || (due_at_beginning && index == 0) {
+            assert_eq!(payment, entry.principal());
+            assert_eq!(0.0, entry.interest());
+        } else if present_value > 0.0 {
+            assert!(entry.principal() < 0.0);
+            assert!(entry.interest() < 0.0);
         } else {
-            assert_eq!(periods as usize, self.len());
+            // if entry.principal() <= 0.0 {
+            //     bg!(&solution, &series[..10]);
+            // }
+            assert!(entry.principal() > 0.0);
+            assert!(entry.interest() > 0.0);
         }
-        if self.len() == 0 {
-            return;
+        if index > 0 && previous_interest.unwrap() != 0.0 {
+            // Compared to the previous period the principal should be further from zero and the
+            // interest should be further toward zero. There's a special case where payments are due
+            // at the beginning and we're currently on the second entry. In this case the previous
+            // entry will have had zero interest and a principal matching the full payment amount,
+            // so the two assertions below wouldn't make sense.
+            assert!(entry.principal().abs() > previous_principal.unwrap().abs());
+            assert!(entry.interest().abs() < previous_interest.unwrap().abs());
         }
-        let rate = solution.rate();
-        let present_value = solution.present_value();
-        let due_at_beginning = solution.due_at_beginning();
-        assert!(solution.calculated_field().is_payment());
-        let payment = solution.payment();
-        let sum_of_payments = solution.sum_of_payments();
-        let sum_of_interest = solution.sum_of_interest();
-        let mut running_sum_of_payments = 0.0;
-        let mut running_sum_of_principal = 0.0;
-        let mut running_sum_of_interest = 0.0;
-        let mut previous_principal: Option<f64> = None;
-        let mut previous_interest: Option<f64> = None;
-        for (index, entry) in self.iter().enumerate() {
-            running_sum_of_payments += entry.payment();
-            running_sum_of_principal += entry.principal();
-            running_sum_of_interest += entry.interest();
-            assert_eq!(rate, entry.rate());
-            assert_eq!(index + 1, entry.period() as usize);
-            assert_eq!(payment, entry.payment());
-            assert_approx_equal!(running_sum_of_payments, entry.payments_to_date());
-            assert_approx_equal!(sum_of_payments - running_sum_of_payments, entry.payments_remaining());
-            if present_value == 0.0 || rate == 0.0 || (due_at_beginning && index == 0) {
-                assert_eq!(payment, entry.principal());
-                assert_eq!(0.0, entry.interest());
-            } else if present_value > 0.0 {
-                assert!(entry.principal() < 0.0);
-                assert!(entry.interest() < 0.0);
-            } else {
-                // if entry.principal() <= 0.0 {
-                //     bg!(&solution, &series[..10]);
-                // }
-                assert!(entry.principal() > 0.0);
-                assert!(entry.interest() > 0.0);
-            }
-            if index > 0 && previous_interest.unwrap() != 0.0 {
-                // Compared to the previous period the principal should be further from zero and the
-                // interest should be further toward zero. There's a special case where payments are due
-                // at the beginning and we're currently on the second entry. In this case the previous
-                // entry will have had zero interest and a principal matching the full payment amount,
-                // so the two assertions below wouldn't make sense.
-                assert!(entry.principal().abs() > previous_principal.unwrap().abs());
-                assert!(entry.interest().abs() < previous_interest.unwrap().abs());
-            }
-            assert_approx_equal!(running_sum_of_principal, entry.principal_to_date());
-            assert_approx_equal!(-present_value - running_sum_of_principal, entry.principal_remaining());
-            assert_approx_equal!(running_sum_of_interest, entry.interest_to_date());
-            assert_approx_equal!(sum_of_interest - running_sum_of_interest, entry.interest_remaining());
-            assert_approx_equal!(payment, entry.principal() + entry.interest());
-            if index == periods as usize - 1 {
-                // This is the entry for the last period.
-                assert_approx_equal!(0.0, entry.payments_remaining());
-                // if !is_approx_equal!(0.0, entry.principal_remaining()) {
-                //     bg!(&solution, &series[..10], &series[250], &series[490..500]);
-                //}
-                assert_approx_equal!(0.0, entry.principal_remaining());
-                assert_approx_equal!(0.0, entry.interest_remaining());
-            }
-            assert!(!entry.formula().is_empty());
-            assert!(!entry.symbolic_formula().is_empty());
+        assert_approx_equal!(running_sum_of_principal, entry.principal_to_date());
+        assert_approx_equal!(-present_value - running_sum_of_principal, entry.principal_remaining());
+        assert_approx_equal!(running_sum_of_interest, entry.interest_to_date());
+        assert_approx_equal!(sum_of_interest - running_sum_of_interest, entry.interest_remaining());
+        assert_approx_equal!(payment, entry.principal() + entry.interest());
+        if index == periods as usize - 1 {
+            // This is the entry for the last period.
+            assert_approx_equal!(0.0, entry.payments_remaining());
+            // if !is_approx_equal!(0.0, entry.principal_remaining()) {
+            //     bg!(&solution, &series[..10], &series[250], &series[490..500]);
+            //}
+            assert_approx_equal!(0.0, entry.principal_remaining());
+            assert_approx_equal!(0.0, entry.interest_remaining());
+        }
+        assert!(!entry.formula().is_empty());
+        assert!(!entry.symbolic_formula().is_empty());
 
-            previous_principal = Some(entry.principal());
-            previous_interest = Some(entry.interest());
-        }
-        assert_approx_equal!(running_sum_of_payments, sum_of_payments);
-        assert_approx_equal!(running_sum_of_principal, -present_value);
-        assert_approx_equal!(running_sum_of_interest, sum_of_interest);
+        previous_principal = Some(entry.principal());
+        previous_interest = Some(entry.interest());
     }
-}
-
-impl Deref for PaymentSeries {
-    type Target = CashflowSeries;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
+    assert_approx_equal!(running_sum_of_payments, sum_of_payments);
+    assert_approx_equal!(running_sum_of_principal, -present_value);
+    assert_approx_equal!(running_sum_of_interest, sum_of_interest);
 }
 
 /// Returns the payment needed at the end of every period for an amortized loan.
@@ -783,7 +1089,7 @@ pub fn payment<P, F>(rate: f64, periods: u32, present_value: P, future_value: F,
 /// println!();
 /// series
 ///     .filter(|entry| entry.period() % 12 == 0)
-///     .print_table(include_running_totals, include_remaining_amounts);
+///     .print_table_custom(include_running_totals, include_remaining_amounts);
 ///
 /// // Print a table starting at the first period where at least 95% of the interest has been paid
 /// // off, and round all dollar amounts to whole numbers by passing zero as the second argument to
@@ -977,17 +1283,17 @@ mod tests {
     */
 
     #[allow(dead_code)]
-    fn run_payment_invariants(solution: &PaymentSolution, series: &PaymentSeries) {
+    fn run_payment_invariants(solution: &PaymentSolution, series: &CashflowSeries) {
         // Display the solution and series only if either one fails its invariant.
         let result = std::panic::catch_unwind(|| {
             solution.invariant();
-            series.invariant(solution);
+            payment_series_invariant(solution, series);
         });
         //bg!(&result);
         if result.is_err() {
             dbg!(&solution, &series);
             solution.invariant();
-            series.invariant(solution);
+            payment_series_invariant(solution, series);
         }
     }
 

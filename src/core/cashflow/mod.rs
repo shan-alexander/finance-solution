@@ -278,7 +278,11 @@ impl CashflowSeries {
         CashflowSeries::new(series)
     }
 
-    pub fn print_table(
+    pub fn print_table(&self) {
+        self.print_table_locale_opt(true, true, None, None);
+    }
+
+    pub fn print_table_custom(
         &self,
         include_running_totals: bool,
         include_remaining_amounts: bool)

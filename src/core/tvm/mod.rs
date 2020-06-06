@@ -3,6 +3,12 @@
 //! The internal module which supports the solution struct for the family of Time-value-of-money equations
 //! which do not involve payments. For example, future value, present value, rate, and periods.
 //!
+//! # Positive and Negative Amounts
+//!
+//! This module uses the bookkeeping convention found in Google Sheets and Excel in which flows of
+//! money in opposite directions have opposite signs. This means if the present value is positive
+//! the future value is negative or vice versa.
+//!
 //! # Continuous Compounding
 //!
 //! Most of the functions in this module have an option for continuous compounding. In each case the
