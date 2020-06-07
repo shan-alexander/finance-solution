@@ -395,9 +395,10 @@ impl TvmSolution {
         &self.calculated_field
     }
 
-    /// Returns the API that was used to make the calculation, either [core](../../core/index.html),
-    /// [academic](../../academic/index.html), or [excel](../../excel/index.html). To test for the
-    /// enum variant use functions like
+    // Returns the API that was used to make the calculation, either [core](../../core/index.html),
+    // [academic](../../academic/index.html), or [excel](../../excel/index.html). To test for the
+    /// Returns the API that was used to make the calculation, either [core](../../core/index.html)
+    /// or [academic](../../academic/index.html). To test for the enum variant use functions like
     /// [CalculationType::is_academic](../../enum.CalculationType.html#method.is_academic).
     pub fn calculation_type(&self) -> &CalculationType {
         &self.calculation_type
@@ -448,7 +449,8 @@ impl TvmSolution {
     /// Returns a text version of the formula used to calculate the result which may have been the
     /// periodic rate, number of periods, present value, or future value depending on which function
     /// was called. The formula includes the actual values rather than variable names. For the
-    /// formula with variables such as r for rate call [symbolic_formula](#method.symbolic_formula).
+    /// formula with variables such as "r" for rate call
+    /// [symbolic_formula](#method.symbolic_formula).
     pub fn formula(&self) -> &str {
         &self.formula
     }

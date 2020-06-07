@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 //! **Net Present Value calculations**. Given a series of cashflows, an initial investment (the cashflow at time0), a number of periods such as years, and fixed
 //! or varying interest rates, what is the net value of the series of cashflows right now?
 //!

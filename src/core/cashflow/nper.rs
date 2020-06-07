@@ -1,4 +1,6 @@
-//! **Number of periods calculations for scenarios with payments.** Returns the number of periods required for a Present Value to achieve a Future Value with a given set 
+#![allow(missing_docs)]
+
+//! **Number of periods calculations for scenarios with payments.** Returns the number of periods required for a Present Value to achieve a Future Value with a given set
 //! of annuities (payments) at a specified periodic rate. The only module still in beta.
 
 use log::{warn};

@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 #![allow(unused_imports)]
 
 //! **Present value _annuity_ calculations**. Given a series of cashflows, a number of periods such as years, and fixed
@@ -15,17 +16,17 @@
 //! Outputs to terminal:
 //! ```text
 //! {
-//! calculated_field: PresentValueAnnuity,
-//! rate: 0.034,
-//! periods: 10,
-//! present_value: -4179.341028819192,
-//! future_value: -5838.660162934531,
-//! due_at_beginning: false,
-//! payment: 500.0,
-//! sum_of_payments: 5000.0,
-//! sum_of_interest: -5018.001191753723,
-//! formula: "-500 * ((1. - (1. / (1. + 0.034)).powf(10)) / 0.034) * (1 + (0.034 * 0));",
-//! symbolic_formula: "-annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate) * (1. + (rate * due));",
+//!     calculated_field: PresentValueAnnuity,
+//!     rate: 0.034,
+//!     periods: 10,
+//!     present_value: -4179.341028819192,
+//!     future_value: -5838.660162934531,
+//!     due_at_beginning: false,
+//!     payment: 500.0,
+//!     sum_of_payments: 5000.0,
+//!     sum_of_interest: -5018.001191753723,
+//!     formula: "-500 * ((1. - (1. / (1. + 0.034)).powf(10)) / 0.034) * (1 + (0.034 * 0));",
+//!     symbolic_formula: "-annuity * ((1. - (1. / (1. + rate)).powf(periods)) / rate) * (1. + (rate * due));",
 //! }
 //! ```
 //!  

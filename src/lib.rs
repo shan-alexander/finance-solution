@@ -205,8 +205,12 @@ macro_rules! repeating_vec {
     }};
 }
 
-/// Enumeration used for the `calculation_type` field in [TvmSolution](./core/struct.TvmSolution.html) and [TvmScheduleSolution](./core/struct.TvmScheduleSolution.html) to identify
-/// if the formula used is for bookkeeping (matches Excel) or for academic (matches textbooks) purposes.
+/// Enumeration used for the `calculation_type` field in
+/// [TvmSolution](./core/struct.TvmSolution.html) and
+/// [TvmScheduleSolution](./core/struct.TvmScheduleSolution.html) to indicate whether the
+/// calculation uses the bookkeeping convention where flows of money in opposite directions have
+/// opposite signs (`CalculationType::Core` and `::Excel`), or the textbook convention
+/// (`CalculationType::Academic`) where signs are generally positive.
 #[derive(Clone, Debug)]
 pub enum CalculationType {
     Core,
@@ -233,6 +237,7 @@ impl CalculationType {
         }
     }
 
+    /*
     /// Returns true if the variant is `TvmCalculationType::Excel` indicating that the calculation
     /// was done using one of the functions in the [excel](./excel/index.html) module.
     pub fn is_excel(&self) -> bool {
@@ -241,6 +246,7 @@ impl CalculationType {
             _ => false,
         }
     }
+    */
 }
 
 impl Display for CalculationType {

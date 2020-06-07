@@ -190,6 +190,9 @@ impl PaymentSolution {
     /// Calculates the period-by-period details of a payment calculation including how the payment
     /// is broken down between principal and interest.
     ///
+    /// # Panics
+    /// For now this method is not implemented for the case where the future value is nonzero.
+    ///
     /// # Examples
     /// An amortized loan. Uses [payment](fn.payment.html).
     /// ```
@@ -238,10 +241,9 @@ impl PaymentSolution {
     ///     .print_table();
     /// ```
     pub fn series(&self) -> CashflowSeries {
+        assert!(is_approx_equal!(0.0, self.future_value()), "This method cannot be called for a loan with a nonzero future value.");
+
         let mut series = vec![];
-        if self.future_value() != 0.0 {
-            return CashflowSeries::new(series);
-        }
         let mut payments_to_date = 0.0;
         let mut principal_to_date = 0.0;
         let mut interest_to_date = 0.0;
@@ -777,57 +779,12 @@ fn payment_series_invariant(solution: &PaymentSolution, series: &CashflowSeries)
 /// Returns the payment needed at the end of every period for an amortized loan.
 ///
 /// Related functions:
-/// * To calculate the payment needed at the end of each period and return a struct that shows the
-/// interest, the formula, and optionally the period-by-period values use [`payment_solution`].
+/// * To calculate the payment and return a struct that shows the interest, the formula, and
+/// optionally the period-by-period values use [payment_solution](fn.payment_solution.html).
 ///
-/// In the typical case where there's a present value and the future value is zero, and the payment
-/// is due at the end of the period, the formula is:
-/// > payment = ((present_value * (1 + rate)<sup>periods</sup>) * -rate) / ((1 + rate)<sup>periods</sup> - 1)
+/// # Formulas
 ///
-/// or with the more commonly used variables:
-/// > pmt = ((pv * (1 + r)<sup>n</sup>) * -r) / ((1 + r)<sup>n</sup> - 1)
-///
-/// Often the payment is shown as `A` and the present value is `P` for principal.
-///
-/// If there's a future value and the present value is zero, the formula is:
-/// > payment = (future_value * -rate) / ((1 + rate)<sup>periods</sup> - 1)
-///
-/// or:
-/// > pmt = (fv * -r) / ((1 + r)<sup>n</sup> - 1)
-///
-/// If both present value and future value are nonzero the formula is:
-/// > payment = (((present_value * (1 + rate)<sup>periods</sup>) + future_value) * -rate) / ((1 + rate)<sup>periods</sup> - 1)
-///
-/// or:
-/// > pmt = (((pv * (1 + r)<sup>n</sup>) + fv) * -r) / ((1 + r)<sup>n</sup> - 1)
-///
-/// If the payment is due at the beginning of the period, the only difference is that the payment
-/// is divided by (1 + rate). In our formulas this means multiplying the denominator by (1 + rate)
-/// so in the typical case where there's a present value and the future value is zero, the formula
-/// is:
-/// > payment = ((present_value * (1 + rate)<sup>periods</sup>) * -rate) / (((1 + rate)<sup>periods</sup> - 1) * (1 + rate))
-///
-/// or with the more commonly used variables:
-/// > pmt = ((pv * (1 + r)<sup>n</sup>) * -r) / (((1 + r)<sup>n</sup> - 1) * (1 + r))",
-///
-/// This is nearly the same formula as the one for payments due at the end of the period. The
-/// relationship between the two formulas is that:
-/// > payment_due(x) = payment(x) / (1 + rate)
-///
-/// Thus the payment is slightly smaller if it's due at the beginning of the month since the
-/// principal is paid down a bit faster.
-///
-/// If there's a future value and the present value is zero, the formula is:
-/// > payment = (future_value * -rate) / (((1 + rate)<sup>periods</sup> - 1) * (1 + rate))
-///
-/// or:
-/// > pmt = (fv * -r) / (((1 + r)<sup>n</sup> - 1) * (1 + r))
-///
-/// If both present value and future value are nonzero the formula is:
-/// > payment = (((present_value * (1 + rate)<sup>periods</sup>) + future_value) * -rate) / (((1 + rate)<sup>periods</sup> - 1) * (1 + rate))
-///
-/// or:
-/// > pmt = (((pv * (1 + r)<sup>n</sup>) + fv) * -r) / (((1 + r)<sup>n</sup> - 1) * (1 + r))
+/// See the [payment module](index.html#formulas) documentation.
 ///
 /// # Arguments
 /// * `rate` - The interest rate per period, expressed as a floating point number. For instance
@@ -947,54 +904,9 @@ pub fn payment<P, F>(rate: f64, periods: u32, present_value: P, future_value: F,
 /// * To calculate the payment as a simple number instead of a struct when the payment is due at the
 /// end of each period use [payment](./fn.payment.html).
 ///
-/// In the typical case where there's a present value and the future value is zero, and the payment
-/// is due at the end of the period, the formula is:
-/// > payment = ((present_value * (1 + rate)<sup>periods</sup>) * -rate) / ((1 + rate)<sup>periods</sup> - 1)
+/// # Formulas
 ///
-/// or with the more commonly used variables:
-/// > pmt = ((pv * (1 + r)<sup>n</sup>) * -r) / ((1 + r)<sup>n</sup> - 1)
-///
-/// Often the payment is shown as `A` and the present value is `P` for principal.
-///
-/// If there's a future value and the present value is zero, the formula is:
-/// > payment = (future_value * -rate) / ((1 + rate)<sup>periods</sup> - 1)
-///
-/// or:
-/// > pmt = (fv * -r) / ((1 + r)<sup>n</sup> - 1)
-///
-/// If both present value and future value are nonzero the formula is:
-/// > payment = (((present_value * (1 + rate)<sup>periods</sup>) + future_value) * -rate) / ((1 + rate)<sup>periods</sup> - 1)
-///
-/// or:
-/// > pmt = (((pv * (1 + r)<sup>n</sup>) + fv) * -r) / ((1 + r)<sup>n</sup> - 1)
-///
-/// If the payment is due at the beginning of the period, the only difference is that the payment
-/// is divided by (1 + rate). In our formulas this means multiplying the denominator by (1 + rate)
-/// so in the typical case where there's a present value and the future value is zero, the formula
-/// is:
-/// > payment = ((present_value * (1 + rate)<sup>periods</sup>) * -rate) / (((1 + rate)<sup>periods</sup> - 1) * (1 + rate))
-///
-/// or with the more commonly used variables:
-/// > pmt = ((pv * (1 + r)<sup>n</sup>) * -r) / (((1 + r)<sup>n</sup> - 1) * (1 + r))",
-///
-/// This is nearly the same formula as the one for payments due at the end of the period. The
-/// relationship between the two formulas is that:
-/// > payment_due(x) = payment(x) / (1 + rate)
-///
-/// Thus the payment is slightly smaller if it's due at the beginning of the month since the
-/// principal is paid down a bit faster.
-///
-/// If there's a future value and the present value is zero, the formula is:
-/// > payment = (future_value * -rate) / (((1 + rate)<sup>periods</sup> - 1) * (1 + rate))
-///
-/// or:
-/// > pmt = (fv * -r) / (((1 + r)<sup>n</sup> - 1) * (1 + r))
-///
-/// If both present value and future value are nonzero the formula is:
-/// > payment = (((present_value * (1 + rate)<sup>periods</sup>) + future_value) * -rate) / (((1 + rate)<sup>periods</sup> - 1) * (1 + rate))
-///
-/// or:
-/// > pmt = (((pv * (1 + r)<sup>n</sup>) + fv) * -r) / (((1 + r)<sup>n</sup> - 1) * (1 + r))
+/// See the [payment module](index.html#formulas) documentation.
 ///
 /// # Arguments
 /// * `rate` - The interest rate per period, expressed as a floating point number. For instance

@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 #![allow(unused_imports)]
 
 //! The internal module which supports the solution struct for the Cashflow family of functions (e.g., `payment`).
@@ -36,6 +37,7 @@ pub use nper::*;
 ///
 /// It can be checked with [CashflowSolution::calculated_field](././struct.CashflowSolution.html#method.calculated_field).
 #[derive(Clone, Copy, Debug, Hash, PartialEq)]
+#[allow(missing_docs)]
 pub enum CashflowVariable {
     PresentValueAnnuity,
     PresentValueAnnuityDue,
@@ -46,7 +48,7 @@ pub enum CashflowVariable {
 }
 
 impl CashflowVariable {
-    /// Returns true if the variant is CashflowVariable::PresentValueAnnuity indicating that the
+    /// Returns true if the variant is `CashflowVariable::PresentValueAnnuity` indicating that the
     /// solution was created by calculating the present value of an annuity with the payment due at
     /// the end of the month.
     pub fn is_present_value_annuity(&self) -> bool {
@@ -56,7 +58,7 @@ impl CashflowVariable {
         }
     }
 
-    /// Returns true if the variant is CashflowVariable::FutureValueAnnuity indicating that the
+    /// Returns true if the variant is `CashflowVariable::FutureValueAnnuity` indicating that the
     /// solution was created by calculating the future value of an annuity with the payment due at
     /// the end of the month.
     pub fn is_future_value_annuity(&self) -> bool {
@@ -66,8 +68,8 @@ impl CashflowVariable {
         }
     }
 
-    /// Returns true if the variant is CashflowVariable::Payment indicating that the solution
-    /// was created in a call to [`payment_solution`].
+    /// Returns true if the variant is `CashflowVariable::Payment` indicating that the solution
+    /// was created in a call to [payment_solution](payment/fn.payment_solution.html).
     pub fn is_payment(&self) -> bool {
         match self {
             CashflowVariable::Payment => true,
@@ -75,7 +77,7 @@ impl CashflowVariable {
         }
     }
 
-    /// Returns true if the variant is CashflowVariable::PresentValueAnnuityDue indicating that
+    /// Returns true if the variant is `CashflowVariable::PresentValueAnnuityDue` indicating that
     /// the solution was created by calculating the present value of an annuity with the payment due
     /// at the beginning of the month.
     pub fn is_present_value_annuity_due(&self) -> bool {
@@ -85,7 +87,7 @@ impl CashflowVariable {
         }
     }
 
-    /// Returns true if the variant is CashflowVariable::FutureValueAnnuityDue indicating that
+    /// Returns true if the variant is `CashflowVariable::FutureValueAnnuityDue` indicating that
     /// the solution was created by calculating the future value of an annuity with the payment due
     /// at the beginning of the month.
     pub fn is_future_value_annuity_due(&self) -> bool {
@@ -95,7 +97,7 @@ impl CashflowVariable {
         }
     }
 
-    /// Returns true if the variant is CashflowVariable::NetPresentValue indicating that the
+    /// Returns true if the variant is `CashflowVariable::NetPresentValue` indicating that the
     /// solution was created by calculating a net present value.
     pub fn is_net_present_value(&self) -> bool {
         match self {
@@ -118,8 +120,8 @@ impl fmt::Display for CashflowVariable {
     }
 }
 
-/// **A record of a cash flow calculation** such as payment, net present value, or the present value or
-/// future value of an annuity.
+/// **A record of a cash flow calculation** such as payment, net present value, or the present value
+/// or future value of an annuity.
 #[derive(Clone, Debug)]
 pub struct CashflowSolution {
     calculated_field: CashflowVariable,
@@ -166,75 +168,81 @@ impl CashflowSolution {
         }
     }
 
+    /// Returns a variant of [CashflowVariable](enum.CashflowVariable.html) showing which value was
+    /// calculated such as the payment or future value. To test for the enum variant use functions
+    /// like [CashflowVariable::is_payment](enum.CashflowVariable.html#method.is_payment).
+    ///
+    /// # Examples
+    /// ```
+    /// // Calculate a payment.
+    /// let solution = finance_solution::core::payment_solution(0.015,  24, 25_000, 0, false);
+    /// assert!(solution.calculated_field().is_payment());
+    /// ```
     pub fn calculated_field(&self) -> &CashflowVariable {
         &self.calculated_field
     }
 
+    /// Returns the periodic rate which may be a calculated value or may have been one of the inputs
+    /// depending on which function was used to create this struct.
     pub fn rate(&self) -> f64 {
         self.rate
     }
 
+    /// Returns the number of periods which may be a calculated value or may have been one of the
+    /// inputs depending on which function was used to create this struct.
     pub fn periods(&self) -> u32 {
         self.periods
     }
 
+    /// Returns the present value which may be a calculated value or may have been one of the inputs
+    /// depending on which function was used to create this struct.
     pub fn present_value(&self) -> f64 {
         self.present_value
     }
 
+    /// Returns the future value which may be a calculated value or may have been one of the inputs
+    /// depending on which function was used to create this struct.
     pub fn future_value(&self) -> f64 {
         self.future_value
     }
 
+    /// Returns true if the payment is due at the beginning of the period. The typical case is that
+    /// the payment is due at the end.
     pub fn due_at_beginning(&self) -> bool {
         self.due_at_beginning
     }
 
+    /// Returns the periodic payment which may be a calculated value or may have been one of the
+    /// inputs depending on which function was used to create this struct.
     pub fn payment(&self) -> f64 {
         self.payment
     }
 
+    /// Returns the sum of the periodic payments. This is simply [payment](#method.payment) times
+    /// [periods](#method.periods).
     pub fn sum_of_payments(&self) -> f64 {
         self.sum_of_payments
     }
 
+    /// Returns the sum of the portion of the periodic payments that went to interest.
     pub fn sum_of_interest(&self) -> f64 {
         self.sum_of_interest
     }
 
+    /// Returns a text version of the formula used to calculate the result. The formula includes the
+    /// actual values rather than variable names. For the formula with variables such as "r" for
+    /// rate call [symbolic_formula](#method.symbolic_formula).
     pub fn formula(&self) -> &str {
         &self.formula
     }
 
+    /// Returns a text version of the formula used to calculate the result using variables such as
+    /// "n" for the number of periods. For the formula with the actual numbers rather than variables
+    /// call [formula](#method.formula).
     pub fn symbolic_formula(&self) -> &str {
         &self.symbolic_formula
     }
-
 }
-
-/*
-impl Debug for CashflowSolution {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{{{}{}{}{}{}{}{}{}{}{}{}\n}}",
-               &format!("\n\tcalculated_field: {}", self.calculated_field.to_string().magenta()),
-               &format!("\n\trate (r): {}", format!("{:?}", self.rate).yellow()),
-               &format!("\n\tperiods (n): {}", self.periods.to_string().yellow()),
-               &format!("\n\tpresent_value (pv): {}", self.present_value),
-               &format!("\n\tfuture_value (fv): {}", self.future_value),
-               &format!("\n\tdue_at_beginning: {}", self.due_at_beginning),
-               //    if self.calculated_field.is_net_present_value() { format!("\n\tcashflow: {}", self.cashflow.to_string().red()) } else { "".to_string() },
-               //    if self.calculated_field.is_net_present_value() { format!("\n\tcashflow_0: {}", self.cashflow_0.to_string().red()) } else { "".to_string() },
-               &format!("\n\tpayment (pmt): {}", if self.calculated_field.is_payment() || self.calculated_field.is_payment_due() { self.payment.to_string().green() } else { self.payment.to_string().normal() }),
-               &format!("\n\tsum_of_payments: {}", self.sum_of_payments),
-               &format!("\n\tsum_of_interest: {}", self.sum_of_interest),
-               &format!("\n\tformula: {:?}", self.formula),
-               &format!("\n\tsymbolic_formula: {:?}", self.symbolic_formula),
-               // &format!("input_in_percent: {:.6}%", self.input_in_percent),
-               // &format!("output: {}", self.output.to_string().green()),
-        )
-    }
-}
-*/
 
 #[derive(Clone, Debug)]
 /// **The period-by-period details** of a cash flow calculation.
@@ -247,6 +255,42 @@ impl CashflowSeries {
         }
     }
 
+    /// Produces a series with a subset of the entries from the current series. This is intended to
+    /// be used to help with examining and troubleshooting calculations since the resulting filtered
+    /// series wouldn't make much sense on its own.
+    ///
+    /// # Arguments
+    /// * `predicate` - A function that takes a reference to a
+    /// [CashflowPeriod](struct.CashflowPeriod.html) and returns a boolean such as the closure
+    /// `|entry| entry.principal() < 800.0`. Entries for which the predicate returns
+    /// true are included in the new series.
+    ///
+    /// # Examples
+    /// ```
+    /// use finance_solution::core::*;
+    ///
+    /// let (rate, periods, present_value, future_value, due_at_beginning) = (0.01, 60, -10_000, 0.0, false);
+    /// let solution = payment_solution(rate, periods, present_value, future_value, due_at_beginning);
+    ///
+    /// // Print the period-by-period details starting at the point where 99% of the interest has been
+    /// // paid.
+    /// let threshold = solution.sum_of_interest() * 0.99;
+    /// solution
+    ///     .series()
+    ///     .filter(|entry| entry.interest_to_date() >= threshold)
+    ///     .print_table();
+    /// ```
+    /// Output:
+    /// ```text
+    /// period   payment  payments_to_date  payments_remaining  principal  principal_to_date  principal_remaining  interest  interest_to_date  interest_remaining
+    /// ------  --------  ----------------  ------------------  ---------  -----------------  -------------------  --------  ----------------  ------------------
+    ///     55  222.4445       12_234.4462          1_112.2224   209.5528         8_920.3810           1_079.6190   12.8917        3_314.0652             32.6034
+    ///     56  222.4445       12_456.8907            889.7779   211.6483         9_132.0293             867.9707   10.7962        3_324.8614             21.8072
+    ///     57  222.4445       12_679.3352            667.3334   213.7648         9_345.7941             654.2059    8.6797        3_333.5411             13.1275
+    ///     58  222.4445       12_901.7797            444.8890   215.9024         9_561.6965             438.3035    6.5421        3_340.0832              6.5855
+    ///     59  222.4445       13_124.2241            222.4445   218.0614         9_779.7579             220.2421    4.3830        3_344.4662              2.2024
+    ///     60  222.4445       13_346.6686              0.0000   220.2421         9_999.0000               0.0000    2.2024        3_346.6686              0.0000
+    /// ```
     pub fn filter<P>(&self, predicate: P) -> Self
         where P: Fn(&&CashflowPeriod) -> bool
     {
@@ -278,10 +322,38 @@ impl CashflowSeries {
         CashflowSeries::new(series)
     }
 
+    /// Prints a formatted table with the period-by-period details of a cashflow calculation.
+    ///
+    /// For more control over which columns appear use
+    /// [print_table_custom](#method.print_table_custom).
+    ///
+    /// Money amounts are rounded to four decimal places, rates to six places, and numbers are
+    /// formatted similar to Rust constants such as "10_000.0322". For more control over formatting
+    /// use [print_table_locale](#method.print_table_locale) which also includes options for which
+    /// columns appear.
+    ///
+    /// # Examples
+    /// See [PaymentSolution::print_table](payment/struct.PaymentSolution.html#method.print_table).
+    ///
     pub fn print_table(&self) {
         self.print_table_locale_opt(true, true, None, None);
     }
 
+    /// Prints a formatted table with the period-by-period details of a cashflow calculation with
+    /// options for which columns appear.
+    ///
+    /// For a simpler method that includes all columns use [print_table](#method.print_table). To
+    /// control number formatting use [print_table_locale](#method.print_table_locale).
+    ///
+    /// # Arguments
+    /// * `include_running_totals` - If true include the columns "payments_to_date",
+    /// "principal_to_date", and "interest_to_date".
+    /// * `include_remaining_amounts` - If true include the columns "payments_remaining",
+    /// "principal_remaining", and "interest_remaining".
+    ///
+    /// # Examples
+    /// See [PaymentSolution::print_table_custom](payment/struct.PaymentSolution.html#method.print_table_custom).
+    ///
     pub fn print_table_custom(
         &self,
         include_running_totals: bool,
@@ -290,6 +362,27 @@ impl CashflowSeries {
         self.print_table_locale_opt(include_running_totals, include_remaining_amounts, None, None);
     }
 
+    /// Prints a formatted table with the period-by-period details of a cashflow calculation with
+    /// options for which columns appear and how numbers are formatted.
+    ///
+    /// For a simpler method that doesn't require a locale but still has optional columns use
+    /// [print_table_custom](#method.print_table_custom). The simplest table method is
+    /// [print_table](#method.print_table) which prints all columns with default formatting.
+    ///
+    /// # Arguments
+    /// * `include_running_totals` - If true include the columns "payments_to_date",
+    /// "principal_to_date", and "interest_to_date".
+    /// * `include_remaining_amounts` - If true include the columns "payments_remaining",
+    /// "principal_remaining", and "interest_remaining".
+    /// * `locale` - A locale constant from the `num-format` crate such as `Locale::en` for English
+    /// or `Locale::vi` for Vietnamese. The locale determines the thousands separator and decimal
+    /// separator.
+    /// * `precision` - The number of decimal places for money amounts. Rates will appear with at
+    /// least six places regardless of this argument.
+    ///
+    /// # Examples
+    /// See [PaymentSolution::print_table_locale](payment/struct.PaymentSolution.html#method.print_table_locale).
+    ///
     pub fn print_table_locale(
         &self,
         include_running_totals: bool,
@@ -320,15 +413,86 @@ impl CashflowSeries {
         print_table_locale_opt(&columns, data, locale, precision);
     }
 
-    pub fn print_ab_comparison(
-        &self,
-        other: &CashflowSeries,
-        include_running_totals: bool,
-        include_remaining_amounts: bool)
-    {
+    /// Compares the period-by-period details from two cashflow calculations.
+    ///
+    /// The values from the first calculation are labeled "a" and those from the second calculation
+    /// are labeled "b". To control which columns appear in the table use
+    /// [print_ab_comparison_custom](#method.print_ab_comparison_custom).
+    ///
+    /// Money amounts are rounded to four decimal places, rates to six places, and numbers are
+    /// formatted similar to Rust constants such as "10_000.0322". For more control over formatting
+    /// use [print_ab_comparison_locale](#method.print_ab_comparison_locale).
+    ///
+    /// # Arguments
+    /// * `other` - The second `CashflowSeries` in the comparison which will be labeled "b".
+    ///
+    /// # Examples
+    /// See [PaymentSolution::print_ab_comparison](payment/struct.PaymentSolution.html#method.print_ab_comparison).
+    /// The difference is that the current method will show only the table with period-by-period
+    /// details.
+    ///
+    pub fn print_ab_comparison(&self, other: &CashflowSeries) {
+        self.print_ab_comparison_locale_opt(other, true, true, None, None);
+    }
+
+    /// Compares the period-by-period details from two cashflow calculations with options for which
+    /// columns appear in the table. For a simpler method that includes all columns use
+    /// [print_ab_comparison](#method.print_ab_comparison).
+    ///
+    /// The values from the first calculation are labeled "a" and those from the second calculation
+    /// are labeled "b".
+    ///
+    /// Money amounts are rounded to four decimal places, rates to six places, and numbers are
+    /// formatted similar to Rust constants such as "10_000.0322". For more control over formatting
+    /// use [print_ab_comparison_locale](#method.print_ab_comparison_locale).
+    ///
+    /// # Arguments
+    /// * `other` - The second `CashflowSeries` in the comparison which will be labeled "b".
+    /// * `include_running_totals` - If true include "payments_to_date_a" (from the first
+    /// calculation), "payments_to_date_b" (from the second calculation), and similar columns
+    /// in the table.
+    /// * `include_remaining_amounts` - If true include "principal_remaining_a" (from the first
+    /// calculation), "principal_remaining_b" (from the second calculation), and similar columns
+    /// in the table.
+    ///
+    /// # Examples
+    /// See [PaymentSolution::print_ab_comparison_custom](payment/struct.PaymentSolution.html#method.print_ab_comparison_custom).
+    /// The difference is that the current method will show only the table with period-by-period
+    /// details.
+    ///
+    pub fn print_ab_comparison_custom(&self, other: &CashflowSeries, include_running_totals: bool, include_remaining_amounts: bool) {
         self.print_ab_comparison_locale_opt(other, include_running_totals, include_remaining_amounts, None, None);
     }
 
+    /// Compares the period-by-period details from two cashflow calculations with options for which
+    /// columns appear in the table and for how numbers should be formatted. For a simpler method
+    /// that doesn't require a locale use
+    /// [print_ab_comparison_custom](#method.print_ab_comparison_custom). The simplest A/B
+    /// comparison method that displays all columns with default formatting is
+    /// [print_ab_comparison](#method.print_ab_comparison).
+    ///
+    /// The values from the first calculation are labeled "a" and those from the second calculation
+    /// are labeled "b".
+    ///
+    /// # Arguments
+    /// * `other` - The second `CashflowSeries` in the comparison which will be labeled "b".
+    /// * `include_running_totals` - If true include "payments_to_date_a" (from the first
+    /// calculation), "payments_to_date_b" (from the second calculation), and similar columns
+    /// in the table.
+    /// * `include_remaining_amounts` - If true include "principal_remaining_a" (from the first
+    /// calculation), "principal_remaining_b" (from the second calculation), and similar columns
+    /// in the table.
+    /// * `locale` - A locale constant from the `num-format` crate such as `Locale::en` for English
+    /// or `Locale::vi` for Vietnamese. The locale determines the thousands separator and decimal
+    /// separator.
+    /// * `precision` - The number of decimal places for money amounts. Rates will appear with at
+    /// least six places regardless of this argument.
+    ///
+    /// # Examples
+    /// See [PaymentSolution::print_ab_comparison_locale](payment/struct.PaymentSolution.html#method.print_ab_comparison_locale).
+    /// The difference is that the current method will show only the table with period-by-period
+    /// details.
+    ///
     pub fn print_ab_comparison_locale(
             &self,
             other: &CashflowSeries,
@@ -452,63 +616,88 @@ impl CashflowPeriod {
         }
     }
 
+    /// Returns the periodic rate which will typically be the same for every period.
     pub fn rate(&self) -> f64 {
         self.rate
     }
 
+    /// Returns the period number. The first real period is numbered one, though for some
+    /// calculations there may be a period zero showing starting values.
     pub fn period(&self) -> u32 {
         self.period
     }
 
+    /// Returns the payment for this period.
     pub fn payment(&self) -> f64 {
         self.payment
     }
 
+    /// Returns the sum of the payments up to and including this period.
     pub fn payments_to_date(&self) -> f64 {
         self.payments_to_date
     }
 
+    /// Returns the payments that will still be due after this period.
     pub fn payments_remaining(&self) -> f64 {
         self.payments_remaining
     }
 
+    /// Returns the portion of this period's payment that goes to paying down the principal. In an
+    /// amortized loan this portion will typically rise from period to period.
     pub fn principal(&self) -> f64 {
         self.principal
     }
 
+    /// Returns the sum of the principal paid down in all periods up to and including this one.
     pub fn principal_to_date(&self) -> f64 {
         self.principal_to_date
     }
 
+    /// Returns the principal still outstanding at the end of this period.
     pub fn principal_remaining(&self) -> f64 {
         self.principal_remaining
     }
 
+    /// Returns the portion of this period's payment that is interest as opposed to paying down the
+    /// principal. In an amortized loan this portion will typically fall from period to period.
     pub fn interest(&self) -> f64 {
         self.interest
     }
 
+    /// Returns the sum of interest paid through the end of this period.
     pub fn interest_to_date(&self) -> f64 {
         self.interest_to_date
     }
 
+    /// Returns the interest that will be paid in all of the remaining periods after this one.
     pub fn interest_remaining(&self) -> f64 {
         self.interest_remaining
     }
 
+    /// Returns true if payments are due at the beginning of the period. In most cases the payment is
+    /// due at the end.
     pub fn due_at_beginning(&self) -> bool {
         self.due_at_beginning
     }
 
+    /// Returns a text version of the formula used to calculate the most relevant value for this
+    /// period which will depend on which calculation was originally run. The formula includes the
+    /// actual values rather than variable names. For the formula with variables such as "r" for
+    /// rate call [symbolic_formula](#method.symbolic_formula).
     pub fn formula(&self) -> &str {
         &self.formula
     }
 
+    /// Returns a text version of the formula used to calculate the most relevant value for this
+    /// period which will depend on which calculation was originally run. The formula uses variables
+    /// such as "r" for rate. For the formula with the actual numbers rather than variables call
+    /// call [formula](#method.formula).
     pub fn symbolic_formula(&self) -> &str {
         &self.symbolic_formula
     }
 
-    pub fn print_flat(&self, precision: usize) {
+    /*
+    pub(crate) fn print_flat(&self, precision: usize) {
         println!("CashflowPeriod = {{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} }}",
                  &format!("period: {}", self.period),
                  &format!("due_at_beginning: {}", self.due_at_beginning),
@@ -524,91 +713,8 @@ impl CashflowPeriod {
                  &format!("formula: {:?}", self.formula),
                  &format!("symbolic_formula: {:?}", self.symbolic_formula));
     }
+    */
 }
-
-// pub fn print_series_filtered(series: &[TvmPeriod], filter: )
-
-/*
-pub fn print_series_table(series: &[CashflowPeriod], precision: usize) {
-    if series.len() == 0 {
-        return;
-    }
-    let period_width = max("period".len(), series.iter().map(|x| x.period().to_string().len()).max().unwrap());
-    let payments_to_date_width = max("payments_to_date".len(), series.iter().map(|x| format!("{:.prec$}", x.payments_to_date(), prec = precision).len()).max().unwrap());
-    let payments_remaining_width = max("payments_remaining".len(), series.iter().map(|x| format!("{:.prec$}", x.payments_remaining(), prec = precision).len()).max().unwrap());
-    let principal_width = max("principal_width".len(), series.iter().map(|x| format!("{:.prec$}", x.principal(), prec = precision).len()).max().unwrap());
-    let principal_to_date_width = max("principal_to_date".len(), series.iter().map(|x| format!("{:.prec$}", x.principal_to_date(), prec = precision).len()).max().unwrap());
-    let principal_remaining_width = max("principal_remaining".len(), series.iter().map(|x| format!("{:.prec$}", x.principal_remaining(), prec = precision).len()).max().unwrap());
-    let interest_width = max("interest".len(), series.iter().map(|x| format!("{:.prec$}", x.interest(), prec = precision).len()).max().unwrap());
-    let interest_to_date_width = max("interest_to_date".len(), series.iter().map(|x| format!("{:.prec$}", x.interest_to_date(), prec = precision).len()).max().unwrap());
-    let interest_remaining_width = max("interest_remaining".len(), series.iter().map(|x| format!("{:.prec$}", x.interest_remaining(), prec = precision).len()).max().unwrap());
-    println!("\ndue_at_beginning: {}", series[0].due_at_beginning);
-    println!("payment: {:.prec$}", series[0].payment, prec = precision);
-    println!("{:>pe$}  {:>pmtd$}  {:>pmr$}  {:>pr$}  {:>prtd$}  {:>prr$}  {:>i$}  {:>itd$}  {:>ir$}",
-             "period", "payments_to_date", "payments_remaining", "principal", "principal_to_date", "principal_remaining", "interest", "interest_to_date", "interest_remaining",
-             pe = period_width, pmtd = payments_to_date_width, pmr = payments_remaining_width,
-             pr = principal_width, prtd = principal_to_date_width, prr = principal_remaining_width,
-             i = interest_width, itd = interest_to_date_width, ir = interest_remaining_width);
-    println!("{}  {}  {}  {}  {}  {}  {}  {}  {}",
-             "-".repeat(period_width), "-".repeat(payments_to_date_width), "-".repeat(payments_remaining_width),
-             "-".repeat(principal_width), "-".repeat(principal_to_date_width), "-".repeat(principal_remaining_width),
-             "-".repeat(interest_width), "-".repeat(interest_to_date_width), "-".repeat(interest_remaining_width));
-    for entry in series.iter() {
-        println!("{:>pe$}  {:>pmtd$.prec$}  {:>pmr$.prec$}  {:>pr$.prec$}  {:>prtd$.prec$}  {:>prr$.prec$}  {:>i$.prec$}  {:>itd$.prec$}  {:>ir$.prec$}",
-                 entry.period(), entry.payments_to_date(), entry.payments_remaining(),
-                 entry.principal(), entry.principal_to_date(), entry.principal_remaining(),
-                 entry.interest(), entry.interest_to_date(), entry.interest_remaining(),
-                 pe = period_width, pmtd = payments_to_date_width, pmr = payments_remaining_width,
-                 pr = principal_width, prtd = principal_to_date_width, prr = principal_remaining_width,
-                 i = interest_width, itd = interest_to_date_width, ir = interest_remaining_width, prec = precision);
-    }
-}
-*/
-
-/*
-pub fn print_series_table_locale(series: &[CashflowPeriod], locale: &num_format::Locale, precision: usize) {
-    if series.len() == 0 {
-        return;
-    }
-    let period_width = max("period".len(), series.iter().map(|x| format_int_locale(x.period(), locale).len()).max().unwrap());
-    let payments_to_date_width = max("payments_to_date".len(), series.iter().map(|x| format_float_locale(x.payments_to_date(), locale, precision).len()).max().unwrap());
-    let payments_remaining_width = max("payments_remaining".len(), series.iter().map(|x| format_float_locale(x.payments_remaining(), locale, precision).len()).max().unwrap());
-    let principal_width = max("principal".len(), series.iter().map(|x| format_float_locale(x.principal(), locale, precision).len()).max().unwrap());
-    let principal_to_date_width = max("principal_to_date".len(), series.iter().map(|x| format_float_locale(x.principal_to_date(), locale, precision).len()).max().unwrap());
-    let principal_remaining_width = max("principal_remaining".len(), series.iter().map(|x| format_float_locale(x.principal_remaining(), locale, precision).len()).max().unwrap());
-    let interest_width = max("interest".len(), series.iter().map(|x| format_float_locale(x.interest(), locale, precision).len()).max().unwrap());
-    let interest_to_date_width = max("interest_to_date".len(), series.iter().map(|x| format_float_locale(x.interest_to_date(), locale, precision).len()).max().unwrap());
-    let interest_remaining_width = max("interest_remaining".len(), series.iter().map(|x| format_float_locale(x.interest_remaining(), locale, precision).len()).max().unwrap());
-    println!("\ndue_at_beginning: {}", series[0].due_at_beginning);
-    println!("payment: {:.prec$}", series[0].payment, prec = precision);
-    println!("{:>pe$}  {:>pmtd$}  {:>pmr$}  {:>pr$}  {:>prtd$}  {:>prr$}  {:>i$}  {:>itd$}  {:>ir$}",
-             "period", "payments_to_date", "payments_remaining", "principal", "principal_to_date", "principal_remaining", "interest", "interest_to_date", "interest_remaining",
-             pe = period_width, pmtd = payments_to_date_width, pmr = payments_remaining_width,
-             pr = principal_width, prtd = principal_to_date_width, prr = principal_remaining_width,
-             i = interest_width, itd = interest_to_date_width, ir = interest_remaining_width);
-    println!("{}  {}  {}  {}  {}  {}  {}  {}  {}",
-             "-".repeat(period_width), "-".repeat(payments_to_date_width), "-".repeat(payments_remaining_width),
-             "-".repeat(principal_width), "-".repeat(principal_to_date_width), "-".repeat(principal_remaining_width),
-             "-".repeat(interest_width), "-".repeat(interest_to_date_width), "-".repeat(interest_remaining_width));
-    for entry in series.iter() {
-        println!("{:>pe$}  {:>pmtd$}  {:>pmr$}  {:>pr$}  {:>prtd$}  {:>prr$}  {:>i$}  {:>itd$}  {:>ir$}",
-                 format_int_locale(entry.period(), locale), format_float_locale(entry.payments_to_date(), locale, precision), format_float_locale(entry.payments_remaining(), locale, precision),
-                 format_float_locale(entry.principal(), locale, precision), format_float_locale(entry.principal_to_date(), locale, precision), format_float_locale(entry.principal_remaining(), locale, precision),
-                 format_float_locale(entry.interest(), locale, precision), format_float_locale(entry.interest_to_date(), locale, precision), format_float_locale(entry.interest_remaining(), locale, precision),
-                 pe = period_width, pmtd = payments_to_date_width, pmr = payments_remaining_width,
-                 pr = principal_width, prtd = principal_to_date_width, prr = principal_remaining_width,
-                 i = interest_width, itd = interest_to_date_width, ir = interest_remaining_width);
-    }
-}
-*/
-
-/*
-pub fn print_series_table_filtered(series: &[CashflowPeriod], predicate: P, precision: usize)
-    where P: FnMut(&CashflowPeriod) -> bool
-{
-}
-*/
-
 
 #[cfg(test)]
 mod tests {
