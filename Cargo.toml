@@ -1,34 +1,77 @@
 [package]
 name = "finance-solution"
-version = "0.0.0"
+version = "0.1.0"
 authors = ["Shan Newton <shan.alexander2020@gmail.com>", "David Thureson <David.G.Thureson@gmail.com>"]
-edition = "2018"
+edition = "2021"
+rust-version = "1.70"
 license = "MIT"
-description = "A library for finance time-value-of-money functions with detailed solutions and pretty-printed tables."
+description = "Time-value-of-money, cashflow, amortization, and related finance formulas with fallible Result APIs, detailed solutions, and pretty-printed tables."
 repository = "https://github.com/shan-alexander/finance-solution"
 documentation = "https://docs.rs/finance-solution"
 readme = "README.md"
-
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+keywords = ["finance", "tvm", "npv", "annuity", "amortization"]
+categories = ["mathematics", "science"]
+exclude = [
+    "target/*",
+    "roadmap_to_v0.1.md",
+    "rust_design_patterns.md",
+    "rust_design_patterns_tldr.md",
+]
 
 [dependencies]
-float-cmp = "0.6.0"
-log = "0.4.8"
-env_logger = "0.7.1"
-libm = "0.2.1"
-colored = "1.9"
-num-format = "0.4.0"
-itertools = "0.8.0"
+float-cmp = "0.10"
+log = "0.4"
+num-format = "0.4"
+itertools = "0.15"
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = "0.8"
 
-# [[bench]]
-# name = "my_benchmark"
-# harness = false
+# Historical educational docs and Excel-style numerics trip many style lints.
+# Correctness / suspicious still fail the build under CI `-D warnings`.
+[lints.clippy]
+doc_lazy_continuation = "allow"
+inconsistent_digit_grouping = "allow"
+needless_range_loop = "allow"
+match_like_matches_macro = "allow"
+too_many_arguments = "allow"
+clone_on_copy = "allow"
+legacy_numeric_constants = "allow"
+init_numbered_fields = "allow"
+needless_borrow = "allow"
+manual_range_contains = "allow"
+assign_op_pattern = "allow"
+map_clone = "allow"
+len_zero = "allow"
+neg_multiply = "allow"
+unnecessary_cast = "allow"
+useless_format = "allow"
+useless_borrows_in_formatting = "allow"
+approx_constant = "allow"
+excessive_precision = "allow"
+bool_assert_comparison = "allow"
+collapsible_if = "allow"
+useless_vec = "allow"
+single_match = "allow"
+manual_memcpy = "allow"
+derivable_impls = "allow"
+field_reassign_with_default = "allow"
+redundant_field_names = "allow"
+ptr_arg = "allow"
+should_implement_trait = "allow"
+new_without_default = "allow"
+module_inception = "allow"
+type_complexity = "allow"
+result_large_err = "allow"
+
+[[bench]]
+name = "my_benchmark"
+harness = false
 
 [[example]]
 name = "common_word_problems"
-path = "examples/common_word_problems.rs"    # The source file of the target.
-crate-type = ["bin"]
+path = "examples/common_word_problems.rs"
+
+[[example]]
+name = "amortization_table_demo"
+path = "examples/amortization_table_demo.rs"

@@ -2,9 +2,9 @@
 //! or varying interest rates, what is the current value?
 //!
 //! For most common usages, we recommend the [`present_value_solution`](./fn.present_value_solution.html) function to provide a better debugging experience and additional features.
-//! 
+//!
 //! If you have a more complicated use case which has varying rates per period, use the [`present_value_schedule_solution`](./fn.present_value_schedule_solution.html) function.
-//! 
+//!
 // ! If you need to calculate the future value given a present value, a number of periods, and one
 // ! or more rates use [`future_value`] or related functions.
 // !
@@ -60,7 +60,6 @@
 //! formula: "24337.6128 = 50000.0000 / 2.718282^(0.015000 * 48)",
 //! symbolic_formula: "pv = fv / e^(rt)",
 //! ```
-
 use log::warn;
 
 use super::tvm::*;
@@ -83,9 +82,9 @@ use super::tvm::*;
 /// * `future_value` - The final value of the investment.
 /// * `continuous_compounding` - True for continuous compounding, false for simple compounding.
 ///
-/// # Panics
-/// The call will fail if `rate` is less than -1.0 as this would mean the investment is
-/// losing more than its full value every period. It will fail also if the future value is zero as
+/// # Errors
+/// The call returns [`FinanceError`] if `rate` is less than -1.0 as this would mean the investment is
+/// losing more than its full value every period. It returns an error also if the future value is zero as
 /// in this case there's no way to determine the present value.
 ///
 /// # Examples
@@ -105,25 +104,65 @@ use super::tvm::*;
 /// let continuous_compounding = false;
 ///
 /// // Find the current value.
-/// let present_value = present_value(rate, periods, future_value, continuous_compounding);
+/// let present_value = present_value(rate, periods, future_value as f64, continuous_compounding).unwrap();
 /// dbg!(&present_value);
 ///
 /// // Confirm that the present value is correct to four decimal places (one hundredth of a cent).
 /// assert_rounded_4(-43_848.6409, present_value);
 /// ```
-/// Error case: The investment loses 105% per year. There's no way to work out what this means so
-/// the call to present_value() will panic.
-/// ```should_panic
+/// Error case: rate less than −100% per period is outside the domain.
+/// ```
+/// # use finance_solution::{present_value, FinanceError};
 /// let rate = -1.05;
 /// let periods = 6;
-/// let present_value = -10_000.75;
-/// let continuous_compounding = false;
-/// let present_value = finance_solution::present_value(rate, periods, present_value, continuous_compounding);
+/// let future_value = -10_000.75;
+/// let err = present_value(rate, periods, future_value, false).unwrap_err();
+/// assert!(matches!(err, FinanceError::InvalidRate { .. }));
 /// ```
-pub fn present_value<T>(rate: f64, periods: u32, future_value: T, continuous_compounding: bool) -> f64
-    where T: Into<f64> + Copy
+/// # Errors
+/// Returns [`FinanceError::InvalidRate`] if `rate < -1.0`, [`FinanceError::ZeroValue`] if
+/// `future_value` is zero/subnormal, or [`FinanceError::NonFinite`] for non-finite values.
+///
+/// # Examples
+/// ```
+/// use finance_solution::{present_value, FinanceError, FinanceResult};
+///
+/// assert!(present_value(0.05, 10, 1000.0, false).is_ok());
+///
+/// match present_value(-1.5, 10, 1000.0, false) {
+///     Err(FinanceError::InvalidRate { rate }) => assert_eq!(rate, -1.5),
+///     other => panic!("expected InvalidRate, got {other:?}"),
+/// }
+///
+/// match present_value(0.05, 10, 0.0, false) {
+///     Err(FinanceError::ZeroValue { field }) => assert_eq!(field, "future_value"),
+///     other => panic!("expected ZeroValue, got {other:?}"),
+/// }
+///
+/// fn discount(fv: f64) -> FinanceResult<f64> {
+///     present_value(0.06, 8, fv, false)
+/// }
+/// match discount(50_000.0) {
+///     Ok(pv) => assert!(pv < 0.0),
+///     Err(e) => panic!("{e}"),
+/// }
+/// ```
+pub fn present_value<T, C>(
+    rate: f64,
+    periods: u32,
+    future_value: T,
+    compounding: C,
+) -> crate::FinanceResult<f64>
+where
+    T: Into<f64> + Copy,
+    C: Into<crate::Compounding>,
 {
-    present_value_internal(rate, periods as f64, future_value.into(), continuous_compounding)
+    present_value_internal(
+        rate,
+        periods as f64,
+        future_value.into(),
+        compounding.into().is_continuous(),
+    )
 }
 
 /// Calculates the current value of a future amount using a fixed rate and returns a struct
@@ -145,9 +184,9 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T, continuous_com
 /// * `future_value` - The final value of the investment.
 /// * `continuous_compounding` - True for continuous compounding, false for simple compounding.
 ///
-/// # Panics
-/// The call will fail if `rate` is less than -1.0 as this would mean the investment is
-/// losing more than its full value every period. It will fail also if the future value is zero as
+/// # Errors
+/// The call returns [`FinanceError`] if `rate` is less than -1.0 as this would mean the investment is
+/// losing more than its full value every period. It returns an error also if the future value is zero as
 /// in this case there's no way to determine the present value.
 ///
 /// # Examples
@@ -168,7 +207,7 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T, continuous_com
 ///
 /// // Calculate the present value and create a struct with the input values and
 /// // the formula used.
-/// let solution = present_value_solution(rate, periods, future_value, continuous_compounding);
+/// let solution = present_value_solution(rate, periods, future_value, continuous_compounding).unwrap();
 /// dbg!(&solution);
 ///
 /// let present_value = solution.present_value();
@@ -205,7 +244,7 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T, continuous_com
 /// for periods in 1..=36 {
 ///     // Calculate the future value for this number of months and add the details to the
 ///     // collection.
-///     scenarios.push(present_value_solution(rate, periods, future_value, continuous_compounding));
+///     scenarios.push(present_value_solution(rate, periods, future_value, continuous_compounding).unwrap());
 /// }
 /// dbg!(&scenarios);
 /// assert_eq!(36, scenarios.len());
@@ -232,20 +271,31 @@ pub fn present_value<T>(rate: f64, periods: u32, future_value: T, continuous_com
 /// assert_eq!("pv = -fv / (1 + r)^n", symbolic_formula);
 ///
 /// ```
-/// Error case: The investment loses 111% per year. There's no way to work out what this means so
-/// the call to present_value() will panic.
-/// ```should_panic
-/// # use finance_solution::*;
+/// Error case: rate less than −100% per period is outside the domain.
+/// ```
+/// # use finance_solution::{present_value_solution, FinanceError};
 /// let rate = -1.11;
 /// let periods = 12;
-/// let present_value = 100_000.85;
-/// let continuous_compounding = false;
-/// let present_value = present_value_solution(rate, periods, present_value, continuous_compounding);
+/// let future_value = 100_000.85;
+/// let err = present_value_solution(rate, periods, future_value, false).unwrap_err();
+/// assert!(matches!(err, FinanceError::InvalidRate { .. }));
 /// ```
-pub fn present_value_solution<T>(rate: f64, periods: u32, future_value: T, continuous_compounding: bool) -> TvmSolution
-    where T: Into<f64> + Copy
+pub fn present_value_solution<T, C>(
+    rate: f64,
+    periods: u32,
+    future_value: T,
+    compounding: C,
+) -> crate::FinanceResult<TvmSolution>
+where
+    T: Into<f64> + Copy,
+    C: Into<crate::Compounding>,
 {
-    present_value_solution_internal(rate, periods as f64, future_value.into(), continuous_compounding)
+    present_value_solution_internal(
+        rate,
+        periods as f64,
+        future_value.into(),
+        compounding.into().is_continuous(),
+    )
 }
 
 /// Calculates a present value based on rates that change for each period.
@@ -259,9 +309,9 @@ pub fn present_value_solution<T>(rate: f64, periods: u32, future_value: T, conti
 /// * `rates` - A collection of rates, one for each period.
 /// * `future_value` - The ending value of the investment.
 ///
-/// # Panics
-/// The call will fail if any of the rates is less than -1.0 as this would mean the investment is
-/// losing more than its full value every period. It will fail also if the future value is zero as
+/// # Errors
+/// The call returns [`FinanceError`] if any of the rates is less than -1.0 as this would mean the investment is
+/// losing more than its full value every period. It returns an error also if the future value is zero as
 /// in this case there's no way to determine the present value.
 ///
 /// # Examples
@@ -275,26 +325,34 @@ pub fn present_value_solution<T>(rate: f64, periods: u32, future_value: T, conti
 /// let future_value = 30_000.00;
 ///
 /// // Calculate the present value.
-/// let present_value = finance_solution::present_value_schedule(&rates, future_value);
+/// let present_value = finance_solution::present_value_schedule(&rates, future_value).unwrap();
 /// dbg!(&present_value);
 /// ```
-pub fn present_value_schedule<T>(rates: &[f64], future_value: T) -> f64
-    where T: Into<f64> + Copy
+pub fn present_value_schedule<T>(rates: &[f64], future_value: T) -> crate::FinanceResult<f64>
+where
+    T: Into<f64> + Copy,
 {
-    let periods = rates.len();
     let future_value = future_value.into();
-
-    // Check the parameters including all of the provided rates.
-    for rate in rates {
-        check_present_value_parameters(*rate, periods as f64, future_value);
+    crate::util::error::require_rates(rates)?;
+    crate::util::error::require_money("future_value", future_value)?;
+    if !future_value.is_normal() {
+        return Err(crate::FinanceError::ZeroValue {
+            field: "future_value",
+        });
     }
-
+    let periods = rates.len();
     let mut present_value = -future_value;
     for i in (0..periods).rev() {
         present_value /= 1.0 + rates[i];
     }
-
-    present_value
+    if present_value.is_finite() {
+        Ok(present_value)
+    } else {
+        Err(crate::FinanceError::NonFinite {
+            field: "present_value",
+            value: present_value,
+        })
+    }
 }
 
 /// Calculates a present value based on rates that change for each period and returns a struct
@@ -310,9 +368,9 @@ pub fn present_value_schedule<T>(rates: &[f64], future_value: T) -> f64
 /// * `rates` - A collection of rates, one for each period.
 /// * `future_value` - The ending value of the investment.
 ///
-/// # Panics
-/// The call will fail if any of the rates is less than -1.0 as this would mean the investment is
-/// losing more than its full value every period. It will fail also if the future value is zero as
+/// # Errors
+/// The call returns [`FinanceError`] if any of the rates is less than -1.0 as this would mean the investment is
+/// losing more than its full value every period. It returns an error also if the future value is zero as
 /// in this case there's no way to determine the present value.
 ///
 /// # Examples
@@ -330,7 +388,7 @@ pub fn present_value_schedule<T>(rates: &[f64], future_value: T) -> f64
 ///
 /// // Calculate the present value and keep track of the inputs and the formula
 /// // in a struct.
-/// let solution = present_value_schedule_solution(&rates, future_value);
+/// let solution = present_value_schedule_solution(&rates, future_value).unwrap();
 /// dbg!(&solution);
 ///
 /// let present_value = solution.present_value();
@@ -340,64 +398,112 @@ pub fn present_value_schedule<T>(rates: &[f64], future_value: T) -> f64
 /// let series = solution.series();
 /// dbg!(&series);
 /// ```
-pub fn present_value_schedule_solution<T>(rates: &[f64], future_value: T) -> TvmScheduleSolution
-    where T: Into<f64> + Copy
+pub fn present_value_schedule_solution<T>(
+    rates: &[f64],
+    future_value: T,
+) -> crate::FinanceResult<TvmScheduleSolution>
+where
+    T: Into<f64> + Copy,
 {
-    let present_value = present_value_schedule(rates, future_value);
-    TvmScheduleSolution::new(TvmVariable::PresentValue, rates, present_value, future_value.into())
+    let future_value = future_value.into();
+    let present_value = present_value_schedule(rates, future_value)?;
+    Ok(TvmScheduleSolution::new(
+        TvmVariable::PresentValue,
+        rates,
+        present_value,
+        future_value,
+    ))
 }
 
-pub(crate) fn present_value_internal(rate: f64, periods: f64, future_value: f64, continuous_compounding: bool) -> f64 {
-    check_present_value_parameters(rate, periods, future_value);
+pub(crate) fn present_value_internal(
+    rate: f64,
+    periods: f64,
+    future_value: f64,
+    continuous_compounding: bool,
+) -> crate::FinanceResult<f64> {
+    crate::util::error::require_rate(rate)?;
+    crate::util::error::require_money("future_value", future_value)?;
+    if !future_value.is_normal() {
+        return Err(crate::FinanceError::ZeroValue {
+            field: "future_value",
+        });
+    }
+    if rate.abs() > 1.0 {
+        warn!(
+            "You provided a periodic rate ({}) greater than 1. Are you sure you expect a {}% return?",
+            rate,
+            rate * 100.0
+        );
+    }
     let present_value = if continuous_compounding {
-        -future_value / std::f64::consts::E.powf(rate * periods as f64)
+        -future_value / std::f64::consts::E.powf(rate * periods)
     } else {
-        -future_value / (1. + rate).powf(periods)
+        -future_value / (1.0 + rate).powf(periods)
     };
-    assert!(present_value.is_finite());
-    present_value
+    if present_value.is_finite() {
+        Ok(present_value)
+    } else {
+        Err(crate::FinanceError::NonFinite {
+            field: "present_value",
+            value: present_value,
+        })
+    }
 }
 
-pub(crate) fn present_value_solution_internal(rate: f64, periods: f64, future_value: f64, continuous_compounding: bool) -> TvmSolution {
-    let present_value = present_value_internal(rate, periods, future_value, continuous_compounding);
+pub(crate) fn present_value_solution_internal(
+    rate: f64,
+    periods: f64,
+    future_value: f64,
+    continuous_compounding: bool,
+) -> crate::FinanceResult<TvmSolution> {
+    let present_value =
+        present_value_internal(rate, periods, future_value, continuous_compounding)?;
     let rate_multiplier = 1.0 + rate;
-    assert!(rate_multiplier >= 0.0);
     let (formula, symbolic_formula) = if continuous_compounding {
-        let formula = format!("{:.4} = {:.4} / {:.6}^({:.6} * {})", present_value, -future_value, std::f64::consts::E, rate, periods);
+        let formula = format!(
+            "{:.4} = {:.4} / {:.6}^({:.6} * {})",
+            present_value,
+            -future_value,
+            std::f64::consts::E,
+            rate,
+            periods
+        );
         let symbolic_formula = "pv = -fv / e^(rt)";
         (formula, symbolic_formula)
     } else {
-        let formula = format!("{:.4} = {:.4} / ({:.6} ^ {})", present_value, -future_value, rate_multiplier, periods);
+        let formula = format!(
+            "{:.4} = {:.4} / ({:.6} ^ {})",
+            present_value, -future_value, rate_multiplier, periods
+        );
         let symbolic_formula = "pv = -fv / (1 + r)^n";
         (formula, symbolic_formula)
     };
-    TvmSolution::new_fractional_periods(TvmVariable::PresentValue, continuous_compounding, rate, periods, present_value, future_value, &formula, symbolic_formula)
-}
-
-fn check_present_value_parameters(rate: f64, _periods: f64, future_value: f64) {
-    assert!(rate.is_finite(), "The rate must be finite (not NaN or infinity)");
-    assert!(rate >= -1.0, "The rate must be greater than or equal to -1.0 because a rate lower than -100% would mean the investment loses more than its full value in a period.");
-    if rate.abs() > 1. {
-        warn!("You provided a periodic rate ({}) greater than 1. Are you sure you expect a {}% return?", rate, rate * 100.0);
-    }
-    assert!(future_value.is_finite(), "The future value must be finite (not NaN or infinity)");
-    assert!(future_value.is_normal(), "The future value is zero (or subnormal) so there is no way to calculate the present value.");
+    Ok(TvmSolution::new_fractional_periods(
+        TvmVariable::PresentValue,
+        continuous_compounding,
+        rate,
+        periods,
+        present_value,
+        future_value,
+        &formula,
+        symbolic_formula,
+    ))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::*;
-    
+
     #[test]
     fn test_present_value_schedule() {
         let rates = [0.04, 0.07, -0.12, -0.03, 0.11];
         let future_value = 100_000.25;
 
-        let present_value = present_value_schedule(&rates, future_value);
+        let present_value = present_value_schedule(&rates, future_value).unwrap();
         assert_rounded_4(-94843.2841, present_value);
 
-        let solution = present_value_schedule_solution(&rates, future_value);
+        let solution = present_value_schedule_solution(&rates, future_value).unwrap();
         assert_rounded_4(100000.2500, solution.future_value());
         assert_rounded_4(-94843.2841, solution.present_value());
 
@@ -407,22 +513,22 @@ mod tests {
         let period = &series[0];
         assert_eq!(0, period.period());
         assert_rounded_6(0.0, period.rate());
-        assert_rounded_4(-present_value,period.value());
+        assert_rounded_4(-present_value, period.value());
 
         let period = &series[1];
         assert_eq!(1, period.period());
         assert_rounded_6(0.04, period.rate());
-        assert_rounded_4(98_637.0154,period.value());
+        assert_rounded_4(98_637.0154, period.value());
 
         let period = &series[2];
         assert_eq!(2, period.period());
         assert_rounded_6(0.07, period.rate());
-        assert_rounded_4(105_541.6065,period.value());
+        assert_rounded_4(105_541.6065, period.value());
 
         let period = &series[3];
         assert_eq!(3, period.period());
         assert_rounded_6(-0.12, period.rate());
-        assert_rounded_4(92_876.6137,period.value());
+        assert_rounded_4(92_876.6137, period.value());
 
         let period = &series[4];
         assert_eq!(4, period.period());
@@ -441,11 +547,11 @@ mod tests {
             println!("$r = {}, $n = {}, $fv = {}, $pv_excel: {}, $pv_manual_simple = {}, $pv_manual_cont = {}", $r, $n, $fv, $pv_excel, $pv_manual_simple, $pv_manual_cont);
             assert_approx_equal!($pv_excel, $pv_manual_simple);
 
-            let pv_calc_simple = present_value($r, $n, $fv, false);
+            let pv_calc_simple = present_value($r, $n, $fv, false).unwrap();
             println!("pv_calc_simple = {}", pv_calc_simple);
             assert_approx_equal!($pv_excel, pv_calc_simple);
 
-            let pv_calc_cont = present_value($r, $n, $fv, true);
+            let pv_calc_cont = present_value($r, $n, $fv, true).unwrap();
             println!("pv_calc_cont = {}", pv_calc_cont);
             assert_approx_equal!($pv_manual_cont, pv_calc_cont);
 
@@ -457,28 +563,46 @@ mod tests {
     }
     */
 
-    fn compare_to_excel (test_case: usize, r: f64, n: u32, fv: f64, pv_excel: f64, pv_manual_simple: f64, pv_manual_cont: f64) {
+    fn compare_to_excel(
+        test_case: usize,
+        r: f64,
+        n: u32,
+        fv: f64,
+        pv_excel: f64,
+        pv_manual_simple: f64,
+        pv_manual_cont: f64,
+    ) {
         let display = false;
 
-        if display { println!("test_case = {}, r = {}, n = {}, fv = {}, pv_excel: {}, pv_manual_simple = {}, pv_manual_cont = {}", test_case, r, n, fv, pv_excel, pv_manual_simple, pv_manual_cont) };
+        if display {
+            println!("test_case = {}, r = {}, n = {}, fv = {}, pv_excel: {}, pv_manual_simple = {}, pv_manual_cont = {}", test_case, r, n, fv, pv_excel, pv_manual_simple, pv_manual_cont)
+        };
         assert_approx_equal!(pv_excel, pv_manual_simple);
 
-        let pv_calc_simple = present_value(r, n, fv, false);
-        if display { println!("pv_calc_simple = {}", pv_calc_simple) };
+        let pv_calc_simple = present_value(r, n, fv, false).unwrap();
+        if display {
+            println!("pv_calc_simple = {}", pv_calc_simple)
+        };
         assert_approx_equal!(pv_excel, pv_calc_simple);
 
-        let pv_calc_cont = present_value(r, n, fv, true);
-        if display { println!("pv_calc_cont = {}", pv_calc_cont) };
+        let pv_calc_cont = present_value(r, n, fv, true).unwrap();
+        if display {
+            println!("pv_calc_cont = {}", pv_calc_cont)
+        };
         assert_approx_equal!(pv_manual_cont, pv_calc_cont);
 
         let ratio = pv_calc_cont / pv_calc_simple;
-        if display { println!("ratio = {}", ratio) };
+        if display {
+            println!("ratio = {}", ratio)
+        };
         assert!(ratio >= 0.0);
         assert!(ratio <= 1.0);
 
         // Solution with simple compounding.
-        let solution = present_value_solution(r, n, fv, false);
-        if display { dbg!(&solution); }
+        let solution = present_value_solution(r, n, fv, false).unwrap();
+        if display {
+            dbg!(&solution);
+        }
         solution.invariant();
         assert!(solution.calculated_field().is_present_value());
         assert_eq!(false, solution.continuous_compounding());
@@ -489,8 +613,10 @@ mod tests {
         assert_approx_equal!(fv, solution.future_value());
 
         // Solution with continuous compounding.
-        let solution = present_value_solution(r, n, fv, true);
-        if display { dbg!(&solution); }
+        let solution = present_value_solution(r, n, fv, true).unwrap();
+        if display {
+            dbg!(&solution);
+        }
         solution.invariant();
         assert!(solution.calculated_field().is_present_value());
         assert!(solution.continuous_compounding());
@@ -503,8 +629,10 @@ mod tests {
         let rates = initialized_vector(n as usize, r);
 
         // Schedule solution.
-        let solution = present_value_schedule_solution(&rates, fv);
-        if display { dbg!(&solution); }
+        let solution = present_value_schedule_solution(&rates, fv).unwrap();
+        if display {
+            dbg!(&solution);
+        }
         solution.invariant();
         assert!(solution.calculated_field().is_present_value());
         assert_eq!(n, solution.periods());
@@ -514,31 +642,222 @@ mod tests {
 
     #[test]
     fn test_present_value_against_excel() {
-        compare_to_excel(1, 0.01f64, 90, 1f64, -0.408391185151344f64, -0.408391185151344f64, -0.406569659740599f64);
-        compare_to_excel(2, -0.01f64, 85, -1.5f64, 3.52451788132823f64, 3.52451788132823f64, 3.50947027788899f64);
+        compare_to_excel(
+            1,
+            0.01f64,
+            90,
+            1f64,
+            -0.408391185151344f64,
+            -0.408391185151344f64,
+            -0.406569659740599f64,
+        );
+        compare_to_excel(
+            2,
+            -0.01f64,
+            85,
+            -1.5f64,
+            3.52451788132823f64,
+            3.52451788132823f64,
+            3.50947027788899f64,
+        );
         compare_to_excel(3, 0f64, 80, 2.25f64, -2.25f64, -2.25f64, -2.25f64);
-        compare_to_excel(4, 0.05f64, 75, -3.375f64, 0.0869113201859512f64, 0.0869113201859512f64, 0.0793723922640307f64);
-        compare_to_excel(5, -0.05f64, 70, 5.0625f64, -183.53236712846f64, -183.53236712846f64, -167.64697554088f64);
-        compare_to_excel(6, 0.01f64, 65, -7.59375f64, 3.97710447262579f64, 3.97710447262579f64, 3.96428511727897f64);
-        compare_to_excel(7, -0.01f64, 60, 11.390625f64, -20.8178501685176f64, -20.8178501685176f64, -20.7550719606981f64);
-        compare_to_excel(8, 0f64, 55, -17.0859375f64, 17.0859375f64, 17.0859375f64, 17.0859375f64);
-        compare_to_excel(9, 0.05f64, 50, 25.62890625f64, -2.23493614322574f64, -2.23493614322574f64, -2.10374873426328f64);
-        compare_to_excel(10, -0.05f64, 45, -38.443359375f64, 386.597546504632f64, 386.597546504632f64, 364.740438412197f64);
-        compare_to_excel(11, 0.01f64, 40, 57.6650390625f64, -38.7309044888379f64, -38.7309044888379f64, -38.6540316390219f64);
-        compare_to_excel(12, -0.01f64, 35, -86.49755859375f64, 122.962317182378f64, 122.962317182378f64, 122.745878432934f64);
-        compare_to_excel(13, 0f64, 30, 129.746337890625f64, -129.746337890625f64, -129.746337890625f64, -129.746337890625f64);
-        compare_to_excel(14, 0.05f64, 25, -194.619506835937f64, 57.4716797951039f64, 57.4716797951039f64, 55.7594222710607f64);
-        compare_to_excel(15, -0.05f64, 20, 291.929260253906f64, -814.33953749853f64, -814.33953749853f64, -793.546003343685f64);
-        compare_to_excel(16, 0.01f64, 15, -437.893890380859f64, 377.179672510109f64, 377.179672510109f64, 376.898764278606f64);
-        compare_to_excel(17, -0.01f64, 12, 656.840835571289f64, -741.033445550103f64, -741.033445550103f64, -740.585974095395f64);
-        compare_to_excel(18, 0f64, 10, -985.261253356933f64, 985.261253356933f64, 985.261253356933f64, 985.261253356933f64);
-        compare_to_excel(19, 0.05f64, 7, 1477.8918800354f64, -1050.31016709206f64, -1050.31016709206f64, -1041.45280575294f64);
-        compare_to_excel(20, -0.05f64, 5, -2216.8378200531f64, 2864.94240503709f64, 2864.94240503709f64, 2846.47610562283f64);
-        compare_to_excel(21, 0.01f64, 4, 3325.25673007965f64, -3195.50635796575f64, -3195.50635796575f64, -3194.87154873072f64);
-        compare_to_excel(22, -0.01f64, 3, -4987.88509511947f64, 5140.56501667989f64, 5140.56501667989f64, 5139.78881110503f64);
-        compare_to_excel(23, 0f64, 2, 7481.82764267921f64, -7481.82764267921f64, -7481.82764267921f64, -7481.82764267921f64);
-        compare_to_excel(24, 0.05f64, 1, -11222.7414640188f64, 10688.3252038274f64, 10688.3252038274f64, 10675.4019041389f64);
-        compare_to_excel(25, -0.05f64, 0, 16834.1121960282f64, -16834.1121960282f64, -16834.1121960282f64, -16834.1121960282f64);
+        compare_to_excel(
+            4,
+            0.05f64,
+            75,
+            -3.375f64,
+            0.0869113201859512f64,
+            0.0869113201859512f64,
+            0.0793723922640307f64,
+        );
+        compare_to_excel(
+            5,
+            -0.05f64,
+            70,
+            5.0625f64,
+            -183.53236712846f64,
+            -183.53236712846f64,
+            -167.64697554088f64,
+        );
+        compare_to_excel(
+            6,
+            0.01f64,
+            65,
+            -7.59375f64,
+            3.97710447262579f64,
+            3.97710447262579f64,
+            3.96428511727897f64,
+        );
+        compare_to_excel(
+            7,
+            -0.01f64,
+            60,
+            11.390625f64,
+            -20.8178501685176f64,
+            -20.8178501685176f64,
+            -20.7550719606981f64,
+        );
+        compare_to_excel(
+            8,
+            0f64,
+            55,
+            -17.0859375f64,
+            17.0859375f64,
+            17.0859375f64,
+            17.0859375f64,
+        );
+        compare_to_excel(
+            9,
+            0.05f64,
+            50,
+            25.62890625f64,
+            -2.23493614322574f64,
+            -2.23493614322574f64,
+            -2.10374873426328f64,
+        );
+        compare_to_excel(
+            10,
+            -0.05f64,
+            45,
+            -38.443359375f64,
+            386.597546504632f64,
+            386.597546504632f64,
+            364.740438412197f64,
+        );
+        compare_to_excel(
+            11,
+            0.01f64,
+            40,
+            57.6650390625f64,
+            -38.7309044888379f64,
+            -38.7309044888379f64,
+            -38.6540316390219f64,
+        );
+        compare_to_excel(
+            12,
+            -0.01f64,
+            35,
+            -86.49755859375f64,
+            122.962317182378f64,
+            122.962317182378f64,
+            122.745878432934f64,
+        );
+        compare_to_excel(
+            13,
+            0f64,
+            30,
+            129.746337890625f64,
+            -129.746337890625f64,
+            -129.746337890625f64,
+            -129.746337890625f64,
+        );
+        compare_to_excel(
+            14,
+            0.05f64,
+            25,
+            -194.619506835937f64,
+            57.4716797951039f64,
+            57.4716797951039f64,
+            55.7594222710607f64,
+        );
+        compare_to_excel(
+            15,
+            -0.05f64,
+            20,
+            291.929260253906f64,
+            -814.33953749853f64,
+            -814.33953749853f64,
+            -793.546003343685f64,
+        );
+        compare_to_excel(
+            16,
+            0.01f64,
+            15,
+            -437.893890380859f64,
+            377.179672510109f64,
+            377.179672510109f64,
+            376.898764278606f64,
+        );
+        compare_to_excel(
+            17,
+            -0.01f64,
+            12,
+            656.840835571289f64,
+            -741.033445550103f64,
+            -741.033445550103f64,
+            -740.585974095395f64,
+        );
+        compare_to_excel(
+            18,
+            0f64,
+            10,
+            -985.261253356933f64,
+            985.261253356933f64,
+            985.261253356933f64,
+            985.261253356933f64,
+        );
+        compare_to_excel(
+            19,
+            0.05f64,
+            7,
+            1477.8918800354f64,
+            -1050.31016709206f64,
+            -1050.31016709206f64,
+            -1041.45280575294f64,
+        );
+        compare_to_excel(
+            20,
+            -0.05f64,
+            5,
+            -2216.8378200531f64,
+            2864.94240503709f64,
+            2864.94240503709f64,
+            2846.47610562283f64,
+        );
+        compare_to_excel(
+            21,
+            0.01f64,
+            4,
+            3325.25673007965f64,
+            -3195.50635796575f64,
+            -3195.50635796575f64,
+            -3194.87154873072f64,
+        );
+        compare_to_excel(
+            22,
+            -0.01f64,
+            3,
+            -4987.88509511947f64,
+            5140.56501667989f64,
+            5140.56501667989f64,
+            5139.78881110503f64,
+        );
+        compare_to_excel(
+            23,
+            0f64,
+            2,
+            7481.82764267921f64,
+            -7481.82764267921f64,
+            -7481.82764267921f64,
+            -7481.82764267921f64,
+        );
+        compare_to_excel(
+            24,
+            0.05f64,
+            1,
+            -11222.7414640188f64,
+            10688.3252038274f64,
+            10688.3252038274f64,
+            10675.4019041389f64,
+        );
+        compare_to_excel(
+            25,
+            -0.05f64,
+            0,
+            16834.1121960282f64,
+            -16834.1121960282f64,
+            -16834.1121960282f64,
+            -16834.1121960282f64,
+        );
     }
-
 }

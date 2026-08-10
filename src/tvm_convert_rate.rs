@@ -1,22 +1,19 @@
 //! The internal module which supports the solution struct for Rate Conversion (see `convert_rate`).
-
-use std::fmt::Debug;
 use std::fmt;
-use colored::*;
-
+use std::fmt::Debug;
 
 // Import needed for the function references in the Rustdoc comments.
 #[allow(unused_imports)]
 use crate::*;
 
 /// The possible types of rates to convert.
-#[derive(Debug, Clone)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ConvertRateVariable {
     Apr,
     Ear,
     Epr,
     AprContinuous,
-    EarContinuous
+    EarContinuous,
 }
 impl ConvertRateVariable {
     pub fn is_apr(&self) -> bool {
@@ -52,13 +49,13 @@ impl ConvertRateVariable {
 }
 impl fmt::Display for ConvertRateVariable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-       match *self {
-           ConvertRateVariable::Apr => write!(f, "Apr"),
-           ConvertRateVariable::Epr => write!(f, "Epr"),
-           ConvertRateVariable::Ear => write!(f, "Ear"),
-           ConvertRateVariable::AprContinuous => write!(f, "AprContinuous"),
-           ConvertRateVariable::EarContinuous => write!(f, "EarContinuous"),
-       }
+        match *self {
+            ConvertRateVariable::Apr => write!(f, "Apr"),
+            ConvertRateVariable::Epr => write!(f, "Epr"),
+            ConvertRateVariable::Ear => write!(f, "Ear"),
+            ConvertRateVariable::AprContinuous => write!(f, "AprContinuous"),
+            ConvertRateVariable::EarContinuous => write!(f, "EarContinuous"),
+        }
     }
 }
 
@@ -78,7 +75,20 @@ pub struct ConvertRateSolution {
     ear_formula: String,
 }
 impl ConvertRateSolution {
-    pub fn new(input_name: ConvertRateVariable, input_rate: f64, compounds_per_year: u32, apr_in_percent: String, epr_in_percent: String, ear_in_percent: String, apr:f64, epr:f64, ear:f64, apr_formula: &str, epr_formula: &str, ear_formula: &str) -> Self {
+    pub(crate) fn new(
+        input_name: ConvertRateVariable,
+        input_rate: f64,
+        compounds_per_year: u32,
+        apr_in_percent: String,
+        epr_in_percent: String,
+        ear_in_percent: String,
+        apr: f64,
+        epr: f64,
+        ear: f64,
+        apr_formula: &str,
+        epr_formula: &str,
+        ear_formula: &str,
+    ) -> Self {
         Self {
             input_name,
             input_rate,
@@ -133,22 +143,23 @@ impl ConvertRateSolution {
     }
 }
 
-
 impl Debug for ConvertRateSolution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{{\n {},\n {},\n {},\n {}\n {}\n {}\n {}\n {}\n {}\n {}\n {}\n {}\n}}",
-               &format!("input_name: {}", self.input_name.to_string().magenta()),
-               &format!("input_rate: {}", self.input_rate.to_string().yellow()),
-               &format!("compounds_per_year: {:.4}", self.compounds_per_year.to_string().yellow()),
-               &format!("apr_in_percent: {:.6}%", self.apr_in_percent),
-               &format!("epr_in_percent: {:.6}%", self.epr_in_percent),
-               &format!("ear_in_percent: {:.6}%", self.ear_in_percent),
-               &format!("apr: {}", self.apr),
-               &format!("epr: {}", self.epr),
-               &format!("ear: {}", self.ear),
-               &format!("apr_formula: {}", self.apr_formula),
-               &format!("epr_formula: {}", self.epr_formula),
-               &format!("ear_formula: {}", self.ear_formula),
+        write!(
+            f,
+            "{{\n {},\n {},\n {},\n {}\n {}\n {}\n {}\n {}\n {}\n {}\n {}\n {}\n}}",
+            &format!("input_name: {}", self.input_name),
+            &format!("input_rate: {}", self.input_rate),
+            &format!("compounds_per_year: {}", self.compounds_per_year),
+            &format!("apr_in_percent: {}", self.apr_in_percent),
+            &format!("epr_in_percent: {}", self.epr_in_percent),
+            &format!("ear_in_percent: {}", self.ear_in_percent),
+            &format!("apr: {}", self.apr),
+            &format!("epr: {}", self.epr),
+            &format!("ear: {}", self.ear),
+            &format!("apr_formula: {}", self.apr_formula),
+            &format!("epr_formula: {}", self.epr_formula),
+            &format!("ear_formula: {}", self.ear_formula),
         )
     }
 }

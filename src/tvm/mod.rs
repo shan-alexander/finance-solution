@@ -1,9 +1,28 @@
-//! The internal module which supports the solution struct for the family of Time-value-of-money equations
-//! which do not involve payments. For example, future value, present value, rate, and periods.
-
+//! Time-value-of-money equations **without** level payments: present value, future value, rate,
+//! and periods (simple and continuous compounding, fixed rate or rate schedules).
+//!
+//! # Error handling (v0.1+)
+//!
+//! Public entry points return [`crate::FinanceResult`]. Invalid rates (e.g. less than −100% per
+//! period), non-finite amounts, and unsolvable sign combinations produce
+//! [`crate::FinanceError`] — they do **not** panic.
+//!
+//! ```
+//! use finance_solution::{future_value, FinanceResult};
+//!
+//! fn demo() -> FinanceResult<f64> {
+//!     future_value(0.05, 10, -1_000.0, false)
+//! }
+//! debug_assert!(demo().is_ok());
+//! ```
+//!
+//! # Compounding
+//!
+//! Pass [`Compounding::Periodic`] (or `false` via [`From`]) for discrete compounding, or
+//! [`Compounding::Continuous`] (or `true`) for continuous compounding.
 use crate::*;
+use std::fmt::{Display, Error, Formatter};
 use std::ops::Deref;
-use std::fmt::{Display, Formatter, Error};
 
 pub mod future_value;
 #[doc(inline)]
@@ -21,10 +40,60 @@ pub mod rate;
 #[doc(inline)]
 pub use rate::*;
 
-/// Enumeration used for the `calculated_field` field in [`TvmSolution`] and [`TvmSchedule`] to keep
-/// track of what was calculated, either the periodic rate, the number of periods, the present
-/// value, or the future value.
-#[derive(Clone, Debug, Hash, PartialEq)]
+/// How interest compounds in a TVM calculation.
+///
+/// Prefer this enum over a bare `bool`. For ergonomics, `false` converts to
+/// [`Compounding::Periodic`] and `true` to [`Compounding::Continuous`].
+///
+/// # Examples
+/// ```
+/// use finance_solution::Compounding;
+/// assert_eq!(Compounding::from(false), Compounding::Periodic);
+/// assert_eq!(Compounding::from(true), Compounding::Continuous);
+/// assert!(Compounding::Continuous.is_continuous());
+/// ```
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum Compounding {
+    /// Discrete compounding: `fv = pv * (1 + r)^n` (with this crate's sign convention).
+    Periodic,
+    /// Continuous compounding: `fv = pv * e^(r * n)`.
+    Continuous,
+}
+
+impl Compounding {
+    /// `true` if this is continuous compounding.
+    pub fn is_continuous(self) -> bool {
+        matches!(self, Compounding::Continuous)
+    }
+
+    /// `true` if this is periodic (discrete) compounding.
+    pub fn is_periodic(self) -> bool {
+        matches!(self, Compounding::Periodic)
+    }
+}
+
+impl From<bool> for Compounding {
+    /// `true` → [`Continuous`](Compounding::Continuous), `false` → [`Periodic`](Compounding::Periodic).
+    fn from(continuous: bool) -> Self {
+        if continuous {
+            Compounding::Continuous
+        } else {
+            Compounding::Periodic
+        }
+    }
+}
+
+impl From<Compounding> for bool {
+    /// `true` if continuous.
+    fn from(c: Compounding) -> bool {
+        c.is_continuous()
+    }
+}
+
+/// Enumeration used for the `calculated_field` field in [`TvmSolution`] and schedule solutions to
+/// track what was calculated: periodic rate, number of periods, present value, or future value.
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum TvmVariable {
     Rate,
     Periods,
@@ -127,9 +196,7 @@ impl TvmVariable {
         // makes the calling code simpler.
         (self.to_string(), data_type.to_string(), visible)
     }
-
-
-    }
+}
 
 impl Display for TvmVariable {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
@@ -142,25 +209,52 @@ impl Display for TvmVariable {
     }
 }
 
-impl Eq for TvmVariable {}
-
 impl TvmSolution {
-    pub(crate) fn new(calculated_field: TvmVariable, continuous_compounding: bool, rate: f64, periods: u32, present_value: f64, future_value: f64, formula: &str, symbolic_formula: &str) -> Self {
-        assert!(rate.is_finite());
-        assert!(present_value.is_finite());
-        assert!(future_value.is_finite());
-        assert!(!formula.is_empty());
-        assert!(!symbolic_formula.is_empty());
-        Self::new_fractional_periods(calculated_field, continuous_compounding, rate, periods as f64, present_value, future_value, formula, symbolic_formula)
+    /// Internal constructor — caller must already have validated domain inputs.
+    pub(crate) fn new(
+        calculated_field: TvmVariable,
+        continuous_compounding: bool,
+        rate: f64,
+        periods: u32,
+        present_value: f64,
+        future_value: f64,
+        formula: &str,
+        symbolic_formula: &str,
+    ) -> Self {
+        debug_assert!(rate.is_finite());
+        debug_assert!(present_value.is_finite());
+        debug_assert!(future_value.is_finite());
+        debug_assert!(!formula.is_empty());
+        debug_assert!(!symbolic_formula.is_empty());
+        Self::new_fractional_periods(
+            calculated_field,
+            continuous_compounding,
+            rate,
+            periods as f64,
+            present_value,
+            future_value,
+            formula,
+            symbolic_formula,
+        )
     }
 
-    pub(crate) fn new_fractional_periods(calculated_field: TvmVariable, continuous_compounding: bool, rate: f64, fractional_periods: f64, present_value: f64, future_value: f64, formula: &str, symbolic_formula: &str) -> Self {
-        assert!(rate >= -1.0);
-        assert!(fractional_periods >= 0.0);
-        assert!(present_value.is_finite());
-        assert!(future_value.is_finite());
-        assert!(formula.len() > 0);
-        assert!(symbolic_formula.len() > 0);
+    /// Internal constructor — caller must already have validated domain inputs.
+    pub(crate) fn new_fractional_periods(
+        calculated_field: TvmVariable,
+        continuous_compounding: bool,
+        rate: f64,
+        fractional_periods: f64,
+        present_value: f64,
+        future_value: f64,
+        formula: &str,
+        symbolic_formula: &str,
+    ) -> Self {
+        debug_assert!(rate >= -1.0);
+        debug_assert!(fractional_periods >= 0.0);
+        debug_assert!(present_value.is_finite());
+        debug_assert!(future_value.is_finite());
+        debug_assert!(!formula.is_empty());
+        debug_assert!(!symbolic_formula.is_empty());
         Self {
             calculated_field,
             continuous_compounding,
@@ -182,7 +276,7 @@ impl TvmSolution {
     /// ```
     /// // The initial investment is $10,000.12, the interest rate is 1.5% per month, and the
     /// // investment will grow for 24 months using simple compounding.
-    /// let solution = finance_solution::future_value_solution(0.015, 24, 10_000.12, false);
+    /// let solution = finance_solution::future_value_solution(0.015, 24, 10_000.12, false).unwrap();
     ///
     /// // Calculate the value at the end of each period.
     /// let series = solution.series();
@@ -207,7 +301,7 @@ impl TvmSolution {
     /// ```
     /// // The interest rate is 7.8% per year, the investment will grow for 10 years using simple
     /// // compounding, and the final value will be 8_112.75.
-    /// let solution = finance_solution::present_value_solution(0.078, 10, 8_112.75, false);
+    /// let solution = finance_solution::present_value_solution(0.078, 10, 8_112.75, false).unwrap();
     ///
     /// // Calculate the value at the end of each period.
     /// let series = solution.series();
@@ -239,7 +333,7 @@ impl TvmSolution {
     ///
     /// // Calculate the present value and keep track of the inputs and the formula
     /// // in a struct.
-    /// let solution = finance_solution::present_value_schedule_solution(&rates, future_value);
+    /// let solution = finance_solution::present_value_schedule_solution(&rates, future_value).unwrap();
     /// dbg!(&solution);
     ///
     /// // Calculate the value at the end of each period.
@@ -259,7 +353,14 @@ impl TvmSolution {
     /// ```
     pub fn series(&self) -> TvmSeries {
         let rates = initialized_vector(self.periods as usize, self.rate);
-        series_internal(self.calculated_field.clone(), self.continuous_compounding, &rates, self.fractional_periods, self.present_value, self.future_value)
+        series_internal(
+            self.calculated_field.clone(),
+            self.continuous_compounding,
+            &rates,
+            self.fractional_periods,
+            self.present_value,
+            self.future_value,
+        )
     }
 
     /// Prints a formatted table with the period-by-period details of a time-value-of-money
@@ -271,7 +372,7 @@ impl TvmSolution {
     ///
     /// # Examples
     /// ```
-    /// finance_solution::future_value_solution(0.045, 5, 10_000, false)
+    /// finance_solution::future_value_solution(0.045, 5, 10_000, false).unwrap()
     ///     .print_series_table();
     /// ```
     /// Output:
@@ -311,7 +412,7 @@ impl TvmSolution {
     /// // Show money amounts to two decimal places.
     /// let precision = 2;
     ///
-    /// finance_solution::future_value_solution(0.11, 4, 5_000, false)
+    /// finance_solution::future_value_solution(0.11, 4, 5_000, false).unwrap()
     ///     .print_series_table_locale(&locale, precision);
     /// ```
     /// Output:
@@ -335,8 +436,8 @@ impl TvmSolution {
     /// # Examples
     /// ```
     /// // Calculate the future value of $25,000 that grows at 5% for 12 yeors.
-    /// let solution = finance_solution::future_value_solution(0.05, 12, 25_000, false);
-    /// assert!(solution.calculated_field().is_future_value());
+    /// let solution = finance_solution::future_value_solution(0.05, 12, 25_000, false).unwrap();
+    /// debug_assert!(solution.calculated_field().is_future_value());
     /// ```
     pub fn calculated_field(&self) -> &TvmVariable {
         &self.calculated_field
@@ -395,27 +496,58 @@ impl TvmSolution {
     pub fn symbolic_formula(&self) -> &str {
         &self.symbolic_formula
     }
-    
-    pub fn rate_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> TvmSolution {
-        let periods= compounding_periods.unwrap_or(self.periods);
-        rate_solution_internal(periods, self.present_value, self.future_value, continuous_compounding)
+
+    pub fn rate_solution(
+        &self,
+        continuous_compounding: bool,
+        compounding_periods: Option<u32>,
+    ) -> crate::FinanceResult<TvmSolution> {
+        let periods = compounding_periods.unwrap_or(self.periods);
+        rate_solution_internal(
+            periods,
+            self.present_value,
+            self.future_value,
+            continuous_compounding,
+        )
     }
 
-    pub fn periods_solution(&self, continuous_compounding: bool) -> TvmSolution {
-        periods_solution_internal(self.rate, self.present_value, self.future_value, continuous_compounding)
+    pub fn periods_solution(
+        &self,
+        continuous_compounding: bool,
+    ) -> crate::FinanceResult<TvmSolution> {
+        periods_solution_internal(
+            self.rate,
+            self.present_value,
+            self.future_value,
+            continuous_compounding,
+        )
     }
 
-    pub fn present_value_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> TvmSolution {
+    pub fn present_value_solution(
+        &self,
+        continuous_compounding: bool,
+        compounding_periods: Option<u32>,
+    ) -> crate::FinanceResult<TvmSolution> {
         let (rate, periods) = match compounding_periods {
-            Some(periods) => ((self.rate * self.fractional_periods) / periods as f64, periods as f64),
+            Some(periods) => (
+                (self.rate * self.fractional_periods) / periods as f64,
+                periods as f64,
+            ),
             None => (self.rate, self.fractional_periods),
         };
         present_value_solution_internal(rate, periods, self.future_value, continuous_compounding)
     }
 
-    pub fn future_value_solution(&self, continuous_compounding: bool, compounding_periods: Option<u32>) -> TvmSolution {
+    pub fn future_value_solution(
+        &self,
+        continuous_compounding: bool,
+        compounding_periods: Option<u32>,
+    ) -> crate::FinanceResult<TvmSolution> {
         let (rate, periods) = match compounding_periods {
-            Some(periods) => ((self.rate * self.fractional_periods) / periods as f64, periods as f64),
+            Some(periods) => (
+                (self.rate * self.fractional_periods) / periods as f64,
+                periods as f64,
+            ),
             None => (self.rate, self.fractional_periods),
         };
         future_value_solution_internal(rate, periods, self.present_value, continuous_compounding)
@@ -439,7 +571,7 @@ impl TvmSolution {
     /// // varies by the number of compounding periods but we're starting with a future value
     /// // calculation. It would have been fine to start with a rate, periods, or present value
     /// // calculation as well. It just depends on what information we have to work with.
-    /// let solution = finance_solution::future_value_solution(0.20, 1, -83.333, false);
+    /// let solution = finance_solution::future_value_solution(0.20, 1, -83.333, false).unwrap();
     /// dbg!(&solution);
     ///
     /// // The present value of $83.33 gives us a future value of about $100.00.
@@ -480,24 +612,46 @@ impl TvmSolution {
     /// or quarterly but then is affected less and less as we compound more frequently:
     ///
     /// <img src="http://i.upmath.me/svg/%24%24%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D12%2C%0A%09width%3D9.0cm%2Cheight%3D6.4cm%2C%0A%09xmin%3D0%2C%20xmax%3D12%2C%0A%09ymin%3D80.5%2C%20ymax%3D84.5%2C%0A%09restrict%20y%20to%20domain%3D0%3A1000%2C%0A%09ytick%3D%7B81%2C%2082%2C%2083%2C%2084%7D%2C%0A%09xtick%3D%7B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%7D%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24n%24%2Cylabel%3D%24pv%24%5D%0A%5Caddplot%5Bblue%2Cdomain%3D1%3A12%2Csemithick%2C%20only%20marks%5D%7B100%2F((1%2B(0.2%2Fx))%5Ex)%7D%3B%0A%5Caddplot%5Bblack%2Cdomain%3D1%3A12%2C%20thick%5D%7B100%2F(e%5E(0.2))%7D%3B%0A%5Caddplot%5B%5D%20coordinates%20%7B(2.3%2C81.53)%7D%20node%7B%24pv%3D%7B100%20%5Cover%20e%5E%7B0.2%7D%7D%24%7D%3B%0A%5Caddplot%5Bblue%5D%20coordinates%20%7B(4.5%2C82.8)%7D%20node%7B%24pv%3D%7B100%20%5Cover%20(1%2B%7B0.2%20%5Cover%20n%7D)%5En%7D%24%7D%3B%0A%5Cpath%20(axis%20cs%3A0%2C83)%20node%20%5Banchor%3Dnorth%20west%2Cyshift%3D-0.07cm%5D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D%24%24" />
-    pub fn present_value_vary_compounding_periods(&self, compounding_periods: &[u32], include_continuous_compounding: bool) -> ScenarioList {
+    pub fn present_value_vary_compounding_periods(
+        &self,
+        compounding_periods: &[u32],
+        include_continuous_compounding: bool,
+    ) -> ScenarioList {
         let rate_for_single_period = self.rate * self.fractional_periods;
         let mut entries = vec![];
         for periods in compounding_periods {
             let rate = rate_for_single_period / *periods as f64;
-            let present_value = present_value_internal(rate, *periods as f64, self.future_value, self.continuous_compounding);
+            // Solution rates/values are already validated; unwrap is an internal invariant.
+            let present_value = present_value_internal(
+                rate,
+                *periods as f64,
+                self.future_value,
+                self.continuous_compounding,
+            )
+            .expect("validated TvmSolution inputs");
             entries.push((*periods as f64, present_value));
         }
         if include_continuous_compounding {
             let rate = rate_for_single_period;
             let periods = 1;
             let continuous_compounding = true;
-            let present_value = present_value_internal(rate, periods as f64, self.future_value, continuous_compounding);
+            let present_value = present_value_internal(
+                rate,
+                periods as f64,
+                self.future_value,
+                continuous_compounding,
+            )
+            .expect("validated TvmSolution inputs");
             entries.push((std::f64::INFINITY, present_value));
         }
 
         let setup = format!("Compare present values with different compounding periods where the rate is {} and the future value is {}.", format_rate(rate_for_single_period), format_float(self.future_value));
-        ScenarioList::new(setup, TvmVariable::Periods, TvmVariable::PresentValue, entries)
+        ScenarioList::new(
+            setup,
+            TvmVariable::Periods,
+            TvmVariable::PresentValue,
+            entries,
+        )
     }
 
     /// Returns a struct with a set of what-if scenarios for the future value of an investment given
@@ -522,7 +676,7 @@ impl TvmSolution {
     ///
     /// let continuous_compounding = false;
     ///
-    /// let solution = finance_solution::future_value_solution(rate, periods, present_value, continuous_compounding);
+    /// let solution = finance_solution::future_value_solution(rate, periods, present_value, continuous_compounding).unwrap();
     /// dbg!(&solution);
     ///
     /// // We'll experiment with compounding annually, quarterly, monthly, weekly, and daily.
@@ -588,30 +742,49 @@ impl TvmSolution {
     /// compounding periods for clarity:
     ///
     /// <img src="http://i.upmath.me/svg/%24%24%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%5Csmall%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D12%2C%0A%09width%3D9.0cm%2Cheight%3D6.4cm%2C%0A%09xmin%3D0%2C%20xmax%3D12%2C%0A%09ymin%3D119%2C%20ymax%3D123%2C%0A%09restrict%20y%20to%20domain%3D0%3A1000%2C%0A%09ytick%3D%7B120%2C%20121%2C%20122%7D%2C%0A%09xtick%3D%7B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%7D%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24n%24%2Cylabel%3D%24fv%24%5D%0A%5Caddplot%5Bblue%2Cdomain%3D1%3A12%2Cthick%2C%20only%20marks%5D%7B100*((1%2B(0.2%2Fx))%5Ex)%7D%3B%0A%5Caddplot%5Bblack%2Cdomain%3D1%3A12%2Cthick%5D%7B100*(e%5E(0.2))%7D%3B%0A%5Caddplot%5B%5D%20coordinates%20%7B(2.5%2C122.4)%7D%20node%7B%24fv%3D100e%5E%7B0.2%7D%24%7D%3B%0A%5Caddplot%5Bblue%5D%20coordinates%20%7B(4.8%2C120.7)%7D%20node%7B%24fv%3D100(1%2B%7B0.2%20%5Cover%20n%7D)%5En%24%7D%3B%0A%5Cpath%20(axis%20cs%3A0%2C122)%20node%20%5Banchor%3Dnorth%20west%2Cyshift%3D-0.07cm%5D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D%24%24" />
-    pub fn future_value_vary_compounding_periods(&self, compounding_periods: &[u32], include_continuous_compounding: bool) -> ScenarioList {
+    pub fn future_value_vary_compounding_periods(
+        &self,
+        compounding_periods: &[u32],
+        include_continuous_compounding: bool,
+    ) -> ScenarioList {
         let rate_for_single_period = self.rate * self.fractional_periods;
         let mut entries = vec![];
         for periods in compounding_periods {
             let rate = rate_for_single_period / *periods as f64;
-            let future_value = future_value_internal(rate, *periods as f64, self.present_value, self.continuous_compounding);
+            // Solution rates/values are already validated; unwrap is an internal invariant.
+            let future_value = future_value_internal(
+                rate,
+                *periods as f64,
+                self.present_value,
+                self.continuous_compounding,
+            )
+            .expect("validated TvmSolution inputs");
             entries.push((*periods as f64, future_value));
         }
         if include_continuous_compounding {
             let rate = rate_for_single_period;
             let periods = 1;
             let continuous_compounding = true;
-            let future_value = future_value_internal(rate, periods as f64, self.present_value, continuous_compounding);
+            let future_value = future_value_internal(
+                rate,
+                periods as f64,
+                self.present_value,
+                continuous_compounding,
+            )
+            .expect("validated TvmSolution inputs");
             entries.push((std::f64::INFINITY, future_value));
         }
 
         let setup = format!("Compare future values with different compounding periods where the rate is {} and the present value is {}.", format_rate(rate_for_single_period), format_float(self.present_value));
-        ScenarioList::new(setup, TvmVariable::Periods, TvmVariable::FutureValue, entries)
+        ScenarioList::new(
+            setup,
+            TvmVariable::Periods,
+            TvmVariable::FutureValue,
+            entries,
+        )
     }
 
-    pub fn print_ab_comparison(
-        &self,
-        other: &TvmSolution)
-    {
+    pub fn print_ab_comparison(&self, other: &TvmSolution) {
         self.print_ab_comparison_locale_opt(other, None, None);
     }
 
@@ -619,8 +792,8 @@ impl TvmSolution {
         &self,
         other: &TvmSolution,
         locale: &num_format::Locale,
-        precision: usize)
-    {
+        precision: usize,
+    ) {
         self.print_ab_comparison_locale_opt(other, Some(locale), Some(precision));
     }
 
@@ -628,32 +801,72 @@ impl TvmSolution {
         &self,
         other: &TvmSolution,
         locale: Option<&num_format::Locale>,
-        precision: Option<usize>)
-    {
+        precision: Option<usize>,
+    ) {
         println!();
-        print_ab_comparison_values_string("calculated_field", &self.calculated_field.to_string(), &other.calculated_field.to_string());
-        print_ab_comparison_values_bool("continuous_compounding", self.continuous_compounding, other.continuous_compounding);
+        print_ab_comparison_values_string(
+            "calculated_field",
+            &self.calculated_field.to_string(),
+            &other.calculated_field.to_string(),
+        );
+        print_ab_comparison_values_bool(
+            "continuous_compounding",
+            self.continuous_compounding,
+            other.continuous_compounding,
+        );
         print_ab_comparison_values_rate("rate", self.rate, other.rate, locale, precision);
-        print_ab_comparison_values_int("periods", self.periods as i128, other.periods as i128, locale);
+        print_ab_comparison_values_int(
+            "periods",
+            self.periods as i128,
+            other.periods as i128,
+            locale,
+        );
         if self.calculated_field.is_periods() {
-            print_ab_comparison_values_float("fractional_periods", self.fractional_periods, other.fractional_periods, locale, precision);
+            print_ab_comparison_values_float(
+                "fractional_periods",
+                self.fractional_periods,
+                other.fractional_periods,
+                locale,
+                precision,
+            );
         }
-        print_ab_comparison_values_float("present_value", self.present_value, other.present_value, locale, precision);
-        print_ab_comparison_values_float("future_value", self.future_value, other.future_value, locale, precision);
+        print_ab_comparison_values_float(
+            "present_value",
+            self.present_value,
+            other.present_value,
+            locale,
+            precision,
+        );
+        print_ab_comparison_values_float(
+            "future_value",
+            self.future_value,
+            other.future_value,
+            locale,
+            precision,
+        );
         print_ab_comparison_values_string("formula", &self.formula, &other.formula);
-        print_ab_comparison_values_string("symbolic_formula", &self.symbolic_formula, &other.symbolic_formula);
+        print_ab_comparison_values_string(
+            "symbolic_formula",
+            &self.symbolic_formula,
+            &other.symbolic_formula,
+        );
 
-        self.series().print_ab_comparison_locale_opt(&other.series(), locale, precision);
+        self.series()
+            .print_ab_comparison_locale_opt(&other.series(), locale, precision);
     }
 
+    /// Debug-only self-check after public constructors have validated inputs.
     pub(crate) fn invariant(&self) {
-        assert!(self.rate.is_finite());
-        assert!(self.fractional_periods.is_finite());
-        assert_eq!(self.periods, round_fractional_periods(self.fractional_periods));
-        assert!(self.present_value.is_finite());
-        assert!(self.future_value.is_finite());
-        assert!(!self.formula.is_empty());
-        assert!(!self.symbolic_formula.is_empty());
+        debug_assert!(self.rate.is_finite());
+        debug_assert!(self.fractional_periods.is_finite());
+        debug_assert_eq!(
+            self.periods,
+            round_fractional_periods(self.fractional_periods)
+        );
+        debug_assert!(self.present_value.is_finite());
+        debug_assert!(self.future_value.is_finite());
+        debug_assert!(!self.formula.is_empty());
+        debug_assert!(!self.symbolic_formula.is_empty());
     }
 }
 
@@ -672,12 +885,16 @@ impl PartialEq for TvmSolution {
 }
 
 impl TvmScheduleSolution {
-    pub(crate) fn new(calculated_field: TvmVariable, rates: &[f64], present_value: f64, future_value: f64) -> Self {
-        for rate in rates.iter() {
-            assert!(rate.is_finite());
-        }
-        assert!(present_value.is_finite());
-        assert!(future_value.is_finite());
+    /// Internal constructor — public schedule entry points validate rates/money first.
+    pub(crate) fn new(
+        calculated_field: TvmVariable,
+        rates: &[f64],
+        present_value: f64,
+        future_value: f64,
+    ) -> Self {
+        debug_assert!(rates.iter().all(|r| r.is_finite()));
+        debug_assert!(present_value.is_finite());
+        debug_assert!(future_value.is_finite());
         Self {
             calculated_field,
             rates: rates.to_vec(),
@@ -693,8 +910,8 @@ impl TvmScheduleSolution {
     ///
     /// # Examples
     /// ```
-    /// let solution = finance_solution::present_value_schedule_solution(&[0.011, 0.012, 0.009], 75_000);
-    /// assert!(solution.calculated_field().is_present_value());
+    /// let solution = finance_solution::present_value_schedule_solution(&[0.011, 0.012, 0.009], 75_000).unwrap();
+    /// debug_assert!(solution.calculated_field().is_present_value());
     /// ```
     pub fn calculated_field(&self) -> &TvmVariable {
         &self.calculated_field
@@ -710,7 +927,7 @@ impl TvmScheduleSolution {
     ///
     /// # Examples
     /// ```
-    /// let solution = finance_solution::future_value_schedule_solution(&[0.05, 0.07, 0.05], 100_000);
+    /// let solution = finance_solution::future_value_schedule_solution(&[0.05, 0.07, 0.05], 100_000).unwrap();
     /// assert_eq!(3, solution.periods());
     /// ```
     pub fn periods(&self) -> u32 {
@@ -739,7 +956,7 @@ impl TvmScheduleSolution {
     /// ```
     /// // The initial investment is $10,000.12, the interest rate is 1.5% per month, and the
     /// // investment will grow for 24 months using simple compounding.
-    /// let solution = finance_solution::future_value_solution(0.015, 24, 10_000.12, false);
+    /// let solution = finance_solution::future_value_solution(0.015, 24, 10_000.12, false).unwrap();
     /// dbg!(&solution);
     ///
     /// // Calculate the period-by-period details.
@@ -761,30 +978,34 @@ impl TvmScheduleSolution {
     /// assert_eq!(7, filtered_series.len());
     /// ```
     pub fn series(&self) -> TvmSeries {
-        series_internal(self.calculated_field.clone(), false, &self.rates,0.0, self.present_value, self.future_value)
+        series_internal(
+            self.calculated_field.clone(),
+            false,
+            &self.rates,
+            0.0,
+            self.present_value,
+            self.future_value,
+        )
     }
 
     pub(crate) fn invariant(&self) {
-        for rate in self.rates.iter() {
-            assert!(rate.is_finite());
-        }
-        assert!(self.present_value.is_finite());
-        assert!(self.future_value.is_finite());
+        debug_assert!(self.rates.iter().all(|r| r.is_finite()));
+        debug_assert!(self.present_value.is_finite());
+        debug_assert!(self.future_value.is_finite());
     }
 }
 
 impl TvmSeries {
     pub(crate) fn new(series: Vec<TvmPeriod>) -> Self {
-        Self {
-            0: series,
-        }
+        Self { 0: series }
     }
 
     pub fn filter<P>(&self, predicate: P) -> Self
-        where P: Fn(&&TvmPeriod) -> bool
+    where
+        P: Fn(&&TvmPeriod) -> bool,
     {
         Self {
-            0: self.iter().filter(|x| predicate(x)).cloned().collect()
+            0: self.iter().filter(|x| predicate(x)).cloned().collect(),
         }
     }
 
@@ -796,18 +1017,30 @@ impl TvmSeries {
         self.print_table_locale_opt(Some(locale), Some(precision));
     }
 
-    fn print_table_locale_opt(&self, locale: Option<&num_format::Locale>, precision: Option<usize>) {
-        let columns = columns_with_strings(&[("period", "i", true), ("rate", "r", true), ("value", "f", true)]);
-        let data = self.iter()
-            .map(|entry| vec![entry.period.to_string(), entry.rate.to_string(), entry.value.to_string()])
+    fn print_table_locale_opt(
+        &self,
+        locale: Option<&num_format::Locale>,
+        precision: Option<usize>,
+    ) {
+        let columns = columns_with_strings(&[
+            ("period", "i", true),
+            ("rate", "r", true),
+            ("value", "f", true),
+        ]);
+        let data = self
+            .iter()
+            .map(|entry| {
+                vec![
+                    entry.period.to_string(),
+                    entry.rate.to_string(),
+                    entry.value.to_string(),
+                ]
+            })
             .collect::<Vec<_>>();
         print_table_locale_opt(&columns, data, locale, precision);
     }
 
-    pub fn print_ab_comparison(
-        &self,
-        other: &TvmSeries)
-    {
+    pub fn print_ab_comparison(&self, other: &TvmSeries) {
         self.print_ab_comparison_locale_opt(other, None, None);
     }
 
@@ -815,8 +1048,8 @@ impl TvmSeries {
         &self,
         other: &TvmSeries,
         locale: &num_format::Locale,
-        precision: usize)
-    {
+        precision: usize,
+    ) {
         self.print_ab_comparison_locale_opt(other, Some(locale), Some(precision))
     }
 
@@ -824,27 +1057,37 @@ impl TvmSeries {
         &self,
         other: &TvmSeries,
         locale: Option<&num_format::Locale>,
-        precision: Option<usize>)
-    {
-        let columns = columns_with_strings(&[("period", "i", true),
-                           ("rate_a", "r", true), ("rate_b", "r", true),
-                           ("value_a", "f", true), ("value_b", "f", true)]);
+        precision: Option<usize>,
+    ) {
+        let columns = columns_with_strings(&[
+            ("period", "i", true),
+            ("rate_a", "r", true),
+            ("rate_b", "r", true),
+            ("value_a", "f", true),
+            ("value_b", "f", true),
+        ]);
         let mut data = vec![];
         let rows = max(self.len(), other.len());
         for row_index in 0..rows {
             data.push(vec![
                 row_index.to_string(),
-                self.get(row_index).map_or("".to_string(), |x| x.rate.to_string()),
-                other.get(row_index).map_or("".to_string(), |x| x.rate.to_string()),
-                self.get(row_index).map_or("".to_string(), |x| x.value.to_string()),
-                other.get(row_index).map_or("".to_string(), |x| x.value.to_string()),
+                self.get(row_index)
+                    .map_or("".to_string(), |x| x.rate.to_string()),
+                other
+                    .get(row_index)
+                    .map_or("".to_string(), |x| x.rate.to_string()),
+                self.get(row_index)
+                    .map_or("".to_string(), |x| x.value.to_string()),
+                other
+                    .get(row_index)
+                    .map_or("".to_string(), |x| x.value.to_string()),
             ]);
         }
         print_table_locale_opt(&columns, data, locale, precision);
     }
 }
 
-impl Deref for TvmSeries{
+impl Deref for TvmSeries {
     type Target = Vec<TvmPeriod>;
 
     fn deref(&self) -> &Self::Target {
@@ -853,17 +1096,23 @@ impl Deref for TvmSeries{
 }
 
 impl TvmPeriod {
-    pub(crate) fn new(period: u32, rate: f64, value: f64, formula: &str, symbolic_formula: &str) -> Self {
-        assert!(rate.is_finite());
-        assert!(value.is_finite());
-        assert!(!formula.is_empty());
-        assert!(!symbolic_formula.is_empty());
+    pub(crate) fn new(
+        period: u32,
+        rate: f64,
+        value: f64,
+        formula: &str,
+        symbolic_formula: &str,
+    ) -> Self {
+        debug_assert!(rate.is_finite());
+        debug_assert!(value.is_finite());
+        debug_assert!(!formula.is_empty());
+        debug_assert!(!symbolic_formula.is_empty());
         Self {
             period,
             rate,
             value,
             formula: formula.to_string(),
-            symbolic_formula: symbolic_formula.to_string()
+            symbolic_formula: symbolic_formula.to_string(),
         }
     }
 
@@ -933,13 +1182,9 @@ fn series_internal(
         // except for the last period which simply has the future value. We'll have a period 0
         // representing the present value.
         for period in (0..=periods).rev() {
-            let one_rate = if period == 0 {
-                0.0
-            } else {
-                rates[period - 1]
-            };
-            assert!(one_rate.is_finite());
-            assert!(one_rate >= -1.0);
+            let one_rate = if period == 0 { 0.0 } else { rates[period - 1] };
+            debug_assert!(one_rate.is_finite());
+            debug_assert!(one_rate >= -1.0);
 
             // let rate_multiplier = 1.0 + one_rate;
 
@@ -958,22 +1203,36 @@ fn series_internal(
                 let rate_next_period = rates[period];
                 if continuous_compounding {
                     let value = next_value.unwrap() / std::f64::consts::E.powf(rate_next_period);
-                    let formula = format!("{:.4} = {:.4} / ({:.6} ^ {:.6})", value, next_value.unwrap(), std::f64::consts::E, rate_next_period);
+                    let formula = format!(
+                        "{:.4} = {:.4} / ({:.6} ^ {:.6})",
+                        value,
+                        next_value.unwrap(),
+                        std::f64::consts::E,
+                        rate_next_period
+                    );
                     let symbolic_formula = "pv = fv / e^r";
                     (value, formula, symbolic_formula)
                 } else {
                     let rate_multiplier_next_period = 1.0 + rate_next_period;
                     let value = next_value.unwrap() / rate_multiplier_next_period;
-                    let formula = format!("{:.4} = {:.4} / {:.6}", value, next_value.unwrap(), rate_multiplier_next_period);
+                    let formula = format!(
+                        "{:.4} = {:.4} / {:.6}",
+                        value,
+                        next_value.unwrap(),
+                        rate_multiplier_next_period
+                    );
                     let symbolic_formula = "value = {next period value} / (1 + r)";
                     (value, formula, symbolic_formula)
                 }
             };
-            assert!(value.is_finite());
+            debug_assert!(value.is_finite());
             next_value = Some(value);
             // We want to end up with the periods in order so for each pass through the loop insert the
             // current TvmPeriod at the beginning of the vector.
-            series.insert(0, TvmPeriod::new(period as u32, one_rate, value, &formula, symbolic_formula))
+            series.insert(
+                0,
+                TvmPeriod::new(period as u32, one_rate, value, &formula, symbolic_formula),
+            )
         }
     } else {
         // For a rate, periods, or future value calculation the the period-by-period values are
@@ -987,17 +1246,13 @@ fn series_internal(
 
         // Add the values at each period.
         for period in 0..=periods {
-            let one_rate = if period == 0 {
-                0.0
-            } else {
-                rates[period - 1]
-            };
-            assert!(one_rate.is_finite());
-            assert!(one_rate >= -1.0);
+            let one_rate = if period == 0 { 0.0 } else { rates[period - 1] };
+            debug_assert!(one_rate.is_finite());
+            debug_assert!(one_rate >= -1.0);
 
             let rate_multiplier = 1.0 + one_rate;
-            assert!(rate_multiplier.is_finite());
-            assert!(rate_multiplier >= 0.0);
+            debug_assert!(rate_multiplier.is_finite());
+            debug_assert!(rate_multiplier >= 0.0);
 
             let (value, formula, symbolic_formula) = if period == 0 {
                 let value = -present_value;
@@ -1016,24 +1271,40 @@ fn series_internal(
                 // The usual case.
                 if continuous_compounding {
                     let value = prev_value.unwrap() * std::f64::consts::E.powf(one_rate);
-                    let formula = format!("{:.4} = {:.4} * ({:.6} ^ {:.6})", value, prev_value.unwrap(), std::f64::consts::E, one_rate);
+                    let formula = format!(
+                        "{:.4} = {:.4} * ({:.6} ^ {:.6})",
+                        value,
+                        prev_value.unwrap(),
+                        std::f64::consts::E,
+                        one_rate
+                    );
                     let symbolic_formula = "fv = pv * e^r";
                     (value, formula, symbolic_formula)
                 } else {
                     let value = prev_value.unwrap() * rate_multiplier;
-                    let formula = format!("{:.4} = {:.4} * {:.6}", value, prev_value.unwrap(), rate_multiplier);
+                    let formula = format!(
+                        "{:.4} = {:.4} * {:.6}",
+                        value,
+                        prev_value.unwrap(),
+                        rate_multiplier
+                    );
                     let symbolic_formula = "value = {previous period value} * (1 + r)";
                     (value, formula, symbolic_formula)
                 }
             };
-            assert!(value.is_finite());
+            debug_assert!(value.is_finite());
             prev_value = Some(value);
-            series.push(TvmPeriod::new(period as u32, one_rate, value, &formula, symbolic_formula))
+            series.push(TvmPeriod::new(
+                period as u32,
+                one_rate,
+                value,
+                &formula,
+                symbolic_formula,
+            ))
         }
     }
     TvmSeries::new(series)
 }
-
 
 fn round_fractional_periods(fractional_periods: f64) -> u32 {
     round_4(fractional_periods).ceil() as u32
@@ -1053,7 +1324,9 @@ mod tests {
 
     #[test]
     fn test_tvm_symmetry_multiple() {
-        let rates = vec![-1.0, -0.5, -0.05, -0.005, 0.0, 0.005, 0.05, 0.5, 1.0, 10.0, 100.0];
+        let rates = vec![
+            -1.0, -0.5, -0.05, -0.005, 0.0, 0.005, 0.05, 0.5, 1.0, 10.0, 100.0,
+        ];
         // let rates = vec![-0.5, -0.05, -0.005, 0.0, 0.005, 0.05, 0.5, 1.0, 10.0, 100.0];
         // let periods: Vec<u32> = vec![0, 1, 2, 5, 10, 36, 100, 1_000];
         let periods: Vec<u32> = vec![0, 1, 2, 5, 10, 36];
@@ -1077,11 +1350,11 @@ mod tests {
         // Calculate the future value given the other three inputs so that we have all four values
         // which we can use in various combinations to confirm that all four basic TVM functions
         // return consistent values.
-        let future_value_calc = future_value(rate_in, periods_in, present_value_in, false);
+        let future_value_calc = future_value(rate_in, periods_in, present_value_in, false).unwrap();
         //bg!(future_value_calc);
         //bg!(future_value_calc.is_normal());
 
-        let rate_calc = rate(periods_in, present_value_in, future_value_calc, false);
+        let rate_calc = rate(periods_in, present_value_in, future_value_calc, false).unwrap();
         //bg!(rate_calc);
         if periods_in == 0 || present_value_in == 0.0 {
             // With zero periods or zero for the present value, presumably the future value is the
@@ -1094,7 +1367,8 @@ mod tests {
             assert_approx_equal_symmetry_test!(rate_calc, rate_in);
         }
 
-        let fractional_periods_calc = periods(rate_in, present_value_in, future_value_calc, false);
+        let fractional_periods_calc =
+            periods(rate_in, present_value_in, future_value_calc, false).unwrap();
         //bg!(fractional_periods_calc);
         let periods_calc = round_4(fractional_periods_calc).ceil() as u32;
         //bg!(periods_calc);
@@ -1116,7 +1390,8 @@ mod tests {
         }
 
         if future_value_calc.is_normal() {
-            let present_value_calc = present_value(rate_in, periods_in, future_value_calc, false);
+            let present_value_calc =
+                present_value(rate_in, periods_in, future_value_calc, false).unwrap();
             //bg!(present_value_calc);
             assert_approx_equal_symmetry_test!(present_value_calc, present_value_in);
         };
@@ -1129,24 +1404,28 @@ mod tests {
         }
 
         if future_value_calc.is_normal() {
-            let present_value_schedule_calc = present_value_schedule(&rates_in, future_value_calc);
+            let present_value_schedule_calc =
+                present_value_schedule(&rates_in, future_value_calc).unwrap();
             //bg!(present_value_schedule_calc);
             assert_approx_equal_symmetry_test!(present_value_schedule_calc, present_value_in);
         }
 
-        let future_value_schedule_calc = future_value_schedule(&rates_in, present_value_in);
+        let future_value_schedule_calc =
+            future_value_schedule(&rates_in, present_value_in).unwrap();
         //bg!(future_value_schedule_calc);
         assert_approx_equal_symmetry_test!(future_value_schedule_calc, future_value_calc);
 
         // Create TvmSolution structs by solving for each of the four possible variables.
         let mut solutions = vec![
-            rate_solution(periods_in, present_value_in, future_value_calc, false),
-            periods_solution(rate_in, present_value_in, future_value_calc, false),
-            future_value_solution(rate_in, periods_in, present_value_in, false),
+            rate_solution(periods_in, present_value_in, future_value_calc, false).unwrap(),
+            periods_solution(rate_in, present_value_in, future_value_calc, false).unwrap(),
+            future_value_solution(rate_in, periods_in, present_value_in, false).unwrap(),
         ];
 
         if future_value_calc.is_normal() {
-            solutions.push(present_value_solution(rate_in, periods_in, future_value_calc, false));
+            solutions.push(
+                present_value_solution(rate_in, periods_in, future_value_calc, false).unwrap(),
+            );
         }
         for solution in solutions.iter() {
             //bg!(solution);
@@ -1173,9 +1452,10 @@ mod tests {
             assert_approx_equal_symmetry_test!(future_value_calc, solution.future_value());
         }
 
-        let mut schedules = vec![future_value_schedule_solution(&rates_in, present_value_in)];
+        let mut schedules =
+            vec![future_value_schedule_solution(&rates_in, present_value_in).unwrap()];
         if future_value_calc.is_normal() {
-            schedules.push(present_value_schedule_solution(&rates_in, future_value_calc));
+            schedules.push(present_value_schedule_solution(&rates_in, future_value_calc).unwrap());
         }
 
         for schedule in schedules.iter() {
@@ -1190,12 +1470,32 @@ mod tests {
         for solution in solutions.iter() {
             let label = format!("Solution for {:?}", solution.calculated_field());
             //bg!(&label);
-            check_series_internal(label, solution.calculated_field(), &solution.series(), rate_in, periods_in, present_value_in, future_value_calc, rate_calc, periods_calc);
+            check_series_internal(
+                label,
+                solution.calculated_field(),
+                &solution.series(),
+                rate_in,
+                periods_in,
+                present_value_in,
+                future_value_calc,
+                rate_calc,
+                periods_calc,
+            );
         }
         for solution in schedules.iter() {
             let label = format!("Schedule for {:?}", solution.calculated_field());
             //bg!(&label);
-            check_series_internal(label, solution.calculated_field(),  &solution.series(), rate_in, periods_in, present_value_in, future_value_calc, rate_calc, periods_calc);
+            check_series_internal(
+                label,
+                solution.calculated_field(),
+                &solution.series(),
+                rate_in,
+                periods_in,
+                present_value_in,
+                future_value_calc,
+                rate_calc,
+                periods_calc,
+            );
         }
 
         // Confirm that all of the series have the same values for all periods regardless of how we
@@ -1203,19 +1503,47 @@ mod tests {
         // future_value_solution(). It would also work to use the result of rate_solution() and
         // present_value_solution() but not periods_solution() since there are some special cases in
         // which this will create fewer periods than the other functions.
-        let reference_solution = solutions.iter().find(|solution| solution.calculated_field().is_future_value()).unwrap();
+        let reference_solution = solutions
+            .iter()
+            .find(|solution| solution.calculated_field().is_future_value())
+            .unwrap();
         let reference_series = reference_solution.series();
-        for solution in solutions.iter().filter(|solution| !solution.calculated_field().is_future_value()) {
+        for solution in solutions
+            .iter()
+            .filter(|solution| !solution.calculated_field().is_future_value())
+        {
             let label = format!("Solution for {:?}", solution.calculated_field());
-            check_series_same_values(reference_solution, &reference_series,label, solution.calculated_field(), &solution.series());
+            check_series_same_values(
+                reference_solution,
+                &reference_series,
+                label,
+                solution.calculated_field(),
+                &solution.series(),
+            );
         }
         for schedule in schedules.iter() {
             let label = format!("Schedule for {:?}", schedule.calculated_field());
-            check_series_same_values(reference_solution, &reference_series, label, schedule.calculated_field(), &schedule.series());
+            check_series_same_values(
+                reference_solution,
+                &reference_series,
+                label,
+                schedule.calculated_field(),
+                &schedule.series(),
+            );
         }
     }
 
-    fn check_series_internal(_label: String, calculated_field: &TvmVariable, series: &TvmSeries, rate_in: f64, periods_in: u32, present_value_in: f64, future_value_calc: f64, rate_calc: f64, periods_calc: u32) {
+    fn check_series_internal(
+        _label: String,
+        calculated_field: &TvmVariable,
+        series: &TvmSeries,
+        rate_in: f64,
+        periods_in: u32,
+        present_value_in: f64,
+        future_value_calc: f64,
+        rate_calc: f64,
+        periods_calc: u32,
+    ) {
         //bg!(label);
         //bg!(&series);
         if calculated_field.is_periods() {
@@ -1246,7 +1574,9 @@ mod tests {
                     rate_in
                 };
                 // Compare this period's value to the one before.
-                if is_approx_equal!(0.0, effective_rate) || is_approx_equal!(0.0, prev_value.unwrap()) {
+                if is_approx_equal!(0.0, effective_rate)
+                    || is_approx_equal!(0.0, prev_value.unwrap())
+                {
                     // The rate is zero or the previous value was zero so each period's value should
                     // be the same as the one before.
                     assert_approx_equal_symmetry_test!(entry.value(), prev_value.unwrap());
@@ -1282,7 +1612,13 @@ mod tests {
         }
     }
 
-    fn check_series_same_values(_reference_solution: &TvmSolution, reference_series: &TvmSeries, _label: String, calculated_field: &TvmVariable, series: &[TvmPeriod]) {
+    fn check_series_same_values(
+        _reference_solution: &TvmSolution,
+        reference_series: &TvmSeries,
+        _label: String,
+        calculated_field: &TvmVariable,
+        series: &[TvmPeriod],
+    ) {
         //bg!(reference_solution);
         //bg!(&reference_series);
 
@@ -1290,7 +1626,6 @@ mod tests {
         //bg!(&series);
 
         if calculated_field.is_periods() && reference_series.len() != series.len() {
-
             // There are a few special cases in which the number of periods might be zero or one
             // instead of matching periods_in.
 
@@ -1311,7 +1646,6 @@ mod tests {
             }
             assert_approx_equal_symmetry_test!(reference_entry.value(), entry.value());
         } else {
-
             // This is the usual case where we expect the two series to be identical except for
             // the formulas.
 
@@ -1370,7 +1704,12 @@ mod tests {
 
         if display {
             println!();
-            dbg!("check_continuous_symmetry", rate_in, periods_in, present_value_in);
+            dbg!(
+                "check_continuous_symmetry",
+                rate_in,
+                periods_in,
+                present_value_in
+            );
         }
 
         /*
@@ -1383,11 +1722,15 @@ mod tests {
         // Calculate the future value given the other three inputs so that we have all four values
         // which we can use in various combinations to confirm that all four continuous TVM
         // functions return consistent values.
-        let future_value_calc = future_value(rate_in, periods_in, present_value_in, true);
-        if display { dbg!(future_value_calc); }
+        let future_value_calc = future_value(rate_in, periods_in, present_value_in, true).unwrap();
+        if display {
+            dbg!(future_value_calc);
+        }
 
-        let rate_calc = rate::rate(periods_in, present_value_in, future_value_calc, true);
-        if display { dbg!(rate_calc); }
+        let rate_calc = rate::rate(periods_in, present_value_in, future_value_calc, true).unwrap();
+        if display {
+            dbg!(rate_calc);
+        }
         if periods_in == 0 || present_value_in == 0.0 {
             // With zero periods or zero for the present value, presumably the future value is the
             // same as the present value and any rate would be fine so we arbitrarily
@@ -1395,14 +1738,21 @@ mod tests {
             assert_approx_equal_symmetry_test!(present_value_in, future_value_calc);
             assert_approx_equal_symmetry_test!(0.0, rate_calc);
         } else {
-            if display { dbg!(rate_calc, rate_in); }
+            if display {
+                dbg!(rate_calc, rate_in);
+            }
             assert_approx_equal_symmetry_test!(rate_calc, rate_in);
         }
 
-        let fractional_periods_calc = periods(rate_in, present_value_in, future_value_calc, true);
-        if display { dbg!(fractional_periods_calc); }
+        let fractional_periods_calc =
+            periods(rate_in, present_value_in, future_value_calc, true).unwrap();
+        if display {
+            dbg!(fractional_periods_calc);
+        }
         let periods_calc = round_4(fractional_periods_calc).ceil() as u32;
-        if display { dbg!(periods_calc); }
+        if display {
+            dbg!(periods_calc);
+        }
         if rate_in == 0.0 || present_value_in == 0.0 || periods_in == 0 {
             // If the rate is zero or the present value is zero then the present value and future
             // value will be the same and periods() will return zero since no periods are required.
@@ -1420,23 +1770,30 @@ mod tests {
         }
 
         if future_value_calc.is_normal() {
-            let present_value_calc = present_value(rate_in, periods_in, future_value_calc, true);
-            if display { dbg!(present_value_calc); }
+            let present_value_calc =
+                present_value(rate_in, periods_in, future_value_calc, true).unwrap();
+            if display {
+                dbg!(present_value_calc);
+            }
             assert_approx_equal_symmetry_test!(present_value_calc, present_value_in);
         };
 
         // Create TvmSolution structs by solving for each of the four possible variables.
         let mut solutions = vec![
-            rate_solution(periods_in, present_value_in, future_value_calc, true),
-            periods_solution(rate_in, present_value_in, future_value_calc, true),
-            future_value_solution(rate_in, periods_in, present_value_in, true),
+            rate_solution(periods_in, present_value_in, future_value_calc, true).unwrap(),
+            periods_solution(rate_in, present_value_in, future_value_calc, true).unwrap(),
+            future_value_solution(rate_in, periods_in, present_value_in, true).unwrap(),
         ];
 
         if future_value_calc.is_normal() {
-            solutions.push(present_value_solution(rate_in, periods_in, future_value_calc, true));
+            solutions.push(
+                present_value_solution(rate_in, periods_in, future_value_calc, true).unwrap(),
+            );
         }
         for solution in solutions.iter() {
-            if display { dbg!(solution); }
+            if display {
+                dbg!(solution);
+            }
             // let series = solution.series();
             // dbg!(&series);
             if solution.calculated_field().is_rate() {
@@ -1473,11 +1830,23 @@ mod tests {
         // future_value_solution(). It would also work to use the result of rate_solution() and
         // present_value_solution() but not periods_solution() since there are some special cases in
         // which this will create fewer periods than the other functions.
-        let reference_solution = solutions.iter().find(|solution| solution.calculated_field().is_future_value()).unwrap();
+        let reference_solution = solutions
+            .iter()
+            .find(|solution| solution.calculated_field().is_future_value())
+            .unwrap();
         let reference_series = reference_solution.series();
-        for solution in solutions.iter().filter(|solution| !solution.calculated_field().is_future_value()) {
+        for solution in solutions
+            .iter()
+            .filter(|solution| !solution.calculated_field().is_future_value())
+        {
             let label = format!("Solution for {:?}", solution.calculated_field());
-            check_series_same_values(reference_solution, &reference_series, label, solution.calculated_field(), &solution.series());
+            check_series_same_values(
+                reference_solution,
+                &reference_series,
+                label,
+                solution.calculated_field(),
+                &solution.series(),
+            );
         }
     }
 
@@ -1511,20 +1880,25 @@ mod tests {
 
     fn check_simple_to_continuous_symmetry(rate_in: f64, periods_in: u32, present_value_in: f64) {
         println!();
-        dbg!("check_simple_to_continuous_symmetry", rate_in, periods_in, present_value_in);
+        dbg!(
+            "check_simple_to_continuous_symmetry",
+            rate_in,
+            periods_in,
+            present_value_in
+        );
 
         // Calculate the future value given the other three inputs so that we have all four values
         // which we can use in various combinations to confirm that all four continuous TVM
         // functions return consistent values.
-        let future_value_calc = future_value(rate_in, periods_in, present_value_in, true);
+        let future_value_calc = future_value(rate_in, periods_in, present_value_in, true).unwrap();
         dbg!(future_value_calc);
 
         // Create TvmSolution structs with continuous compounding by solving for each of the four possible variables.
         let continuous_solutions = vec![
-            rate_solution(periods_in, present_value_in, future_value_calc, true),
-            periods_solution(rate_in, present_value_in, future_value_calc, true),
-            present_value_solution(rate_in, periods_in, future_value_calc, true),
-            future_value_solution(rate_in, periods_in, present_value_in, true),
+            rate_solution(periods_in, present_value_in, future_value_calc, true).unwrap(),
+            periods_solution(rate_in, present_value_in, future_value_calc, true).unwrap(),
+            present_value_solution(rate_in, periods_in, future_value_calc, true).unwrap(),
+            future_value_solution(rate_in, periods_in, present_value_in, true).unwrap(),
         ];
 
         // For each solution with continuous compounding create a corresponding solution with
@@ -1535,10 +1909,14 @@ mod tests {
             .collect::<Vec<_>>();
         */
         let simple_solutions = [
-            continuous_solutions[0].rate_solution(false, None),
-            continuous_solutions[1].periods_solution(false),
-            continuous_solutions[2].present_value_solution(false, None),
-            continuous_solutions[3].future_value_solution(false, None),
+            continuous_solutions[0].rate_solution(false, None).unwrap(),
+            continuous_solutions[1].periods_solution(false).unwrap(),
+            continuous_solutions[2]
+                .present_value_solution(false, None)
+                .unwrap(),
+            continuous_solutions[3]
+                .future_value_solution(false, None)
+                .unwrap(),
         ];
 
         // Compare the continuous solutions to the corresponding simple solutions.
@@ -1546,7 +1924,10 @@ mod tests {
             let simple_solution = &simple_solutions[index];
             println!("\nContinuous compounding vs. simple compounding adjusting {} while keeping the other three values constant.\n", continuous_solution.calculated_field().to_string().to_lowercase());
             dbg!(&continuous_solution, &simple_solution);
-            assert_eq!(continuous_solution.calculated_field(), simple_solution.calculated_field());
+            assert_eq!(
+                continuous_solution.calculated_field(),
+                simple_solution.calculated_field()
+            );
             assert!(continuous_solution.continuous_compounding());
             assert!(!simple_solution.continuous_compounding());
             if continuous_solution.calculated_field().is_rate() {
@@ -1560,7 +1941,10 @@ mod tests {
             if continuous_solution.calculated_field().is_periods() {
                 // We expect the fractional periods to be the same or lower with continuous
                 // compounding when the other three inputs are held constant.
-                assert!(continuous_solution.fractional_periods() <= simple_solution.fractional_periods());
+                assert!(
+                    continuous_solution.fractional_periods()
+                        <= simple_solution.fractional_periods()
+                );
                 // Depending on rounding the number of periods may be the same or less for
                 // continuous compounding.
                 assert!(continuous_solution.periods() <= simple_solution.periods());
@@ -1573,23 +1957,37 @@ mod tests {
                 // We expect the present value to be lower with continuous compounding when the
                 // other three inputs are held constant. This is because it takes less of an initial
                 // investment to reach the same final value.
-                assert!(continuous_solution.present_value().abs() < simple_solution.present_value().abs());
+                assert!(
+                    continuous_solution.present_value().abs()
+                        < simple_solution.present_value().abs()
+                );
             } else {
                 // The present value was an input rather than being calculated, so it should be the
                 // same.
-                assert_eq!(continuous_solution.present_value(), simple_solution.present_value());
+                assert_eq!(
+                    continuous_solution.present_value(),
+                    simple_solution.present_value()
+                );
             }
             if continuous_solution.calculated_field().is_future_value() {
                 // We expect the future value to be higher with continuous compounding when the
                 // other three inputs are held constant.
-                assert!(continuous_solution.future_value().abs() > simple_solution.future_value().abs());
+                assert!(
+                    continuous_solution.future_value().abs() > simple_solution.future_value().abs()
+                );
             } else {
                 // The future value was an input rather than being calculated, so it should be the
                 // same.
-                assert_eq!(continuous_solution.future_value(), simple_solution.future_value());
+                assert_eq!(
+                    continuous_solution.future_value(),
+                    simple_solution.future_value()
+                );
             }
             assert_ne!(continuous_solution.formula(), simple_solution.formula());
-            assert_ne!(continuous_solution.symbolic_formula(), simple_solution.symbolic_formula());
+            assert_ne!(
+                continuous_solution.symbolic_formula(),
+                simple_solution.symbolic_formula()
+            );
         }
 
         // For each solution with simple compounding create a corresponding solution with
@@ -1601,10 +1999,14 @@ mod tests {
             .collect::<Vec<_>>();
         */
         let continuous_solutions_round_trip = [
-            continuous_solutions[0].rate_solution(true, None),
-            continuous_solutions[1].periods_solution(true),
-            continuous_solutions[2].present_value_solution(true, None),
-            continuous_solutions[3].future_value_solution(true, None),
+            continuous_solutions[0].rate_solution(true, None).unwrap(),
+            continuous_solutions[1].periods_solution(true).unwrap(),
+            continuous_solutions[2]
+                .present_value_solution(true, None)
+                .unwrap(),
+            continuous_solutions[3]
+                .future_value_solution(true, None)
+                .unwrap(),
         ];
 
         // Compare the recently created continuous solutions to the original continuous solutions.
@@ -1650,7 +2052,10 @@ mod tests {
         let periods = 4;
         let present_value = 5_000.00;
         let compounding_periods = vec![1, 2, 4, 6, 12, 24, 52, 365];
-        (future_value_solution(rate, periods, present_value, false), compounding_periods)
+        (
+            future_value_solution(rate, periods, present_value, false).unwrap(),
+            compounding_periods,
+        )
     }
 
     #[test]
@@ -1662,7 +2067,12 @@ mod tests {
 
         for one_compounding_period in compounding_periods.iter() {
             println!("\nSimple compounding original vs. compounding periods = {} while varying future value.\n", one_compounding_period);
-            dbg!(&solution, solution.future_value_solution(false, Some(*one_compounding_period)));
+            dbg!(
+                &solution,
+                solution
+                    .future_value_solution(false, Some(*one_compounding_period))
+                    .unwrap()
+            );
         }
     }
 
@@ -1675,7 +2085,12 @@ mod tests {
 
         for one_compounding_period in compounding_periods.iter() {
             println!("\nSimple compounding original vs. compounding periods = {} while varying present value.\n", one_compounding_period);
-            dbg!(&solution, solution.present_value_solution(false, Some(*one_compounding_period)));
+            dbg!(
+                &solution,
+                solution
+                    .present_value_solution(false, Some(*one_compounding_period))
+                    .unwrap()
+            );
         }
     }
 }

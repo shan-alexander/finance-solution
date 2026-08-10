@@ -31,7 +31,72 @@ pub mod nper;
 #[doc(inline)]
 pub use nper::*;
 
-#[derive(Debug, Clone)]
+/// When a level payment (annuity installment) falls within each period.
+///
+/// Prefer this enum over a bare `bool`. For ergonomics, `false` converts to
+/// [`PaymentTiming::EndOfPeriod`] and `true` to [`PaymentTiming::BeginningOfPeriod`]
+/// (Excel `type=0` / `type=1`).
+///
+/// # Examples
+/// ```
+/// use finance_solution::{payment, PaymentTiming};
+///
+/// let end = payment(0.01, 12, 1_000.0, 0.0, PaymentTiming::EndOfPeriod).unwrap();
+/// let end_bool = payment(0.01, 12, 1_000.0, 0.0, false).unwrap();
+/// assert!((end - end_bool).abs() < 1e-12);
+///
+/// let due = payment(0.01, 12, 1_000.0, 0.0, true).unwrap();
+/// assert!(due.abs() < end.abs()); // due payments are slightly smaller in magnitude
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
+pub enum PaymentTiming {
+    /// Payment at the end of each period (ordinary annuity). Default / Excel `type=0`.
+    #[default]
+    EndOfPeriod,
+    /// Payment at the beginning of each period (annuity due). Excel `type=1`.
+    BeginningOfPeriod,
+}
+
+impl PaymentTiming {
+    /// True when payments fall at the start of each period.
+    #[inline]
+    pub fn is_beginning(&self) -> bool {
+        matches!(self, PaymentTiming::BeginningOfPeriod)
+    }
+
+    /// True when payments fall at the end of each period.
+    #[inline]
+    pub fn is_end(&self) -> bool {
+        matches!(self, PaymentTiming::EndOfPeriod)
+    }
+}
+
+impl fmt::Display for PaymentTiming {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PaymentTiming::EndOfPeriod => write!(f, "EndOfPeriod"),
+            PaymentTiming::BeginningOfPeriod => write!(f, "BeginningOfPeriod"),
+        }
+    }
+}
+
+impl From<bool> for PaymentTiming {
+    fn from(due_at_beginning: bool) -> Self {
+        if due_at_beginning {
+            PaymentTiming::BeginningOfPeriod
+        } else {
+            PaymentTiming::EndOfPeriod
+        }
+    }
+}
+
+impl From<PaymentTiming> for bool {
+    fn from(timing: PaymentTiming) -> bool {
+        timing.is_beginning()
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum CashflowVariable {
     PresentValueAnnuity,
     PresentValueAnnuityDue,
@@ -144,7 +209,8 @@ impl CashflowSolution {
         formula: &str,
         symbolic_formula: &str,
     ) -> Self {
-        assert!(!formula.is_empty());
+        // Caller validated formulas and money fields before construction.
+        debug_assert!(!formula.is_empty());
         let sum_of_payments = payment * periods as f64;
         let sum_of_interest = sum_of_payments + present_value + future_value;
         Self {
@@ -205,7 +271,6 @@ impl CashflowSolution {
     pub fn symbolic_formula(&self) -> &str {
         &self.symbolic_formula
     }
-
 }
 
 /*
@@ -237,25 +302,25 @@ pub struct CashflowSeries(Vec<CashflowPeriod>);
 
 impl CashflowSeries {
     pub(crate) fn new(series: Vec<CashflowPeriod>) -> Self {
-        Self {
-            0: series,
-        }
+        Self { 0: series }
     }
 
     pub fn filter<P>(&self, predicate: P) -> Self
-        where P: Fn(&&CashflowPeriod) -> bool
+    where
+        P: Fn(&&CashflowPeriod) -> bool,
     {
         Self {
-            0: self.iter().filter(|x| predicate(x)).cloned().collect()
+            0: self.iter().filter(|x| predicate(x)).cloned().collect(),
         }
     }
 
-    pub fn print_table(
-        &self,
-        include_running_totals: bool,
-        include_remaining_amounts: bool)
-    {
-        self.print_table_locale_opt(include_running_totals, include_remaining_amounts, None, None);
+    pub fn print_table(&self, include_running_totals: bool, include_remaining_amounts: bool) {
+        self.print_table_locale_opt(
+            include_running_totals,
+            include_remaining_amounts,
+            None,
+            None,
+        );
     }
 
     pub fn print_table_locale(
@@ -263,8 +328,14 @@ impl CashflowSeries {
         include_running_totals: bool,
         include_remaining_amounts: bool,
         locale: &num_format::Locale,
-        precision: usize) {
-        self.print_table_locale_opt(include_running_totals, include_remaining_amounts, Some(locale), Some(precision));
+        precision: usize,
+    ) {
+        self.print_table_locale_opt(
+            include_running_totals,
+            include_remaining_amounts,
+            Some(locale),
+            Some(precision),
+        );
     }
 
     fn print_table_locale_opt(
@@ -272,17 +343,34 @@ impl CashflowSeries {
         include_running_totals: bool,
         include_remaining_amounts: bool,
         locale: Option<&num_format::Locale>,
-        precision: Option<usize>)
-    {
+        precision: Option<usize>,
+    ) {
         let columns = columns_with_strings(&[
             ("period", "i", true),
-            ("payments_to_date", "f", include_running_totals), ("payments_remaining", "f", include_remaining_amounts),
-            ("principal", "f", true), ("principal_to_date", "f", include_running_totals), ("principal_remaining", "f", include_remaining_amounts),
-            ("interest", "f", true), ("interest_to_date", "f", include_running_totals), ("interest_remaining", "f", include_remaining_amounts)]);
-        let data = self.iter()
-            .map(|entry| vec![entry.period.to_string(), entry.payments_to_date.to_string(), entry.payments_remaining.to_string(),
-                              entry.principal.to_string(), entry.principal_to_date.to_string(), entry.principal_remaining.to_string(),
-                              entry.interest.to_string(), entry.interest_to_date.to_string(), entry.interest_remaining.to_string()])
+            ("payments_to_date", "f", include_running_totals),
+            ("payments_remaining", "f", include_remaining_amounts),
+            ("principal", "f", true),
+            ("principal_to_date", "f", include_running_totals),
+            ("principal_remaining", "f", include_remaining_amounts),
+            ("interest", "f", true),
+            ("interest_to_date", "f", include_running_totals),
+            ("interest_remaining", "f", include_remaining_amounts),
+        ]);
+        let data = self
+            .iter()
+            .map(|entry| {
+                vec![
+                    entry.period.to_string(),
+                    entry.payments_to_date.to_string(),
+                    entry.payments_remaining.to_string(),
+                    entry.principal.to_string(),
+                    entry.principal_to_date.to_string(),
+                    entry.principal_remaining.to_string(),
+                    entry.interest.to_string(),
+                    entry.interest_to_date.to_string(),
+                    entry.interest_remaining.to_string(),
+                ]
+            })
             .collect::<Vec<_>>();
         print_table_locale_opt(&columns, data, locale, precision);
     }
@@ -291,67 +379,118 @@ impl CashflowSeries {
         &self,
         other: &CashflowSeries,
         include_running_totals: bool,
-        include_remaining_amounts: bool)
-    {
-        self.print_ab_comparison_locale_opt(other, include_running_totals, include_remaining_amounts, None, None);
+        include_remaining_amounts: bool,
+    ) {
+        self.print_ab_comparison_locale_opt(
+            other,
+            include_running_totals,
+            include_remaining_amounts,
+            None,
+            None,
+        );
     }
 
     pub fn print_ab_comparison_locale(
-            &self,
-            other: &CashflowSeries,
-            include_running_totals: bool,
-            include_remaining_amounts: bool,
-            locale: &num_format::Locale,
-            precision: usize) {
-        self.print_ab_comparison_locale_opt(other, include_running_totals, include_remaining_amounts, Some(locale), Some(precision));
+        &self,
+        other: &CashflowSeries,
+        include_running_totals: bool,
+        include_remaining_amounts: bool,
+        locale: &num_format::Locale,
+        precision: usize,
+    ) {
+        self.print_ab_comparison_locale_opt(
+            other,
+            include_running_totals,
+            include_remaining_amounts,
+            Some(locale),
+            Some(precision),
+        );
     }
 
     pub(crate) fn print_ab_comparison_locale_opt(
-            &self,
-            other: &CashflowSeries,
-            include_running_totals: bool,
-            include_remaining_amounts: bool,
-            locale: Option<&num_format::Locale>,
-            precision: Option<usize>) {
-        let columns = columns_with_strings(&[("period", "i", true),
-                           ("payment_a", "f", true), ("payment_b", "f", true),
-                           ("pmt_to_date_a", "f", include_running_totals), ("pmt_to_date_b", "f", include_running_totals),
+        &self,
+        other: &CashflowSeries,
+        include_running_totals: bool,
+        include_remaining_amounts: bool,
+        locale: Option<&num_format::Locale>,
+        precision: Option<usize>,
+    ) {
+        let columns = columns_with_strings(&[
+            ("period", "i", true),
+            ("payment_a", "f", true),
+            ("payment_b", "f", true),
+            ("pmt_to_date_a", "f", include_running_totals),
+            ("pmt_to_date_b", "f", include_running_totals),
             // ("pmt_remaining_a", "f", include_remaining_amounts), ("pmt_remaining_b", "f", include_remaining_amounts),
-            ("pmt_remaining_a", "f", false), ("pmt_remaining_b", "f", false),
-                           ("principal_a", "f", true), ("principal_b", "f", true),
-                           ("princ_to_date_a", "f", include_running_totals), ("princ_to_date_b", "f", include_running_totals),
-                           ("princ_remaining_a", "f", include_remaining_amounts), ("princ_remaining_b", "f", include_remaining_amounts),
-                           ("interest_a", "f", false), ("interest_b", "f", false),
-                           ("int_to_date_a", "f", include_running_totals), ("int_to_date_b", "f", include_running_totals),
-                           ("int_remaining_a", "f", false), ("int_remaining_b", "f", false)]);
+            ("pmt_remaining_a", "f", false),
+            ("pmt_remaining_b", "f", false),
+            ("principal_a", "f", true),
+            ("principal_b", "f", true),
+            ("princ_to_date_a", "f", include_running_totals),
+            ("princ_to_date_b", "f", include_running_totals),
+            ("princ_remaining_a", "f", include_remaining_amounts),
+            ("princ_remaining_b", "f", include_remaining_amounts),
+            ("interest_a", "f", false),
+            ("interest_b", "f", false),
+            ("int_to_date_a", "f", include_running_totals),
+            ("int_to_date_b", "f", include_running_totals),
+            ("int_remaining_a", "f", false),
+            ("int_remaining_b", "f", false),
+        ]);
         let mut data = vec![];
         let rows = max(self.len(), other.len());
         for row_index in 0..rows {
             data.push(vec![
                 (row_index + 1).to_string(),
-                self.get(row_index).map_or("".to_string(), |x| x.payment.to_string()),
-                other.get(row_index).map_or("".to_string(), |x| x.payment.to_string()),
-                self.get(row_index).map_or("".to_string(), |x| x.payments_to_date.to_string()),
-                other.get(row_index).map_or("".to_string(), |x| x.payments_to_date.to_string()),
-                self.get(row_index).map_or("".to_string(), |x| x.payments_remaining.to_string()),
-                other.get(row_index).map_or("".to_string(), |x| x.payments_remaining.to_string()),
-                self.get(row_index).map_or("".to_string(), |x| x.principal.to_string()),
-                other.get(row_index).map_or("".to_string(), |x| x.principal.to_string()),
-                self.get(row_index).map_or("".to_string(), |x| x.principal_to_date.to_string()),
-                other.get(row_index).map_or("".to_string(), |x| x.principal_to_date.to_string()),
-                self.get(row_index).map_or("".to_string(), |x| x.principal_remaining.to_string()),
-                other.get(row_index).map_or("".to_string(), |x| x.principal_remaining.to_string()),
-                self.get(row_index).map_or("".to_string(), |x| x.interest.to_string()),
-                other.get(row_index).map_or("".to_string(), |x| x.interest.to_string()),
-                self.get(row_index).map_or("".to_string(), |x| x.interest_to_date.to_string()),
-                other.get(row_index).map_or("".to_string(), |x| x.interest_to_date.to_string()),
-                self.get(row_index).map_or("".to_string(), |x| x.interest_remaining.to_string()),
-                other.get(row_index).map_or("".to_string(), |x| x.interest_remaining.to_string()),
+                self.get(row_index)
+                    .map_or("".to_string(), |x| x.payment.to_string()),
+                other
+                    .get(row_index)
+                    .map_or("".to_string(), |x| x.payment.to_string()),
+                self.get(row_index)
+                    .map_or("".to_string(), |x| x.payments_to_date.to_string()),
+                other
+                    .get(row_index)
+                    .map_or("".to_string(), |x| x.payments_to_date.to_string()),
+                self.get(row_index)
+                    .map_or("".to_string(), |x| x.payments_remaining.to_string()),
+                other
+                    .get(row_index)
+                    .map_or("".to_string(), |x| x.payments_remaining.to_string()),
+                self.get(row_index)
+                    .map_or("".to_string(), |x| x.principal.to_string()),
+                other
+                    .get(row_index)
+                    .map_or("".to_string(), |x| x.principal.to_string()),
+                self.get(row_index)
+                    .map_or("".to_string(), |x| x.principal_to_date.to_string()),
+                other
+                    .get(row_index)
+                    .map_or("".to_string(), |x| x.principal_to_date.to_string()),
+                self.get(row_index)
+                    .map_or("".to_string(), |x| x.principal_remaining.to_string()),
+                other
+                    .get(row_index)
+                    .map_or("".to_string(), |x| x.principal_remaining.to_string()),
+                self.get(row_index)
+                    .map_or("".to_string(), |x| x.interest.to_string()),
+                other
+                    .get(row_index)
+                    .map_or("".to_string(), |x| x.interest.to_string()),
+                self.get(row_index)
+                    .map_or("".to_string(), |x| x.interest_to_date.to_string()),
+                other
+                    .get(row_index)
+                    .map_or("".to_string(), |x| x.interest_to_date.to_string()),
+                self.get(row_index)
+                    .map_or("".to_string(), |x| x.interest_remaining.to_string()),
+                other
+                    .get(row_index)
+                    .map_or("".to_string(), |x| x.interest_remaining.to_string()),
             ]);
         }
         print_table_locale_opt(&columns, data, locale, precision);
     }
-
 }
 
 impl Deref for CashflowSeries {
@@ -475,20 +614,46 @@ impl CashflowPeriod {
     }
 
     pub fn print_flat(&self, precision: usize) {
-        println!("CashflowPeriod = {{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} }}",
-                 &format!("period: {}", self.period),
-                 &format!("due_at_beginning: {}", self.due_at_beginning),
-                 &format!("payment: {:.prec$}", self.payment, prec = precision),
-                 &format!("payments_to_date: {:.prec$}", self.payments_to_date, prec = precision),
-                 &format!("payments_remaining: {:.prec$}", self.payments_remaining, prec = precision),
-                 &format!("principal: {:.prec$}", self.principal, prec = precision),
-                 &format!("principal_to_date: {:.prec$}", self.principal_to_date, prec = precision),
-                 &format!("principal_remaining: {:.prec$}", self.principal_remaining, prec = precision),
-                 &format!("interest: {:.prec$}", self.interest, prec = precision),
-                 &format!("interest_to_date: {:.prec$}", self.interest_to_date, prec = precision),
-                 &format!("interest_remaining: {:.prec$}", self.interest_remaining, prec = precision),
-                 &format!("formula: {:?}", self.formula),
-                 &format!("symbolic_formula: {:?}", self.symbolic_formula));
+        println!(
+            "CashflowPeriod = {{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} }}",
+            &format!("period: {}", self.period),
+            &format!("due_at_beginning: {}", self.due_at_beginning),
+            &format!("payment: {:.prec$}", self.payment, prec = precision),
+            &format!(
+                "payments_to_date: {:.prec$}",
+                self.payments_to_date,
+                prec = precision
+            ),
+            &format!(
+                "payments_remaining: {:.prec$}",
+                self.payments_remaining,
+                prec = precision
+            ),
+            &format!("principal: {:.prec$}", self.principal, prec = precision),
+            &format!(
+                "principal_to_date: {:.prec$}",
+                self.principal_to_date,
+                prec = precision
+            ),
+            &format!(
+                "principal_remaining: {:.prec$}",
+                self.principal_remaining,
+                prec = precision
+            ),
+            &format!("interest: {:.prec$}", self.interest, prec = precision),
+            &format!(
+                "interest_to_date: {:.prec$}",
+                self.interest_to_date,
+                prec = precision
+            ),
+            &format!(
+                "interest_remaining: {:.prec$}",
+                self.interest_remaining,
+                prec = precision
+            ),
+            &format!("formula: {:?}", self.formula),
+            &format!("symbolic_formula: {:?}", self.symbolic_formula)
+        );
     }
 }
 

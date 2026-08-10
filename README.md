@@ -1,181 +1,267 @@
 # finance-solution
 
-## finance-solution is a financial library for time-value-of-money problems. 💸
+**finance-solution** is a Rust library for time-value-of-money (TVM), cashflow, amortization, and related finance formulas — with **detailed solution structs**, period-by-period series, and pretty-printed tables. Scalar math executes in nanoseconds, making it suitable for quant systems. Solution structs execute in microseconds, providing observability with speed.
+
+## finance-solution is a financial library for solving time-value-of-money problems and financial math, including common quant calculations. 💸
 
 People who will find this crate helpful include:
-- **Students of Finance** who want to solve their financial problems using something better than a crude handheld calculator. Using this library also reduces the chance of human error, and provides better output and data displays than Excel.
+- **Students of Finance** who want to solve their financial problems using something better than a crude handheld calculator. Using this library also reduces the chance of human error, and provides better output and data displays than Excel in less time thereby providing a better surface for internalizing financial math concepts.
 - **New developers** who want to learn Rust using Finance as a topic.
-- **Experienced Rust developers** who want to learn more about finance.
-- **Serious Rust developers** who want to build financial software, and prefer to rely on a rigourously tested library instead of reinventing the wheel and spending hundreds of hours to develop and test their own library.
+- **Experienced Rust developers** who want to learn more about finance and/or incorporate safe financial calculations into their projects.
+- **Serious Rust developers** who want to build financial software, and prefer to rely on a rigourously tested library instead of reinventing the wheel and spending hundreds of hours to develop and test their own library of financial calculations.
 
-Currently, this library is geared towards the basic financial equations, regarding:
+In the v0.0.0 release, this library was geared only towards the basic financial equations, regarding:
 - **Simple Time-Value-of-Money formulas** -- this includes `present_value`, `future_value`, `rate`, and `periods` (known as NPER in Excel).
 - **Cashflow Time-Value-of-Money formulas** -- this includes `present_value_annuity`, `future_value_annuity`, `net_present_value`, and `payment` (known as PMT in Excel). 
 - **Rate conversions** -- this includes all conversions between `apr`, `ear`, and `epr`, and also includes conversion for continuous compounding (`apr_continuous`, `ear_continuous`).
 
+> **Current Status:** revived as **0.1.0** (edition 2021). Previous v0.0.0 release relied on panicking APIs (by design, asserts were placed in the functions to immediately inform the user of incorrect input values) which was great for teaching finance to students, but not ideal for library use in applications. In `v0.1` all methods return *only* `Result`. This is a breaking change from v0.0.0 which provided both panicking APIs (a compromise made for teaching) and `try_<methodname>` as a non-panicking approach, but the dual API leads to duplication, documentation bloat, and could confuse crate users and AI Agents implementing the finance-solution crate. By consolidating all library features to return `Result`, we separate "bad data inputs" from "true bugs" and allows serious rust engineers to utilize the library ergnomically and decide how they want their system to handle the `Result` (log, skip and report, etc., without crashing the whole system). `v0.1` also adds `amortization` and `stocks` modules. 
+
+## Modules (0.1 layout)
+
+| Module | Contents |
+|--------|----------|
+| `tvm` | Present/future value, rate, periods (simple + continuous, fixed + schedule) |
+| `cashflow` | Payment (PMT), annuities, NPV, NPER |
+| `convert_rate` | APR ↔ EPR ↔ EAR (+ continuous) |
+| `amortization` | Solution/series/tables + PPMT, IPMT, CUMPRINC, CUMIPMT |
+| `returns` | Doubling rules: solution + comparison tables (72/70/69 vs exact) |
+| `stocks` | Price-path solution/series/tables; returns, vol, Sharpe, Sortino, beta, drawdowns |
+| `util` | `FinanceError`, `FinanceResult` |
+| `round` | Rounding + test assert helpers |
+
+## Quick start
+
+```rust
+use finance_solution::*;
+
+// Present value of $4,000 in 3 years at 5% (simple compounding)
+// Fixture rates/amounts are valid; production code should use `?` or match.
+let pv = present_value(0.05, 3, 4_000.0, false).expect("fixture: 5% PV");
+assert_rounded_2!(pv, -3_455.35); // sign: opposite of future value
+
+// Prefer the solution API for formulas + period series
+let answer = present_value_solution(0.05, 3, 4_000.0, false).expect("fixture");
+println!("{}", answer.formula());
+answer.series().print_table();
+
+// Handle bad input without panicking
+match present_value(-1.5, 3, 4_000.0, false) {
+    Ok(v) => println!("pv = {v}"),
+    Err(e) => eprintln!("error: {e}"),
+}
+```
+
+### Payment + amortization table
+
+```rust
+use finance_solution::*;
+
+let rate = 0.08 / 12.0;
+let periods = 60;
+let principal = 13_000.0;
+
+let solution = payment_solution(rate, periods, principal, 0.0, false).expect("fixture loan");
+solution.print_table();
+
+// Excel-style period components (1-based period index)
+let interest_m1 = ipmt(rate, 1, periods, principal, 0.0, false).expect("period 1");
+let principal_m1 = ppmt(rate, 1, periods, principal, 0.0, false).expect("period 1");
+let year1_interest = cumipmt(rate, periods, principal, 0.0, 1, 12, false).expect("range");
+```
+
+### Rate conversion
+
+```rust
+use finance_solution::*;
+
+let r = apr(0.034, 12).expect("fixture: 3.4% APR monthly");
+println!("EPR = {}, EAR = {}", r.epr(), r.ear());
+```
+
+### Doubling rules & price paths
+
+```rust
+use finance_solution::*;
+
+let d = doubling_solution(0.08).expect("fixture: 8%");
+assert_rounded_2!(d.rule_of_72(), 9.0);
+d.print_table();
+
+let prices = [100.0, 110.0, 105.0, 120.0];
+let path = price_path_solution(&prices, PricePathOptions::new(12.0)).expect("fixture prices");
+path.print_summary();
+path.series().print_table();
+```
+
+## Design notes
+
+1. **Result-only public math** — domain failures are `FinanceResult` / `FinanceError`. There is **no** dual panicking + `try_*` pair; the ordinary name *is* the fallible function.
+2. **Solution + series** — `*_solution` types carry inputs, symbolic/numeric formulas, and `.series()` for period detail.
+3. **Excel-compatible signs** — loans/payments follow spreadsheet conventions (positive principal → negative payment, etc.).
+4. **Enums for flags** — prefer [`Compounding`] and [`PaymentTiming`]; `bool` still converts via `From` for ergonomics.
+5. **Tables** — `.print_table()` / `.print_table_locale()` for teaching and debugging (copy/paste friendly).
+6. **Hot path vs solution path** — scalar APIs (`payment`, `present_value`, …) are the nanosecond-class production path (`FinanceResult<f64>`). Solution/series APIs are the microsecond teaching/observability path. Same formulas; different packaging. See [`benches/RESULTS.md`](benches/RESULTS.md).
+
+### Parameter order (when possible)
+
+`rate, periods, present_value, future_value, …`
+
+Money arguments often accept any `Into<f64>` (`i32`, `f32`, …). Rates stay `f64`; period counts are `u32` (NPER returns `f64` for fractional periods).
+
+## Error handling
+
+**Why.** Libraries used from web handlers, batch jobs, or CLIs must not abort when a user types `-150%` interest or period `0`.
+
+**Canonical pattern** (structured match + `?`):
+
+```rust
+use finance_solution::{payment, FinanceError, FinanceResult};
+
+fn loan_payment(principal: f64) -> FinanceResult<f64> {
+    payment(0.09 / 12.0, 60, principal, 0.0, false)
+}
+
+match loan_payment(20_000.0) {
+    Ok(pmt) => println!("payment = {pmt}"),
+    Err(FinanceError::InvalidRate { rate }) => {
+        eprintln!("interest rate {rate} is not usable");
+    }
+    Err(FinanceError::NonFinite { field, value }) => {
+        eprintln!("{field} must be finite; got {value}");
+    }
+    Err(e) => eprintln!("finance error: {e}"),
+}
+```
+
+**Affordability example** (compose with `?`):
+
+```rust
+use finance_solution::{payment, present_value, FinanceResult};
+
+fn affordability(
+    future_goal: f64,
+    discount_rate: f64,
+    loan_apr: f64,
+    years: u32,
+    loan_months: u32,
+) -> FinanceResult<f64> {
+    // Present value of the goal (Excel-style sign: positive FV → negative PV).
+    let pv = present_value(discount_rate, years, future_goal, false)?;
+    // Positive principal → negative payment (borrower cash out).
+    let principal = pv.abs();
+    payment(loan_apr / 12.0, loan_months, principal, 0.0, false)
+}
+
+// Call from a fallible main or handler:
+// let pmt = affordability(50_000.0, 0.05, 0.06, 10, 60)?;
+// pmt ≈ -593.43
+```
+
+| Quantity | Value | Meaning |
+|----------|-------|---------|
+| `pv` | **≈ −30,695.66** | Today’s value of $50k in 10 years at 5% |
+| Loan principal | **≈ +30,695.66** | `pv.abs()` |
+| Monthly payment | **≈ −593.43** | Negative = cash you pay |
+| 60 × payment | **≈ −35,606** | Total cash paid over the loan |
+
+**Early payoff / mortgage what-ifs** use the same Result APIs — see `cargo run --example early_payoff_what_if` and the amortization tables below.
+
+**Benefits:**
+
+1. **No surprise panics** on bad external input  
+2. **Matchable variants** for UI / metrics (`FinanceError::code()`)  
+3. **`std::error::Error` + `Display`** for logging and `?` into app error types  
+4. **One name per formula** — fallibility lives in the return type  
+
+## Amortization: solution / series / tables
+
+```text
+amortization_solution  →  .series()  →  .print_table()
+       ↓                      ↓
+   formulas + payment    period rows (principal, interest, balance, formulas)
+```
+
+```rust
+use finance_solution::*;
+
+let rate = 0.08 / 12.0;
+let periods = 12;
+let principal = 10_000.0;
+
+let solution = amortization_solution(rate, periods, principal, 0.0, false)
+    .expect("fixture: 12-month demo loan");
+println!("{}", solution.formula());
+
+let series = solution.series();
+assert_eq!(series.len(), periods as usize);
+series.print_table(true, true);
+
+assert_approx_equal!(solution.ipmt(1).unwrap(), series[0].interest());
+assert_approx_equal!(solution.ppmt(1).unwrap(), series[0].principal());
+let _first_half = solution.cumipmt(1, 6).unwrap();
+```
+
+Sample `print_table(true, true)` (12-month $10k loan at 8% APR monthly):
+
+```text
+period    payment  principal  interest     balance  principal_to_date  interest_to_date  payments_to_date  principal_remaining  interest_remaining  payments_remaining
+------  ---------  ---------  --------  ----------  -----------------  ----------------  ----------------  -------------------  ------------------  ------------------
+     1  -869.8843  -803.2176  -66.6667  9_196.7824          -803.2176          -66.6667         -869.8843          -9_196.7824           -371.9448         -9_568.7272
+     2  -869.8843  -808.5724  -61.3119  8_388.2100        -1_611.7900         -127.9785       -1_739.7686          -8_388.2100           -310.6329         -8_698.8429
+   ...
+    12  -869.8843  -864.1235   -5.7608     -0.0000       -10_000.0000         -438.6115      -10_438.6115               0.0000             -0.0000              0.0000
+```
+
+| Need | API |
+|------|-----|
+| One Excel cell (`IPMT` month 3) | `ipmt(...)?` / `solution.ipmt(3)?` |
+| Full schedule | `amortization_solution(...)?.series()` |
+| Terminal table | `.print_table()` / `.print_table_locale()` |
+| Safe construction | `amortization_solution` → `FinanceResult` |
+
+## Returns & stocks
+
+```rust
+use finance_solution::*;
+
+let s = doubling_solution(0.08).expect("fixture");
+s.print_table();
+doubling_compare_rates(&[0.01, 0.05, 0.08, 0.12])
+    .expect("fixture rates")
+    .print_table();
+
+let prices = [100.0, 102.0, 101.0, 108.0, 105.0, 112.0, 110.0, 118.0, 115.0, 125.0];
+let path = price_path_solution(
+    &prices,
+    PricePathOptions::new(12.0).with_years(prices.len() as f64 / 12.0),
+)
+.expect("fixture prices");
+path.print_summary();
+path.series().print_table();
+```
+
 ## Examples
 
-A business partner will give you $4,000 in 3 years.
-Your rate-of-return in the market is 5%.
-How much is the deal worth to you right now?
-
-> <img src="http://i.upmath.me/svg/%5Cbegin%7Bdocument%7D%5Cbegin%7Btikzpicture%7D%0A%25%20draw%20horizontal%20line%20%20%20%0A%5Cdraw%20(0%2C0)%20--%20(6%2C0)%3B%0A%25%20draw%20vertical%20lines%0A%5Cforeach%20%5Cx%20in%20%7B0%2C2%2C4%2C6%7D%20%5Cdraw%20(%5Cx%20cm%2C3pt)%20--%20(%5Cx%20cm%2C-3pt)%3B%0A%25%20draw%20nodes%0A%5Cdraw%20(0%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%200%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%5C%24%3F%20%20%24%7D%3B%0A%5Cdraw%20(1%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%24%7D%3B%0A%5Cdraw%20(2%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%201%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%24%7D%3B%0A%5Cdraw%20(3%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%20%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%205%5C%25%20%24%7D%3B%0A%5Cdraw%20(4%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%202%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%24%7D%3B%0A%5Cdraw%20(5%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%20%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%20%24%7D%3B%0A%5Cdraw%20(6%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%203%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%5C%244%2C000%20%24%7D%3B%0A%5Cend%7Btikzpicture%7D%0A%5Cend%7Bdocument%7D" />
-
-### uses `present_value()` to return f64 value
+```bash
+cargo run --example common_word_problems
+cargo run --example amortization_table_demo
+cargo run --example early_payoff_what_if
+cargo run --example doubling_rules
+cargo run --example price_path_analysis
 ```
-let future_value = 4_000;
-let periods = 3;
-let rate = 0.05;
-let pv = present_value(rate, periods, future_value);
-dbg!(pv);
 
-// PRINTS TO TERMINAL:
-// pv = 3455.350394125904 
+## Testing & CI
+
+```bash
+cargo test
+cargo test --doc
+cargo clippy --all-targets -- -D warnings
+cargo bench   # optional Criterion suites (local / on demand)
 ```
-> <small>The crate also provides helper functions for rounding, such as `round_4` to round to four decimals places. See `round` for more details.</small>
 
-For the same problem above, you can use the _solution function to see a better output and provide additional functionality.
-### uses `present_value_solution()` to return a custom "solution" struct
-```
-let future_value = 4_000;
-let periods = 3;
-let rate = 0.05;
-let answer = present_value_solution(rate, periods, future_value);
-dbg!(answer);
+Symmetry tests, Excel golden values, and integration tests cover core TVM, cashflow, amortization, returns, and stocks paths. CI runs build, tests, doctests, clippy, and fmt on stable and MSRV 1.70.
 
-// PRINTS TO TERMINAL:
-// answer = TvmSolution {
-//    calculated_field: PresentValue,
-//    rate: 0.05,
-//    periods: 3,
-//    fractional_periods: 3.0,
-//    present_value: 3455.350394125904,
-//    future_value: 4000.0,
-//    formula: "3455.3504 = 4000.0000 / (1.050000 ^ 3)",
-//    formula_symbolic: "pv = fv / (1 + r)^n",
-//}
-```
-If you want to explore what happens in each period of the calculation, you can use the `.series()` method on any solution output:
-### uses `present_value_solution().series()` to return a vec of each period
-```
-let future_value = 4_000;
-let periods = 3;
-let rate = 0.05;
-let answer = present_value_solution(rate, periods, future_value);
-dbg!(answer.series());
+## License
 
-// PRINTS TO TERMINAL:
-// answer.series() = TvmSeries(
-//     [
-//         TvmPeriod {
-//             period: 0,
-//             rate: 0.0,
-//             value: 3455.3503941259037,
-//             formula: "3455.3504 = 3628.1179 / 1.050000",
-//             formula_symbolic: "value = {next period value} / (1 + r)",
-//         },
-//         TvmPeriod {
-//             period: 1,
-//             rate: 0.05,
-//             value: 3628.117913832199,
-//             formula: "3628.1179 = 3809.5238 / 1.050000",
-//             formula_symbolic: "value = {next period value} / (1 + r)",
-//         },
-//         TvmPeriod {
-//             period: 2,
-//             rate: 0.05,
-//             value: 3809.523809523809,
-//             formula: "3809.5238 = 4000.0000 / 1.050000",
-//             formula_symbolic: "value = {next period value} / (1 + r)",
-//         },
-//         TvmPeriod {
-//             period: 3,
-//             rate: 0.05,
-//             value: 4000.0,
-//             formula: "4000.0000",
-//             formula_symbolic: "value = fv",
-//         },
-//     ],
-// )
-```
-To view each period in a table format, use the `.print_table()` method.
-### uses `present_value_solution().series().print_table()` to return a pretty-print table
-```
-use num_format::{Locale};
-
-let future_value = 4_000;
-let periods = 3;
-let rate = 0.05;
-let answer = present_value_solution(rate, periods, future_value);
-dbg!(answer.series().print_table());
-// or use .print_table_locale() to specify your formatting preferences.
-dbg!(answer.series().print_table_locale(&Locale::en, 4));
-
-// PRINTS TO TERMINAL:
-// period    rate       value
-// ------  ------  ----------
-//      0  0.0000  3,455.3504
-//      1  0.0500  3,628.1179
-//      2  0.0500  3,809.5238
-//      3  0.0500  4,000.0000
-```
-In the table above, you can specify the locale, if you prefer a different format for the money values. For example, your country may prefer `8.532,11` instead of `8,532.11`. The pretty-printed tables are easily copy&amp;pasted into a spreadsheet.
-
-The `.print_table()` function can be especially helpful when analyzing `payment` and `cashflow` information.
-
-> <img src="http://i.upmath.me/svg/%5Cbegin%7Bdocument%7D%5Cbegin%7Btikzpicture%7D%0A%25%20draw%20horizontal%20line%20%20%20%0A%5Cdraw%20(0%2C0)%20--%20(5%2C0)%3B%0A%25%20draw%20vertical%20lines%0A%5Cforeach%20%5Cx%20in%20%7B0%2C1%2C2%2C3%2C4%2C5%7D%20%5Cdraw%20(%5Cx%20cm%2C3pt)%20--%20(%5Cx%20cm%2C-3pt)%3B%0A%25%20draw%20nodes%0A%5Cdraw%20(0%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%200%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%5C%2413%2C000%20%20%24%7D%3B%0A%5Cdraw%20(1%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%24%7D%3B%0A%5Cdraw%20(2%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%20PMT%3D%20%3F%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%24%7D%3B%0A%5Cdraw%20(3%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%208%5C%25%20%24%7D%3B%0A%5Cdraw%20(4%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%24%7D%3B%0A%5Cdraw%20(5%2C0)%20node%5Bbelow%3D3pt%5D%20%7B%24%205%20%24%7D%20node%5Babove%3D3pt%5D%20%7B%24%20%20%24%7D%3B%0A%5Cend%7Btikzpicture%7D%0A%5Cend%7Bdocument%7D" />
-
-### uses `payment_solution().series().print_table()` to return a pretty-print table
-```
-let present_value = 13_000;
-let periods = 5;
-let rate = 0.08;
-let answer = payment_solution(rate, periods, present_value, 0);
-dbg!(answer.series().print_table());
-
-// PRINTS TO TERMINAL:
-// period  payments_to_date  payments_remaining    principal  principal_to_date  principal_remaining     interest  interest_to_date  interest_remaining
-// ------  ----------------  ------------------  -----------  -----------------  -------------------  -----------  ----------------  ------------------
-//      1       -3,255.9339        -13,023.7356  -2,215.9339        -2,215.9339         -10,784.0661  -1,040.0000       -1,040.0000         -2,239.6695
-//      2       -6,511.8678         -9,767.8017  -2,393.2086        -4,609.1425          -8,390.8575    -862.7253       -1,902.7253         -1,376.9443
-//      3       -9,767.8017         -6,511.8678  -2,584.6653        -7,193.8078          -5,806.1922    -671.2686       -2,573.9939           -705.6757
-//      4      -13,023.7356         -3,255.9339  -2,791.4385        -9,985.2464          -3,014.7536    -464.4954       -3,038.4893           -241.1803
-//      5      -16,279.6695              0.0000  -3,014.7536       -12,999.0000              -0.0000    -241.1803       -3,279.6695              0.0000
-```
-As you can see in the table above, the `finance-solution` library offers more than "just the answer" to the problem (-3,255.9339) but also provides a detailed visual of what is happening in each period.
-
-## Benefits of using finance-solution
-This library has undergone hundreds of hours spent designing the library to be ergonomic, rustic, and accurate.
-
-Bonus highlights include:
-- finance-solution provides both f64 functions almost all functions can add `_solution` to the function name to provide a more helpful output, with additional functionality.  We highly recommend you use the `_solution` functions when you can!
-- the `_solution` structs add a trivial amount of time to the code execution, 12-30 nanoseconds... as shown in our `benches` section.
-- all the formulas have been rigorously tested, both in unit tests, integration tests, and "symmetry" tests.
-- function parameters follow consistent ordering when possible, for example "rate, periods, ..." so the user can almost guess the ordering of parameters.
-- table output of `_solution().series().print_table()` allows the user to specify locale for specific currency formatting, and the output can easily be copy&pasted into spreadsheets (Excel, Google Sheet, etc).
-- Sample word problems are provided in the `examples` folder of the repo, which allows users to see how finance-solution can be used to solve financial problems.
-- Functions have built-in asserts, panics, and even `warn!` logs to prevent users from making common mistakes, especially with rates.
-- Functions are built for ease-of-use, so the user can provide f64 or f32 or u32 or i8... Any numeric format for money is accepted into the function and converted into f64, for user convenience.
-- Functional parameters like rate and periods are strictly enforced to f64 for rate and u32 for periods. Periods are not allowed to be negative, and periods larger than 2000 will likely lead to computer-inherent floating point representation errors, so we provide a `warn!` for situations when we believe the inputs may create inaccuracies in the final output. It is up to the user to enable warn logs.
-
-## To-do items for this crate
-We have a backlog of items we intend to include in this crate:
-- IRR
-- MIRR
-- WACC
-- PV and FV annuity schedules (varying rates and cashflows)
-- Payback Period
-- Profitability Index
-- Return on investment
-- Amortization
-- PPMT
-- IPMT
-- Perpetuities
-- CUMPRINC
-- CUMIPMT
-- Bonds
-- ROI
-- Rule of 72 (and related fns)
-- SLN
-- XNPV
-- XIRR
+MIT — see [LICENSE](LICENSE).

@@ -1,4 +1,8 @@
 //! **Utilities for rounding** money amounts to the nearest hundredth or ten-thousandth part.
+//!
+//! `assert_rounded_*` helpers are intended for **tests and doctests** (they `assert!` on
+//! non-finite inputs). Production code should prefer comparing with [`round_4`] / [`round_6`]
+//! or structured [`crate::FinanceError`] handling rather than assert-based helpers.
 
 /// Round to two decimal places. This function uses f64::round() which rounds halfway cases away
 /// from 0.0.
@@ -117,7 +121,4 @@ mod tests {
     fn test_assert_approx_equal_panic() {
         assert_rounded_2!(53_243.8123, 53_243.7401);
     }
-
 }
-
-

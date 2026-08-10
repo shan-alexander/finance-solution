@@ -12,3 +12,8 @@
 **/target
 **/Cargo.lock
 **/.idea
+
+# Local planning / design notes — not part of the published crate or git history
+roadmap_to_v0.1.md
+rust_design_patterns.md
+rust_design_patterns_tldr.md

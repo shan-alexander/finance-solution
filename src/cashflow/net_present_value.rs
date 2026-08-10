@@ -1,48 +1,82 @@
-//! **Net Present Value calculations**. Given a series of cashflows, an initial investment (the cashflow at time0), a number of periods such as years, and fixed
-//! or varying interest rates, what is the net value of the series of cashflows right now?
+//! **Net Present Value calculations**. Given cashflows (including the time-0 investment), periods,
+//! and fixed or varying discount rates, what is the net value of the series right now?
 //!
-//! For most common usages, we recommend the [`net_present_value_schedule_solution`](./fn.net_present_value_schedule_solution.html) function, to provide a better debugging experience and additional features.
-//! This function allows you to provide varying cashflows and/or varying rates.
-//! 
-//! For very simple NPV calculations involving a constant cashflow and constant rate, the [`net_present_value_solution`](./fn.net_present_value_solution.html) function can be used.
-//! 
-//! ## Examples
-//! 
-//! **Simple Usage:**
+//! Prefer [`net_present_value_schedule_solution`] when rates or cashflows vary — it carries period
+//! detail and pretty tables. For a constant rate and constant periodic cashflow, use
+//! [`net_present_value`] / [`net_present_value_solution`].
+//!
+//! ## Schedule input shapes
+//!
+//! [`net_present_value_schedule`] accepts **rates** and **cashflows** with flexible lengths.
+//! Cashflows always include the **time-0 investment** as `cashflows[0]` (negative or zero).
+//! Rates apply to the *forward* periods (not time 0).
+//!
+//! | Shape | `rates` length | `cashflows` length | Meaning |
+//! |-------|----------------|--------------------|---------|
+//! | **A. Single period** | 1 | 2 (`[t0, t1]`) | One discount rate, one future cashflow |
+//! | **B. Full series** | N | N+1 | Rate per period 1..=N; cashflow per t0..=tN |
+//! | **C. Repeating cashflow** | N | 2 (`[t0, c]`) | Rate series; cashflow `c` repeats each period |
+//! | **D. Repeating rate** | 1 | N+1 | One rate broadcast to every period; full cashflows |
+//!
+//! Invalid combinations (both sides incomplete, empty slices, positive t0 investment,
+//! length mismatch on full series) return [`FinanceError`](crate::FinanceError).
+//!
+//! ### Shape A — single period
 //! ```
-//! # use finance_solution::net_present_value_solution;
+//! use finance_solution::net_present_value_schedule;
+//! let npv = net_present_value_schedule(&[0.05], &[-1_000.0, 1_100.0]).unwrap();
+//! assert!((npv - 47.6190476).abs() < 1e-6);
+//! ```
+//!
+//! ### Shape B — full varying rates and cashflows
+//! ```
+//! use finance_solution::net_present_value_schedule;
+//! let rates = [0.034, 0.089, 0.055];
+//! let cashflows = [-1_000.0, 200.0, 300.0, 500.0];
+//! let npv = net_present_value_schedule(&rates, &cashflows).unwrap();
+//! assert!((npv - (-127.8016238)).abs() < 1e-6);
+//! ```
+//!
+//! ### Shape C — rate series, constant periodic cashflow
+//! ```
+//! use finance_solution::net_present_value_schedule;
+//! // rates for 3 periods; cashflows = [investment, repeating payment]
+//! let npv = net_present_value_schedule(&[0.03, 0.04, 0.05], &[-1_000.0, 400.0]).unwrap();
+//! assert!(npv.is_finite());
+//! ```
+//!
+//! ### Shape D — constant rate, full cashflow ladder
+//! ```
+//! use finance_solution::net_present_value_schedule;
+//! let npv = net_present_value_schedule(&[0.034], &[-1_000.0, 300.0, 400.0, 500.0]).unwrap();
+//! assert!(npv.is_finite());
+//! ```
+//!
+//! ### Constant rate + constant cashflow (non-schedule API)
+//! ```
+//! use finance_solution::net_present_value_solution;
 //! let (rate, periods, initial_investment, cashflow) = (0.034, 3, -1000, 400);
-//! let npv = net_present_value_solution(rate, periods, initial_investment, cashflow);
-//! dbg!(npv.print_table());
+//! let npv = net_present_value_solution(rate, periods, initial_investment, cashflow).unwrap();
+//! let _ = npv; // .print_table() in apps
 //! ```
-//! > outputs to terminal:
+//! Sample table:
 //! ```text
-//! period   rate   present_value  future_value  investment_value 
-//! ------  ------  -------------  ------------  ---------------- 
-//! 0       0.0000    -1_000.0000   -1_000.0000       -1_000.0000 
-//! 1       0.0340       386.8472      400.0000         -613.1528 
-//! 2       0.0340       374.1269      400.0000         -239.0259 
-//! 3       0.0340       361.8248      400.0000          122.7989 
+//! period   rate   present_value  future_value  investment_value
+//! ------  ------  -------------  ------------  ----------------
+//! 0       0.0000    -1_000.0000   -1_000.0000       -1_000.0000
+//! 1       0.0340       386.8472      400.0000         -613.1528
+//! 2       0.0340       374.1269      400.0000         -239.0259
+//! 3       0.0340       361.8248      400.0000          122.7989
 //! ```
-//! 
-//! **More typical usage (varying cashflows):**
+//!
+//! ### Schedule solution with table
 //! ```
-//! # use finance_solution::net_present_value_schedule_solution;
+//! use finance_solution::net_present_value_schedule_solution;
 //! let rates = vec![0.034, 0.034, 0.034];
 //! let cashflows = vec![-1000, 300, 400, 500];
-//! let npv = net_present_value_schedule_solution(&rates, &cashflows);
-//! dbg!(npv.print_table());
+//! let npv = net_present_value_schedule_solution(&rates, &cashflows).unwrap();
+//! let _ = npv; // .print_table() in apps
 //! ```
-//! > outputs to terminal:
-//! ```text
-//! period   rate   present_value  future_value  investment_value 
-//! ------  ------  -------------  ------------  ---------------- 
-//! 0       0.0000    -1_000.0000   -1_000.0000       -1_000.0000 
-//! 1       0.0340       290.1354      300.0000         -709.8646 
-//! 2       0.0340       374.1269      400.0000         -335.7377 
-//! 3       0.0340       452.2810      500.0000          116.5433 
-//! ```
-
 
 // use crate::cashflow::*;
 // Needed for the Rustdoc comments.
@@ -60,9 +94,9 @@ use std::ops::Deref;
 /// The net present value annuity formula is:
 ///
 /// npv = initial_investment + sum( cashflow / (1 + rate)<sup>period</sup> )
-/// 
+///
 /// or
-/// 
+///
 /// npv = initial_investment +  cashflow * ((1. - (1. / (1. + rate)).powf(periods)) / rate)
 ///
 /// # Arguments
@@ -73,8 +107,8 @@ use std::ops::Deref;
 /// * `cashflow` - The value of the constant cashflow (aka payment).
 /// * `initial investment` - The value of the initial investment (should be negative, or 0).
 ///
-/// # Panics
-/// The call will fail if `initial_investment` is positive. This value should always be negative, and cashflows be positive, or the reverse, because these monies are going opposite directions.
+/// # Errors
+/// Returns [`crate::FinanceError`] if `initial_investment` is positive. This value should always be negative, and cashflows be positive, or the reverse, because these monies are going opposite directions.
 ///
 /// # Examples
 /// Net Present Value of a series of -$1000 investment which will payback $500 yearly for 10 years.
@@ -83,19 +117,43 @@ use std::ops::Deref;
 /// let (rate, periods, initial_investment, cashflow) = (0.034, 10, -1000, 500);
 ///
 /// // Find the present value of this scenario.
-/// let net_present_value = net_present_value(rate, periods, initial_investment, cashflow);
+/// let net_present_value = net_present_value(rate, periods, initial_investment, cashflow).unwrap();
 ///
 /// // Confirm that the present value is correct to four decimal places (one hundredth of a cent).
 /// assert_approx_equal!(3179.3410288, net_present_value);
 /// ```
-pub fn net_present_value<C, I>(rate: f64, periods: u32, initial_investment: I, cashflow: C) -> f64 
-where I: Into<f64> + Copy, C: Into<f64> + Copy
+pub fn net_present_value<C, I>(
+    rate: f64,
+    periods: u32,
+    initial_investment: I,
+    cashflow: C,
+) -> crate::FinanceResult<f64>
+where
+    I: Into<f64> + Copy,
+    C: Into<f64> + Copy,
 {
     let annuity = cashflow.into();
     let ii = initial_investment.into();
-    let pv_cashflow = annuity * ((1. - (1. / (1. + rate)).powf(periods as f64)) / rate);
+    crate::util::error::require_rate_gt_minus_one(rate)?;
+    crate::util::error::require_money("initial_investment", ii)?;
+    crate::util::error::require_money("cashflow", annuity)?;
+    if periods == 0 {
+        return Ok(ii);
+    }
+    let pv_cashflow = if rate == 0.0 {
+        annuity * periods as f64
+    } else {
+        annuity * ((1.0 - (1.0 / (1.0 + rate)).powf(periods as f64)) / rate)
+    };
     let npv = ii + pv_cashflow;
-    npv
+    if npv.is_finite() {
+        Ok(npv)
+    } else {
+        Err(crate::FinanceError::NonFinite {
+            field: "net_present_value",
+            value: npv,
+        })
+    }
 }
 
 /// Returns the net present value of a future series of constant cashflows and constant rate, subtracting the initial investment cost. Returns a solution struct with additional features..
@@ -106,9 +164,9 @@ where I: Into<f64> + Copy, C: Into<f64> + Copy
 /// The net present value annuity formula is:
 ///
 /// npv = initial_investment + sum( cashflow / (1 + rate)<sup>period</sup> )
-/// 
+///
 /// or
-/// 
+///
 /// npv = initial_investment +  cashflow * ((1. - (1. / (1. + rate)).powf(periods)) / rate)
 ///
 /// # Arguments
@@ -118,16 +176,25 @@ where I: Into<f64> + Copy, C: Into<f64> + Copy
 /// * `periods` - The number of periods such as quarters or years. Often appears as `n` or `t`.
 /// * `cashflow` - The value of the constant cashflow (aka payment).
 /// * `initial investment` - The value of the initial investment (should be negative, or 0).
-pub fn net_present_value_solution<C, I>(rate: f64, periods: u32, initial_investment: I, cashflow: C) -> NpvSolution 
-where I: Into<f64> + Copy, C: Into<f64> + Copy
+pub fn net_present_value_solution<C, I>(
+    rate: f64,
+    periods: u32,
+    initial_investment: I,
+    cashflow: C,
+) -> crate::FinanceResult<NpvSolution>
+where
+    I: Into<f64> + Copy,
+    C: Into<f64> + Copy,
 {
     let annuity = cashflow.into();
     let ii = initial_investment.into();
+    crate::util::error::require_rate_gt_minus_one(rate)?;
+    crate::util::error::require_money("initial_investment", ii)?;
+    crate::util::error::require_money("cashflow", annuity)?;
     let rates = repeating_vec![rate, periods];
     let mut cashflows = repeating_vec![annuity, periods];
     cashflows.insert(0, ii);
     net_present_value_schedule_solution(&rates, &cashflows)
-
 }
 
 /// Returns the net present value of a schedule of rates and cashflows (can be varying), subtracting the initial investment cost. Returns f64.
@@ -139,22 +206,23 @@ where I: Into<f64> + Copy, C: Into<f64> + Copy
 /// let (rates, cashflows) = (vec![0.034, 0.089, 0.055], vec![-1000, 200, 300, 500]);
 ///
 /// // Find the present value of this scenario.
-/// let net_present_value = net_present_value_schedule(&rates, &cashflows);
+/// let net_present_value = net_present_value_schedule(&rates, &cashflows).unwrap();
 ///
 /// // Confirm that the present value is correct to four decimal places (one hundredth of a cent).
 /// assert_approx_equal!(-127.8016238, net_present_value);
-/// 
+///
 /// // present_value(0.034, 1, 200): $193.42
 /// // present_value(0.089, 2, 300): $252.97
 /// // present_value(0.055, 3, 500): $425.81
 /// // initial investment:          -$1000
 /// // sum of the above:            -$127.80 (net present value)
-/// 
+///
 /// ```
-pub fn net_present_value_schedule<C>(rates: &[f64], cashflows: &[C]) -> f64 
-where C: Into<f64> + Copy
+pub fn net_present_value_schedule<C>(rates: &[f64], cashflows: &[C]) -> crate::FinanceResult<f64>
+where
+    C: Into<f64> + Copy,
 {
-    let (periods, r, c, initial_investment) = check_schedule(rates, cashflows);
+    let (periods, r, c, initial_investment) = check_schedule(rates, cashflows)?;
     // let mut cflows = vec![];
     // for i in 0..cashflows.len() {
     //     cflows.push(cashflows[i].into());
@@ -200,25 +268,60 @@ where C: Into<f64> + Copy
     // }
 
     let mut pv_accumulator = 0_f64;
-    for i in 0..periods { 
-        let present_value = -present_value(r[i as usize], (i+1) as u32, c[i as usize + 1], false);
-        pv_accumulator = pv_accumulator + present_value;
+    for i in 0..periods {
+        let present_value =
+            -present_value(r[i as usize], (i + 1) as u32, c[i as usize + 1], false)?;
+        pv_accumulator += present_value;
     }
     let npv = initial_investment + pv_accumulator;
-    npv
+    if npv.is_finite() {
+        Ok(npv)
+    } else {
+        Err(crate::FinanceError::NonFinite {
+            field: "net_present_value",
+            value: npv,
+        })
+    }
 }
 
-fn check_schedule<C>(rates:&[f64], cashflows: &[C]) -> (u32, Vec<f64>, Vec<f64>, f64) 
-where C: Into<f64> + Copy
+fn check_schedule<C>(
+    rates: &[f64],
+    cashflows: &[C],
+) -> crate::FinanceResult<(u32, Vec<f64>, Vec<f64>, f64)>
+where
+    C: Into<f64> + Copy,
 {
     let mut cflows = vec![];
     for i in 0..cashflows.len() {
         cflows.push(cashflows[i].into());
     }
     let cashflows = &cflows;
-    assert!(cashflows[0] <= 0.0, "The initial investment (cashflows[0]) should be negative or zero");
-    assert!(cashflows.len() >= 2, "Must provide at least 2 values in cashflows, the initial investment at the 0 position and the following cashflows, or a single cashflow representing a repeating constant cashflow.");
-    assert!(rates.len() >= 1, "Must provide at least 1 rate.");
+    if cashflows.is_empty() {
+        return Err(crate::FinanceError::EmptyInput { what: "cashflows" });
+    }
+    if cashflows[0] > 0.0 {
+        return Err(crate::FinanceError::InvalidCashflow {
+            message: "initial investment (cashflows[0]) should be negative or zero",
+        });
+    }
+    if cashflows.len() < 2 {
+        return Err(crate::FinanceError::InvalidCashflow {
+            message: "must provide at least 2 cashflows: initial investment and one cashflow",
+        });
+    }
+    if rates.is_empty() {
+        return Err(crate::FinanceError::EmptyInput { what: "rates" });
+    }
+    crate::util::error::require_rates(rates)?;
+    for (i, &cf) in cashflows.iter().enumerate() {
+        crate::util::error::require_money("cashflow", cf).map_err(|_| {
+            crate::FinanceError::NonFinite {
+                field: "cashflow",
+                value: cf,
+            }
+        })?;
+        let _ = i;
+    }
     let rate_length = rates.len();
     let cashflow_length = cashflows.len();
     let initial_investment = cashflows[0];
@@ -229,74 +332,98 @@ where C: Into<f64> + Copy
     let c: &[f64];
 
     if rate_length == 1 && cashflow_length == 2 {
-        r = &rates;
-        c = &cashflows;
+        r = rates;
+        c = cashflows;
         periods = 1_u32;
     } else if rate_length > 1 && cashflow_length > 2 {
-        r = &rates;
-        c = &cashflows;
+        if rate_length != cashflow_length - 1 {
+            return Err(crate::FinanceError::LengthMismatch {
+                left: rate_length,
+                right: cashflow_length - 1,
+                context: "npv rates vs cashflow periods",
+            });
+        }
+        r = rates;
+        c = cashflows;
         periods = rate_length as u32;
     } else if rate_length > 1 && cashflow_length == 2 {
-        r = &rates;
+        r = rates;
         periods = rate_length as u32;
         for _i in 0..periods {
-            cashflow_vec.push(cashflows[1])
+            cashflow_vec.push(cashflows[1]);
         }
         c = &cashflow_vec;
     } else if rate_length == 1 && cashflow_length > 2 {
-        c = &cashflows;
+        c = cashflows;
         periods = cashflow_length as u32 - 1;
         for _i in 0..periods {
-            rate_vec.push(rates[0])
+            rate_vec.push(rates[0]);
         }
         r = &rate_vec;
     } else {
-        // revise this panic message
-        panic!("At least rates or cashflows for net_present_value_schedule must provide the full series of inputs. Only one input can be a shorthand expression of a repeating input. If both are repeating constant inputs, use the net_present_value function.");
+        return Err(crate::FinanceError::InvalidCashflow {
+            message: "rates or cashflows must provide a full series; only one may be a repeating shorthand",
+        });
     }
-    (periods, r.to_vec(), c.to_vec(), initial_investment)
+    Ok((periods, r.to_vec(), c.to_vec(), initial_investment))
 }
 
-
-/// Returns the net present value of a schedule of rates and cashflows (can be varying), subtracting the initial investment cost. 
+/// Returns the net present value of a schedule of rates and cashflows (can be varying), subtracting the initial investment cost.
 /// Returns a custom solution struct with detailed information and additional functionality.
-/// 
+///
 /// # Example
 /// ```
 /// let rates = vec![0.034, 0.034, 0.034];
 /// let cashflows = vec![-1000, 300, 400, 500];
-/// let npv = finance_solution::net_present_value_schedule_solution(&rates, &cashflows);
+/// let npv = finance_solution::net_present_value_schedule_solution(&rates, &cashflows).unwrap();
 /// dbg!(npv.print_table());
 /// ```
 /// > outputs to terminal:
 /// ```text
-/// period   rate   present_value  future_value  investment_value 
-/// ------  ------  -------------  ------------  ---------------- 
-/// 0       0.0000    -1_000.0000   -1_000.0000       -1_000.0000 
-/// 1       0.0340       290.1354      300.0000         -709.8646 
-/// 2       0.0340       374.1269      400.0000         -335.7377 
-/// 3       0.0340       452.2810      500.0000          116.5433 
+/// period   rate   present_value  future_value  investment_value
+/// ------  ------  -------------  ------------  ----------------
+/// 0       0.0000    -1_000.0000   -1_000.0000       -1_000.0000
+/// 1       0.0340       290.1354      300.0000         -709.8646
+/// 2       0.0340       374.1269      400.0000         -335.7377
+/// 3       0.0340       452.2810      500.0000          116.5433
 /// ```
-pub fn net_present_value_schedule_solution<C>(rates: &[f64], cashflows: &[C]) -> NpvSolution 
-where C: Into<f64> + Copy
+pub fn net_present_value_schedule_solution<C>(
+    rates: &[f64],
+    cashflows: &[C],
+) -> crate::FinanceResult<NpvSolution>
+where
+    C: Into<f64> + Copy,
 {
-    let (periods, rates, cashflows, initial_investment) = check_schedule(rates, cashflows);
+    let (periods, rates, cashflows, initial_investment) = check_schedule(rates, cashflows)?;
 
     let mut sum_accumulator = 0_f64;
     let mut pv_accumulator = 0_f64;
-    for i in 0..periods { 
-        let present_value = -present_value(rates[i as usize], (i+1) as u32, cashflows[i as usize + 1], false);
-        pv_accumulator = pv_accumulator + present_value;
-        sum_accumulator = sum_accumulator + cashflows[i as usize + 1];
+    for i in 0..periods {
+        let present_value = -present_value(
+            rates[i as usize],
+            (i + 1) as u32,
+            cashflows[i as usize + 1],
+            false,
+        )?;
+        pv_accumulator += present_value;
+        sum_accumulator += cashflows[i as usize + 1];
     }
     let sum_of_cashflows = sum_accumulator;
     let sum_of_discounted_cashflows = pv_accumulator;
     let net_present_value = initial_investment + pv_accumulator;
 
-    NpvSolution::new(rates, periods, initial_investment, cashflows, sum_of_cashflows, sum_of_discounted_cashflows, net_present_value)
+    Ok(NpvSolution::new(
+        rates,
+        periods,
+        initial_investment,
+        cashflows,
+        sum_of_cashflows,
+        sum_of_discounted_cashflows,
+        net_present_value,
+    ))
 }
 
-/// The custom solution information of a NPV scenario. 
+/// The custom solution information of a NPV scenario.
 /// The struct values are immutable by the user of the library.
 #[derive(Debug)]
 pub struct NpvSolution {
@@ -311,26 +438,27 @@ pub struct NpvSolution {
 impl NpvSolution {
     /// Create a new instance of the struct
     pub fn new(
-        rates: Vec<f64>, 
-        periods: u32, 
-        initial_investment: f64, 
-        cashflows: Vec<f64>, 
-        sum_of_cashflows: f64, 
-        sum_of_discounted_cashflows:f64,
-        net_present_value:f64) -> Self {
-            Self {
-                rates, 
-                periods, 
-                initial_investment, 
-                cashflows, 
-                sum_of_cashflows, 
-                sum_of_discounted_cashflows,
-                net_present_value,
-            }
+        rates: Vec<f64>,
+        periods: u32,
+        initial_investment: f64,
+        cashflows: Vec<f64>,
+        sum_of_cashflows: f64,
+        sum_of_discounted_cashflows: f64,
+        net_present_value: f64,
+    ) -> Self {
+        Self {
+            rates,
+            periods,
+            initial_investment,
+            cashflows,
+            sum_of_cashflows,
+            sum_of_discounted_cashflows,
+            net_present_value,
+        }
     }
 
     pub fn series(&self) -> NpvSeries {
-         net_present_value_schedule_series(self)
+        net_present_value_schedule_series(self)
     }
 
     /// Call `rate_avg` on a NpvSolution to get the simple average rate of a schedule;
@@ -370,12 +498,12 @@ impl NpvSolution {
     pub fn net_present_value(&self) -> f64 {
         self.net_present_value
     }
-    /// Alias for net_present_value()
+    /// Alias for net_present_value().unwrap()
     pub fn npv(&self) -> f64 {
         self.net_present_value
     }
 
-    /// Pretty-print a table of the calculations at each period for visual analysis. 
+    /// Pretty-print a table of the calculations at each period for visual analysis.
     pub fn print_table(&self) {
         self.series().print_table();
     }
@@ -385,30 +513,32 @@ impl NpvSolution {
         self.series().print_table_locale(locale, precision);
     }
 
-    /// Return the max discounted cashflow (present value of the cashflow)
-    pub fn max_discounted_cashflow(&self) -> f64 {
-        self.series().max_discounted_cashflow() 
+    /// Max discounted cashflow among periods after the initial investment, if any.
+    pub fn max_discounted_cashflow(&self) -> Option<f64> {
+        self.series().max_discounted_cashflow()
     }
-    /// Return the min discounted cashflow (present value of the cashflow)
-    pub fn min_discounted_cashflow(&self) -> f64 {
-        self.series().min_discounted_cashflow() 
+    /// Min discounted cashflow among periods after the initial investment, if any.
+    pub fn min_discounted_cashflow(&self) -> Option<f64> {
+        self.series().min_discounted_cashflow()
     }
-
 }
 
 #[derive(Debug)]
 pub struct NpvSeries(Vec<NpvPeriod>);
 impl NpvSeries {
     pub(crate) fn new(series: Vec<NpvPeriod>) -> Self {
-        Self {
-            0: series,
-        }
+        Self { 0: series }
     }
     pub fn filter<P>(&self, predicate: P) -> Self
-        where P: Fn(&&NpvPeriod) -> bool
+    where
+        P: Fn(&&NpvPeriod) -> bool,
     {
         Self {
-            0: self.iter().filter(|x| predicate(x)).map(|x| x.clone()).collect()
+            0: self
+                .iter()
+                .filter(|x| predicate(x))
+                .map(|x| x.clone())
+                .collect(),
         }
     }
 
@@ -420,10 +550,29 @@ impl NpvSeries {
         self.print_table_locale_opt(Some(locale), Some(precision));
     }
 
-    fn print_table_locale_opt(&self, locale: Option<&num_format::Locale>, precision: Option<usize>) {
-        let columns = columns_with_strings(&[("period", "i", true), ("rate", "f", true), ("present_value", "f", true), ("future_value", "f", true), ("investment_value", "f", true)]);
-        let data = self.iter()
-            .map(|entry| vec![entry.period.to_string(), entry.rate.to_string(), entry.present_value.to_string(), entry.future_value.to_string(), entry.investment_value.to_string()])
+    fn print_table_locale_opt(
+        &self,
+        locale: Option<&num_format::Locale>,
+        precision: Option<usize>,
+    ) {
+        let columns = columns_with_strings(&[
+            ("period", "i", true),
+            ("rate", "f", true),
+            ("present_value", "f", true),
+            ("future_value", "f", true),
+            ("investment_value", "f", true),
+        ]);
+        let data = self
+            .iter()
+            .map(|entry| {
+                vec![
+                    entry.period.to_string(),
+                    entry.rate.to_string(),
+                    entry.present_value.to_string(),
+                    entry.future_value.to_string(),
+                    entry.investment_value.to_string(),
+                ]
+            })
             .collect::<Vec<_>>();
         print_table_locale_opt(&columns, data, locale, precision);
     }
@@ -432,45 +581,76 @@ impl NpvSeries {
         self.print_ab_comparison_locale_opt(other, None, None);
     }
 
-    pub fn print_ab_comparison_locale(&self, other: &NpvSeries, locale: &num_format::Locale, precision: usize) {
+    pub fn print_ab_comparison_locale(
+        &self,
+        other: &NpvSeries,
+        locale: &num_format::Locale,
+        precision: usize,
+    ) {
         self.print_ab_comparison_locale_opt(other, Some(locale), Some(precision));
     }
 
-    fn print_ab_comparison_locale_opt (&self, other: &NpvSeries, locale: Option<&num_format::Locale>, precision: Option<usize>) {
+    fn print_ab_comparison_locale_opt(
+        &self,
+        other: &NpvSeries,
+        locale: Option<&num_format::Locale>,
+        precision: Option<usize>,
+    ) {
         let columns = columns_with_strings(&[
             ("period", "i", true),
-            ("rate_a", "f", true), ("rate_b", "f", true),
-            ("present_value_a", "f", true), ("present_value_b", "f", true),
-            ("future_value_a", "f", true), ("future_value_b", "f", true),
-            ("investment_value_a", "f", true), ("investment_value_b", "f", true)]);
+            ("rate_a", "f", true),
+            ("rate_b", "f", true),
+            ("present_value_a", "f", true),
+            ("present_value_b", "f", true),
+            ("future_value_a", "f", true),
+            ("future_value_b", "f", true),
+            ("investment_value_a", "f", true),
+            ("investment_value_b", "f", true),
+        ]);
         let mut data = vec![];
         let rows = max(self.len(), other.len());
         for row_index in 0..rows {
             data.push(vec![
                 row_index.to_string(),
-                self.get(row_index).map_or("".to_string(), |x| x.rate.to_string()),
-                other.get(row_index).map_or("".to_string(), |x| x.rate.to_string()),
-                self.get(row_index).map_or("".to_string(), |x| x.present_value.to_string()),
-                other.get(row_index).map_or("".to_string(), |x| x.present_value.to_string()),
-                self.get(row_index).map_or("".to_string(), |x| x.future_value.to_string()),
-                other.get(row_index).map_or("".to_string(), |x| x.future_value.to_string()),
-                self.get(row_index).map_or("".to_string(), |x| x.investment_value.to_string()),
-                other.get(row_index).map_or("".to_string(), |x| x.investment_value.to_string()),
+                self.get(row_index)
+                    .map_or("".to_string(), |x| x.rate.to_string()),
+                other
+                    .get(row_index)
+                    .map_or("".to_string(), |x| x.rate.to_string()),
+                self.get(row_index)
+                    .map_or("".to_string(), |x| x.present_value.to_string()),
+                other
+                    .get(row_index)
+                    .map_or("".to_string(), |x| x.present_value.to_string()),
+                self.get(row_index)
+                    .map_or("".to_string(), |x| x.future_value.to_string()),
+                other
+                    .get(row_index)
+                    .map_or("".to_string(), |x| x.future_value.to_string()),
+                self.get(row_index)
+                    .map_or("".to_string(), |x| x.investment_value.to_string()),
+                other
+                    .get(row_index)
+                    .map_or("".to_string(), |x| x.investment_value.to_string()),
             ]);
         }
         print_table_locale_opt(&columns, data, locale, precision);
     }
 
-    /// Return the max discounted cashflow (present value of the cashflow)
-    pub fn max_discounted_cashflow(&self) -> f64 {
-        assert!(self.len() > 1); 
-        self.iter().skip(1).fold(std::f64::MIN, |acc, x| acc.max(x.present_value()))
+    /// Max discounted cashflow among periods after the initial investment, if any.
+    pub fn max_discounted_cashflow(&self) -> Option<f64> {
+        self.iter()
+            .skip(1)
+            .map(|x| x.present_value())
+            .reduce(f64::max)
     }
 
-    /// Return the min discounted cashflow (present value of the cashflow)
-    pub fn min_discounted_cashflow(&self) -> f64 {
-        assert!(self.len() > 1); 
-        self.iter().skip(1).fold(std::f64::MAX, |acc, x| acc.min(x.present_value()))
+    /// Min discounted cashflow among periods after the initial investment, if any.
+    pub fn min_discounted_cashflow(&self) -> Option<f64> {
+        self.iter()
+            .skip(1)
+            .map(|x| x.present_value())
+            .reduce(f64::min)
     }
 }
 impl Deref for NpvSeries {
@@ -533,7 +713,7 @@ impl NpvPeriod {
     pub fn future_value(&self) -> f64 {
         self.future_value
     }
-    
+
     /// Returns the investment value of the Npv scenario at the time of the current period.
     pub fn investment_value(&self) -> f64 {
         self.investment_value
@@ -556,23 +736,35 @@ impl NpvPeriod {
 
 pub(crate) fn net_present_value_schedule_series(schedule: &NpvSolution) -> NpvSeries {
     let mut series = vec![];
-  
+
     let periods = schedule.periods();
     let mut investment_value = 0_f64;
 
-    for period in 0..=periods {         
+    for period in 0..=periods {
         let rate = if period == 0 {
             0.0
         } else {
-            schedule.rates()[(period-1) as usize]
+            schedule.rates()[(period - 1) as usize]
         };
         let future_value = schedule.cashflows[period as usize];
         let present_value = schedule.cashflows[period as usize] / (1. + rate).powf(period as f64);
-        assert!(present_value.is_finite());
+        // Inputs already validated at schedule construction; result should be finite.
+        debug_assert!(present_value.is_finite());
         investment_value += present_value;
-        let formula = format!("{:.4} = {:.4} / (1 + {:.6})^{}", present_value, future_value, rate, period);
+        let formula = format!(
+            "{:.4} = {:.4} / (1 + {:.6})^{}",
+            present_value, future_value, rate, period
+        );
         let formula_symbolic = "present_value = fv / (1 + rate)^periods".to_string();
-        series.push(NpvPeriod::new(period, rate, present_value, future_value, investment_value, formula, formula_symbolic))
+        series.push(NpvPeriod::new(
+            period,
+            rate,
+            present_value,
+            future_value,
+            investment_value,
+            formula,
+            formula_symbolic,
+        ))
     }
     NpvSeries::new(series)
 }
@@ -588,7 +780,7 @@ mod tests {
         let periods = 10;
         let ii = -1000;
         let cf = 500;
-        let npv = net_present_value(rate, periods, ii, cf);
+        let npv = net_present_value(rate, periods, ii, cf).unwrap();
         assert_approx_equal!(3179.3410288, npv);
     }
 
@@ -598,32 +790,35 @@ mod tests {
         let periods = 400;
         let ii = -1000;
         let cf = 500;
-        let npv = net_present_value(rate, periods, ii, cf);
+        let npv = net_present_value(rate, periods, ii, cf).unwrap();
         assert_eq!(13_705.85948, (100_000. * npv).round() / 100_000.);
     }
 
     #[test]
     fn test_net_present_value_3() {
-        let rates = vec![0.034,0.089,0.055];
-        let cashflows = vec![-1000,200,300,500];
-        let npv = net_present_value_schedule(&rates, &cashflows);
+        let rates = vec![0.034, 0.089, 0.055];
+        let cashflows = vec![-1000, 200, 300, 500];
+        let npv = net_present_value_schedule(&rates, &cashflows).unwrap();
         assert_eq!(-127.80162, (100_000. * npv).round() / 100_000.);
     }
 
     #[test]
     fn test_net_present_value_4() {
-        let rates = vec![0.034,0.089,0.055];
-        let cashflows = vec![-1000,200,300,500];
-        let npv = net_present_value_schedule_solution(&rates, &cashflows);
+        let rates = vec![0.034, 0.089, 0.055];
+        let cashflows = vec![-1000, 200, 300, 500];
+        let npv = net_present_value_schedule_solution(&rates, &cashflows).unwrap();
         assert_eq!(-127.80162, (100_000. * npv.npv()).round() / 100_000.);
     }
 
     #[test]
     fn test_net_present_value_5() {
         // wildcard use case: positive and negatives
-        let rates = vec![0.034,-0.0989,0.055,-0.02];
-        let cashflows = vec![-1000,1000,500,-250,-250];
-        let npv = net_present_value_schedule_solution(&rates, &cashflows);
-        assert_eq!(98.950922304, (10_000_000_000. * npv.npv()).round() / 10_000_000_000.);
+        let rates = vec![0.034, -0.0989, 0.055, -0.02];
+        let cashflows = vec![-1000, 1000, 500, -250, -250];
+        let npv = net_present_value_schedule_solution(&rates, &cashflows).unwrap();
+        assert_eq!(
+            98.950922304,
+            (10_000_000_000. * npv.npv()).round() / 10_000_000_000.
+        );
     }
 }
