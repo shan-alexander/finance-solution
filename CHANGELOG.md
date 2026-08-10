@@ -9,7 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned
 
-- Property tests (`proptest`) for TVM/payment/NPV identities (see roadmap E5)
+- Optional TVM/payment identity proptests (E5 remainder)
+- Optional RSI / more oscillators
+
+## [0.2.0] — 2026-08-10
+
+Additive technical-analysis and domain-primitive surface for quant consumers. **No** dual panicking / `try_*` public math.
+
+### Added
+
+- **Domain newtypes:** `Rate`, `Periods`, `PeriodLength`, `PositivePrice`, `Money` (validated `new` → `FinanceResult`)
+- **`stocks::ta` batch indicators:** SMA, EMA, Stochastic (fast/full params), MACD, Bollinger, Keltner (Wilder ATR), VWAP (cumulative/rolling + price source enums), RVOL
+- **Params + `Validated*` + free functions + `*_solution` tables** for teaching (warm-up as `n/a`; deep `//!` docs with word problems and sample tables)
+- **Incremental state machines** (live bars, not a market-data engine):
+  - `SmaState`, `EmaState`, `StochState`, `MacdState`, `BollingerState`, `KeltnerState`, `VwapState`, `RvolState`
+  - `new` / `from_history` / `push` / `push_bars` / `reset` (where applicable)
+  - Batch ↔ stream parity unit tests + **proptest** random-path parity
+- SMA/EMA **batch implemented via state** (single math path; `sma_last` / `ema_last` use state)
+- Bollinger **`StdevKind`**: Sample (`n−1`, default) or Population (`n`)
+- Stochastic **flat window** (HH==LL): carry previous raw %K, else 50
+- Criterion **suite D** TA benches; README quant-engine sketch (per-symbol pipeline, caller-owned session reset)
+- Example: `cargo run --example ta_indicators`
+
+### Changed
+
+- Fallible constructors use **`new` → `FinanceResult`** (not `try_new`), consistent with Result-only crate policy (`Schedule::new_*`, std `File::open` style)
+
+### Design notes
+
+- Streaming **state** is in scope; streaming **engine** (feeds, multi-symbol registry, calendars) is not — the quant app owns those and calls `reset()` / `from_history` as policy.
 
 ## [0.1.0] — 2026-08-10
 
@@ -44,5 +72,6 @@ First “real” public API contract for this crate: **Result-only** finance mat
 
 - **Polars / DataFrame** dependency — no in-crate analysis pipeline that benefits from Polars; tables and `Vec` series are sufficient for 0.1. Apps that already use Polars can map series themselves.
 
-[Unreleased]: https://github.com/shan-alexander/finance-solution/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/shan-alexander/finance-solution/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/shan-alexander/finance-solution/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/shan-alexander/finance-solution/releases/tag/v0.1.0

@@ -51,6 +51,32 @@ Measured from git history worktree (`a2a0beb`-era panicking path), same machine,
 2. **Solution path (~µs):** `*_solution` — teaching, debugging, observability, one-off CLI.
 3. **Series path (~µs–ms):** amortization / payment series of length N — O(N) allocation + formulas.
 
+## Suite D — technical analysis (added post-0.1)
+
+Hot-path indicator series (no formula strings). Params built once (`const` / `ValidatedStochastic`) outside the timed loop unless noted.
+
+| Benchmark | Mean (quick run) | Intent |
+|-----------|------------------|--------|
+| `sma_20_252` | **~0.76 µs** | 1y daily SMA |
+| `ema_20_252` | **~0.89 µs** | 1y daily EMA |
+| `sma_20_2520` | **~7.3 µs** | ~10y SMA |
+| `ema_20_2520` | **~8.8 µs** | ~10y EMA |
+| `sma_last_20_252` | **~0.76 µs** | last value (still O(n) today) |
+| `stoch_fast_9_3_252` | **~6.3 µs** | FastStoch(9,3) validated engine |
+| `stoch_full_14_3_3_252` | **~8.9 µs** | FullStoch(14,3,3) |
+| `stoch_fast_9_3_2520` | **~63 µs** | longer path |
+| `stoch_revalidate_each_call_252` | **~6.3 µs** | `new` each call ≈ same as reuse (noise) |
+
+**Takeaway:** re-validating `Copy` params each series call is noise vs O(n) windows. Prefer `const` / once-built `ValidatedStochastic` for **API clarity**, not because construction is expensive.
+
+Run:
+
+```text
+cargo bench --bench my_benchmark
+# or only TA-ish names:
+cargo bench --bench my_benchmark -- sma
+```
+
 ## How to re-measure
 
 ```text

@@ -15,9 +15,9 @@ In the v0.0.0 release, this library was geared only towards the basic financial 
 - **Cashflow Time-Value-of-Money formulas** -- this includes `present_value_annuity`, `future_value_annuity`, `net_present_value`, and `payment` (known as PMT in Excel). 
 - **Rate conversions** -- this includes all conversions between `apr`, `ear`, and `epr`, and also includes conversion for continuous compounding (`apr_continuous`, `ear_continuous`).
 
-> **Current Status:** revived as **0.1.0** (edition 2021). Previous v0.0.0 release relied on panicking APIs (by design, asserts were placed in the functions to immediately inform the user of incorrect input values) which was great for teaching finance to students, but not ideal for library use in applications. In `v0.1` all methods return *only* `Result`. This is a breaking change from v0.0.0 which provided both panicking APIs (a compromise made for teaching) and `try_<methodname>` as a non-panicking approach, but the dual API leads to duplication, documentation bloat, and could confuse crate users and AI Agents implementing the finance-solution crate. By consolidating all library features to return `Result`, we separate "bad data inputs" from "true bugs" and allows serious rust engineers to utilize the library ergnomically and decide how they want their system to handle the `Result` (log, skip and report, etc., without crashing the whole system). `v0.1` also adds `amortization` and `stocks` modules. 
+> **Current Status:** **0.2.0** (edition 2021, MSRV 1.70). Public math is **Result-only** (`FinanceResult` / `FinanceError`) — no dual panicking / `try_*` APIs. **0.1** established TVM, cashflow, amortization, returns, and stocks path metrics. **0.2** adds domain newtypes, full `stocks::ta` technical analysis (batch + incremental `*State`), teaching solutions/tables, and Criterion TA benches. The crate remains a **math library** to be consumed by other projects/engines/frameworks.
 
-## Modules (0.1 layout)
+## Modules (0.2 layout)
 
 | Module | Contents |
 |--------|----------|
@@ -27,7 +27,8 @@ In the v0.0.0 release, this library was geared only towards the basic financial 
 | `amortization` | Solution/series/tables + PPMT, IPMT, CUMPRINC, CUMIPMT |
 | `returns` | Doubling rules: solution + comparison tables (72/70/69 vs exact) |
 | `stocks` | Price-path solution/series/tables; returns, vol, Sharpe, Sortino, beta, drawdowns |
-| `util` | `FinanceError`, `FinanceResult` |
+| `stocks::ta` | Technical analysis: SMA/EMA, Stochastic, MACD, Bollinger, Keltner, VWAP, RVOL |
+| `util` | `FinanceError`, `FinanceResult`, domain newtypes (`Rate`, `PeriodLength`, …) |
 | `round` | Rounding + test assert helpers |
 
 ## Quick start
@@ -94,14 +95,147 @@ path.print_summary();
 path.series().print_table();
 ```
 
+### Technical analysis — quant pattern (stochastics)
+
+`finance-solution` is a **math library**, not a trading engine: you own the bar loop and data feed.
+For indicators, define each variation **once** as a `const` parameter pack, validate once, then
+call `.compute` on every batch of bars (or free functions for one-off scripts).
+
+```rust
+use finance_solution::*;
+
+// 1) Strategy knobs — fixed packs (FastStoch(9,3), FullStoch(14,3,3), …)
+const FAST_9_3: StochasticParams = StochasticParams::fast(9, 3);
+const FULL_14_3_3: StochasticParams = StochasticParams::full(14, 3, 3);
+const MACD_STD: MacdParams = MacdParams::standard(); // (12, 26, 9)
+const BB_20_2: BollingerParams = BollingerParams::standard();
+
+// 2) Validate once at process/strategy startup (O(1))
+//    Fallible constructors are named `new` → FinanceResult (not `try_new`):
+//    fallibility lives in the return type, matching Result-only crate policy.
+let stoch = ValidatedStochastic::new(FAST_9_3).expect("params");
+let macd_eng = ValidatedMacd::new(MACD_STD).expect("params");
+let bb = ValidatedBollinger::new(BB_20_2).expect("params");
+
+// 3) Hot path — reuse engines on each symbol / day batch
+// let kd = stoch.compute(&high, &low, &close)?;
+// let m = macd_eng.compute(&closes)?;
+// let bands = bb.compute(&closes)?;
+
+// Teaching / audit path (formulas + print_table with n/a warm-up):
+// let sol = stochastics_solution(&high, &low, &close, FAST_9_3)?;
+// sol.print_table();
+```
+
+Common stochastic packs: `StochasticParams::fast(9, 3)`, `fast(14, 3)`, `full(14, 3, 3)`,
+`full(60, 10, 1)`. Same idea for MACD, Bollinger, Keltner, VWAP, RVOL — see `stocks::ta` rustdoc.
+
+Run the verbose demo:
+
+```bash
+cargo run --example ta_indicators
+```
+
 ## Design notes
 
 1. **Result-only public math** — domain failures are `FinanceResult` / `FinanceError`. There is **no** dual panicking + `try_*` pair; the ordinary name *is* the fallible function.
 2. **Solution + series** — `*_solution` types carry inputs, symbolic/numeric formulas, and `.series()` for period detail.
 3. **Excel-compatible signs** — loans/payments follow spreadsheet conventions (positive principal → negative payment, etc.).
-4. **Enums for flags** — prefer [`Compounding`] and [`PaymentTiming`]; `bool` still converts via `From` for ergonomics.
+4. **Enums for flags** — prefer [`Compounding`] and [`PaymentTiming`]; `bool` still converts via `From` for ergonomics. TA uses enums where modes matter (e.g. `VwapMode`, `VwapPriceSource`).
 5. **Tables** — `.print_table()` / `.print_table_locale()` for teaching and debugging (copy/paste friendly).
-6. **Hot path vs solution path** — scalar APIs (`payment`, `present_value`, …) are the nanosecond-class production path (`FinanceResult<f64>`). Solution/series APIs are the microsecond teaching/observability path. Same formulas; different packaging. See [`benches/RESULTS.md`](benches/RESULTS.md).
+6. **Hot path vs solution path** — scalar / series APIs are the production path (`FinanceResult`, no formula strings). Solution APIs are the teaching/observability path. Same formulas; different packaging. See [`benches/RESULTS.md`](benches/RESULTS.md).
+7. **TA params** — one core function per indicator + `Copy` `*Params` + optional `Validated*`; presets via `const` constructors (`fast`, `standard`, …), not a zoo of nearly identical free functions.
+
+### Live bars: incremental state (not a market-data engine)
+
+This crate does **not** subscribe to feeds or manage multi-symbol books. It **does** provide
+pure **` *State` machines** so *your* quant engine can update indicators on each payload
+(tick / 5s / 1m) without recomputing the full history:
+
+| Batch (research / backtest) | Incremental (live) |
+|-----------------------------|--------------------|
+| `stoch.compute(&h,&l,&c)` | `StochState::push(h,l,c)` |
+| `macd_eng.compute(&closes)` | `MacdState::push(close)` |
+| `vwap(...)` cumulative | `VwapState::push(...)` + **`reset()` when *you* open a session** |
+
+**Quant engine sketch** (per-symbol pipeline; many symbols ⇒ `HashMap<Symbol, SymbolPipeline>`):
+
+```rust
+use finance_solution::*;
+
+const FAST: StochasticParams = StochasticParams::fast(9, 3);
+const MACD: MacdParams = MacdParams::standard();
+const VWAP: VwapParams = VwapParams::cumulative_typical();
+
+struct SymbolPipeline {
+    stoch: StochState,
+    macd: MacdState,
+    vwap: VwapState,
+    ema20: EmaState,
+}
+
+impl SymbolPipeline {
+    fn new() -> FinanceResult<Self> {
+        // *State::new is fallible (bad periods → Err), same idea as File::open
+        Ok(Self {
+            stoch: StochState::new(FAST)?,
+            macd: MacdState::new(MACD)?,
+            vwap: VwapState::new(VWAP)?,
+            ema20: EmaState::new(20)?,
+        })
+    }
+
+    /// Once per day/session (or on reconnect): seed from your store, then only push live bars.
+    fn seed_history(
+        &mut self,
+        high: &[f64],
+        low: &[f64],
+        close: &[f64],
+        volume: &[f64],
+    ) -> FinanceResult<()> {
+        self.stoch = StochState::from_history(FAST, high, low, close)?;
+        self.macd = MacdState::from_history(MACD, close)?;
+        self.vwap = VwapState::from_history(VWAP, high, low, close, volume)?;
+        self.ema20 = EmaState::from_history(20, close)?;
+        Ok(())
+    }
+
+    fn on_bar(&mut self, high: f64, low: f64, close: f64, volume: f64) -> FinanceResult<()> {
+        let _kd = self.stoch.push(high, low, close)?;       // Option<(k,d)>
+        let _m = self.macd.push(close)?;                    // Option<(macd,signal,hist)>
+        let _vw = self.vwap.push(high, low, close, volume)?; // Option<f64>
+        let _e = self.ema20.push(close)?;
+        Ok(())
+    }
+
+    /// Multi-bar payload (e.g. several 1m bars in one message).
+    fn on_bars(
+        &mut self,
+        high: &[f64],
+        low: &[f64],
+        close: &[f64],
+        volume: &[f64],
+    ) -> FinanceResult<()> {
+        let _ = self.stoch.push_bars(high, low, close)?;
+        let _ = self.macd.push_bars(close)?;
+        let _ = self.vwap.push_bars(high, low, close, volume)?;
+        let _ = self.ema20.push_bars(close)?;
+        Ok(())
+    }
+
+    /// Your calendar decides this — the library never auto-resets at “market open”.
+    fn on_session_open(&mut self) {
+        self.vwap.reset(); // common: new day VWAP
+        // stoch/macd/ema often CONTINUE across days; reset only if your strategy wants it
+    }
+}
+```
+
+**Maximum control:** continue multi-day series (never reset), or reset VWAP/RVOL at open, or
+rebuild state from a sliced history. All of that is **your** policy; we only expose the levers.
+
+State is parity-tested against batch series (see `stocks::ta::state` tests). Also:
+`SmaState`, `BollingerState`, `KeltnerState`, `RvolState`.
 
 ### Parameter order (when possible)
 

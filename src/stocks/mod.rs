@@ -8,6 +8,7 @@
 //! | Solution | [`price_path_solution`] | Summary stats + formulas for a full path |
 //! | Series | [`PricePathSolution::series`] | Period detail (return, wealth, drawdown) |
 //! | Tables | [`PricePathSeries::print_table`] | Terminal / copy-paste output |
+//! | **TA** | [`ta`] — SMA/EMA/Stoch/MACD/BB/KC/VWAP/RVOL + `*State` | Batch series + incremental push |
 //!
 //! # Error handling (v0.1+)
 //!
@@ -18,6 +19,7 @@
 pub mod path;
 pub mod returns;
 pub mod risk;
+pub mod ta;
 
 #[doc(inline)]
 pub use path::*;
@@ -25,3 +27,16 @@ pub use path::*;
 pub use returns::*;
 #[doc(inline)]
 pub use risk::*;
+// TA: re-export common entry points; full surface under `stocks::ta`.
+#[doc(inline)]
+pub use ta::{
+    bollinger, bollinger_solution, ema, ema_last, keltner, keltner_solution, macd, macd_solution,
+    rvol, rvol_solution, sma, sma_last, stochastics, stochastics_solution, vwap, vwap_solution,
+    BollingerBarOutput, BollingerParams, BollingerSeries, BollingerSolution, BollingerState,
+    EmaState, KeltnerBarOutput, KeltnerParams, KeltnerSeries, KeltnerSolution, KeltnerState,
+    MacdParams, MacdSeries, MacdSolution, MacdState, RvolParams, RvolSeries, RvolSolution,
+    RvolState, SmaState, StdevKind, StochBarOutput, StochState, StochasticParams, StochasticSeries,
+    StochasticSolution, ValidatedBollinger, ValidatedKeltner, ValidatedMacd, ValidatedRvol,
+    ValidatedStochastic, ValidatedVwap, VwapMode, VwapParams, VwapPriceSource, VwapSeries,
+    VwapSolution, VwapState,
+};

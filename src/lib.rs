@@ -1,9 +1,11 @@
 //! `finance_solution` is a collection of financial functions for time-value-of-money, cashflows,
-//! amortization, returns, and basic equity metrics.
+//! amortization, returns, equity path metrics, and **technical analysis** (`stocks::ta`).
 //!
-//! In addition to being rigorously tested with symmetry tests and Excel-matching tests,
-//! the library provides `solution` structs with formulas and period-by-period series — useful for
-//! financial software audit trails and for students of finance.
+//! In addition to being rigorously tested with symmetry tests, Excel-matching tests, and
+//! property tests on TA batch↔stream parity, the library provides `solution` structs with
+//! formulas and period-by-period series — useful for financial software audit trails and for
+//! students of finance. Live systems can use incremental `*State` types (`push` / `push_bars`)
+//! without this crate owning market data or multi-symbol orchestration.
 //!
 //! # Error handling (v0.1+)
 //!
@@ -12,7 +14,8 @@
 //! Compose with `?` or match on [`FinanceError`] variants.
 //!
 //! There is **no dual panicking / `try_*` API** for public math: the ordinary name
-//! (e.g. [`future_value`], [`payment`], [`amortization_solution`]) is the fallible function.
+//! (e.g. [`future_value`], [`payment`], [`amortization_solution`], [`SmaState::new`]) is the
+//! fallible function when construction or domain validation can fail.
 //!
 //! ## Example
 //! ```
@@ -94,7 +97,7 @@ pub use num_format;
 
 pub mod util;
 #[doc(inline)]
-pub use util::{FinanceError, FinanceResult};
+pub use util::{FinanceError, FinanceResult, Money, PeriodLength, Periods, PositivePrice, Rate};
 
 pub mod round;
 #[doc(inline)]
