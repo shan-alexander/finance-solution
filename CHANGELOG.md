@@ -9,8 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned
 
-- Optional TVM/payment identity proptests (E5 remainder)
+- Black ’76 / Garman–Kohlhagen (roadmap D2–D3)
 - Optional RSI / more oscillators
+- Optional TVM identity proptests (E5 remainder)
+- Optional BSM Criterion benches
+
+## [0.3.0] — 2026-08-11
+
+Additive **European option math** and a real-bar demo joining underlier TA with BSM. **No** dual panicking / `try_*` public math. Still a pure math library (no feeds, chains, or order routing).
+
+### Added
+
+- **`derivatives` module (D1):**
+  - European Black–Scholes–Merton `bsm_price`, `bsm_greeks` (Δ Γ Θ ν ρ), `bsm_terms`, `bsm_implied_vol`
+  - Put–call parity residual, `intrinsic` / `time_value` / spot & forward moneyness
+  - `BsmParams`, `ValidatedBsm`, `BsmSolution` teaching table, `BsmGreeks` desk helpers (`vega_per_vol_point`, `theta_per_calendar_day`)
+  - `BsmState` for live `set_spot` / `set_vol` / `set_vol_from_price` / `set_time_years` updates
+  - Deep `//!` docs: trading desk view + engineering wire-up (sync math, join with `stocks::ta`)
+- **Examples:**
+  - `cargo run --example bsm_option`
+  - `cargo run --example real_bars_ta_bsm --release` — real 1m OHLCV under `examples/data/` (GitHub only; excluded from crates.io)
+- **TA proptests:** MACD / Keltner last-value batch↔stream parity
+
+### Design notes
+
+- Option + underlier concurrency lives in **your** engine (`HashMap` of `BsmState`, optional `rayon` over strikes).
+- Black ’76 (futures options) and Garman–Kohlhagen (FX) remain planned.
 
 ## [0.2.0] — 2026-08-10
 
@@ -41,37 +65,11 @@ Additive technical-analysis and domain-primitive surface for quant consumers. **
 
 ## [0.1.0] — 2026-08-10
 
-First “real” public API contract for this crate: **Result-only** finance math with preserved solution/series/table teaching surface.
-
-### Breaking
-
-- Public financial math is **Result-only**: functions return `FinanceResult<T>` / `FinanceError`. There is no dual panicking / `try_*` API for domain failure.
-- `Schedule::new_repeating` and `Schedule::new_custom` return `FinanceResult` (non-finite / empty inputs are errors). OOB `get` returns `Option`.
+First crates.io release of the Result-only API.
 
 ### Added
 
-- `FinanceError` (`#[non_exhaustive]`) with structured variants, `Display`/`Error`, and stable `code()` strings
-- `Compounding` and `PaymentTiming` enums (`From<bool>` for Excel-style flags)
-- Criterion benches (suites A/B/C) and measured notes in `benches/RESULTS.md`
-- CI: tests, doctests, clippy `-D warnings`, fmt, gate against reintroducing `pub fn try_`
-
-### Changed
-
-- Annuity PV/FV formulas match on `PaymentTiming` (ordinary vs due); docs cover enum and `bool`
-- NPV schedule module documents input shapes A–D with examples
-- Docs and examples use `?` / `FinanceResult` patterns; teaching depth preserved
-- Dependencies: `float-cmp` 0.10, `log` 0.4, `num-format` 0.4, `itertools` 0.15; `criterion` 0.8 (dev)
-
-### Preserved
-
-- Solution / series / pretty-table product surface
-- Excel-compatible sign conventions and 1-based amortization period helpers
-- MSRV **1.70**, edition **2021**
-
-### Not included (YAGNI)
-
-- **Polars / DataFrame** dependency — no in-crate analysis pipeline that benefits from Polars; tables and `Vec` series are sufficient for 0.1. Apps that already use Polars can map series themselves.
-
-[Unreleased]: https://github.com/shan-alexander/finance-solution/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/shan-alexander/finance-solution/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/shan-alexander/finance-solution/releases/tag/v0.1.0
+- Public math returns `FinanceResult` / `FinanceError` only (no dual panicking / `try_*` surface)
+- TVM, cashflow, rate conversion, amortization (solution/series/tables + PPMT/IPMT/CUMPRINC/CUMIPMT)
+- Doubling rules, equity price-path metrics (returns, vol, Sharpe, Sortino, beta, drawdowns)
+- Domain-oriented docs, examples, Criterion benches for core TVM/cashflow

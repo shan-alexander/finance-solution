@@ -15,9 +15,13 @@ In the v0.0.0 release, this library was geared only towards the basic financial 
 - **Cashflow Time-Value-of-Money formulas** -- this includes `present_value_annuity`, `future_value_annuity`, `net_present_value`, and `payment` (known as PMT in Excel). 
 - **Rate conversions** -- this includes all conversions between `apr`, `ear`, and `epr`, and also includes conversion for continuous compounding (`apr_continuous`, `ear_continuous`).
 
-> **Current Status:** **0.2.0** (edition 2021, MSRV 1.70). Public math is **Result-only** (`FinanceResult` / `FinanceError`) — no dual panicking / `try_*` APIs. **0.1** established TVM, cashflow, amortization, returns, and stocks path metrics. **0.2** adds domain newtypes, full `stocks::ta` technical analysis (batch + incremental `*State`), teaching solutions/tables, and Criterion TA benches. The crate remains a **math library** to be consumed by other projects/engines/frameworks.
+> The v0.1.0 release revamped to eliminate panicking APIs, enforcing all methods to return a `Result` (as `FinanceResult` or `FinanceError`) and added an amortization module.
 
-## Modules (0.2 layout)
+> The v0.2.0 release added domain newtypes, full `stocks::ta` technical analysis indicators like Bollinger and Stochastics for both batch + incremental `*State`, and added teaching solutions/tables, and Criterion TA benches.
+
+> **Current Status:** **0.3.0** (edition 2021, MSRV 1.70). Adds the **`derivatives`** module (European Black–Scholes–Merton price, Greeks ΔΓθνρ, implied vol, put–call parity helpers, `BsmState`) plus a real 1m OHLCV example joining underlier TA with a BSM snapshot. Public math remains **Result-only** — no dual panicking / `try_*` APIs. The crate is a **math library** for engines and frameworks (not a market-data feed or order router).
+
+## Modules (0.3 layout)
 
 | Module | Contents |
 |--------|----------|
@@ -27,7 +31,8 @@ In the v0.0.0 release, this library was geared only towards the basic financial 
 | `amortization` | Solution/series/tables + PPMT, IPMT, CUMPRINC, CUMIPMT |
 | `returns` | Doubling rules: solution + comparison tables (72/70/69 vs exact) |
 | `stocks` | Price-path solution/series/tables; returns, vol, Sharpe, Sortino, beta, drawdowns |
-| `stocks::ta` | Technical analysis: SMA/EMA, Stochastic, MACD, Bollinger, Keltner, VWAP, RVOL |
+| `stocks::ta` | Technical analysis: SMA/EMA, Stochastic, MACD, Bollinger, Keltner, VWAP, RVOL (+ `*State`) |
+| `derivatives` | European BSM option price, Greeks, IV, parity residual, intrinsic/time value, `BsmState` (Black ’76 / FX planned later) |
 | `util` | `FinanceError`, `FinanceResult`, domain newtypes (`Rate`, `PeriodLength`, …) |
 | `round` | Rounding + test assert helpers |
 
@@ -130,10 +135,53 @@ let bb = ValidatedBollinger::new(BB_20_2).expect("params");
 Common stochastic packs: `StochasticParams::fast(9, 3)`, `fast(14, 3)`, `full(14, 3, 3)`,
 `full(60, 10, 1)`. Same idea for MACD, Bollinger, Keltner, VWAP, RVOL — see `stocks::ta` rustdoc.
 
-Run the verbose demo:
+### Options — European Black–Scholes–Merton
+
+**Trading:** model mark vs mid, delta hedge ratio, vega/theta carry, IV from mid.  
+**Engineering:** sync pure functions; your feed calls `set_spot` / `set_vol_from_price` on per-contract [`BsmState`].
+
+| Input | Unit in this crate |
+|-------|--------------------|
+| `time_years` | **years** (`21.0/365.25` ≈ 21 calendar days) |
+| `rate`, `dividend_yield` | continuous absolute (`0.05` = 5%) |
+| `vol` | annualized absolute (`0.20` = 20%) |
+| raw **vega** | per **+1.0** in σ → use `vega_per_vol_point()` for per 1% |
+| raw **theta** | per **year** → use `theta_per_calendar_day()` for daily |
+
+```rust
+use finance_solution::*;
+
+let p = BsmParams::atm_one_year(100.0, 0.05, 0.20);
+let call = bsm_price(p, OptionType::Call).expect("fixture");
+let g = bsm_greeks(p, OptionType::Call).expect("fixture");
+// Desk scales: per 1% vol, per calendar day
+let _vega_1pct = g.vega_per_vol_point();
+let _theta_day = g.theta_per_calendar_day();
+let iv = bsm_implied_vol(p, OptionType::Call, call).expect("fixture");
+assert!((iv - 0.20).abs() < 1e-4);
+
+// Live: per-contract state in *your* HashMap (not inside this crate)
+let mut opt = BsmState::new(p, OptionType::Call).expect("fixture");
+opt.set_spot(101.0).expect("fixture");
+let _ = opt.greeks();
+// opt.set_vol_from_price(mid)?;  // on option quote
+```
+
+Join underlier TA with the option chain in **your** engine: `StochState` on bars + `BsmState` on strikes, same process, sync math, optional `rayon` over the chain on a spot tick.
+
+### Examples
 
 ```bash
+cargo run --example common_word_problems
+cargo run --example amortization_table_demo
+cargo run --example early_payoff_what_if
+cargo run --example doubling_rules
+cargo run --example price_path_analysis
 cargo run --example ta_indicators
+cargo run --example bsm_option
+# Real 1m OHLCV (GitHub tree only; excluded from crates.io package size)
+cargo run --example real_bars_ta_bsm --release
+# REAL_BARS_SYMBOL=SPY cargo run --example real_bars_ta_bsm --release
 ```
 
 ## Design notes
@@ -141,15 +189,17 @@ cargo run --example ta_indicators
 1. **Result-only public math** — domain failures are `FinanceResult` / `FinanceError`. There is **no** dual panicking + `try_*` pair; the ordinary name *is* the fallible function.
 2. **Solution + series** — `*_solution` types carry inputs, symbolic/numeric formulas, and `.series()` for period detail.
 3. **Excel-compatible signs** — loans/payments follow spreadsheet conventions (positive principal → negative payment, etc.).
-4. **Enums for flags** — prefer [`Compounding`] and [`PaymentTiming`]; `bool` still converts via `From` for ergonomics. TA uses enums where modes matter (e.g. `VwapMode`, `VwapPriceSource`).
+4. **Enums for flags** — prefer [`Compounding`] and [`PaymentTiming`]; `bool` still converts via `From` for ergonomics. TA uses enums where modes matter (e.g. `VwapMode`, `VwapPriceSource`, `StdevKind`).
 5. **Tables** — `.print_table()` / `.print_table_locale()` for teaching and debugging (copy/paste friendly).
 6. **Hot path vs solution path** — scalar / series APIs are the production path (`FinanceResult`, no formula strings). Solution APIs are the teaching/observability path. Same formulas; different packaging. See [`benches/RESULTS.md`](benches/RESULTS.md).
 7. **TA params** — one core function per indicator + `Copy` `*Params` + optional `Validated*`; presets via `const` constructors (`fast`, `standard`, …), not a zoo of nearly identical free functions.
+8. **Derivatives units** — BSM vega/theta raw model units differ from desk screens; always use the helper methods above when mapping to “per vol point” / “per day” P&L.
+9. **Math library, not an engine** — no websockets, symbol books, calendars, or order routing. You own `HashMap`s, session resets, and concurrency (`rayon` / `tokio` outside this crate).
 
 ### Live bars: incremental state (not a market-data engine)
 
 This crate does **not** subscribe to feeds or manage multi-symbol books. It **does** provide
-pure **` *State` machines** so *your* quant engine can update indicators on each payload
+pure **`*State` machines** so *your* quant engine can update indicators on each payload
 (tick / 5s / 1m) without recomputing the full history:
 
 | Batch (research / backtest) | Incremental (live) |
@@ -157,11 +207,13 @@ pure **` *State` machines** so *your* quant engine can update indicators on each
 | `stoch.compute(&h,&l,&c)` | `StochState::push(h,l,c)` |
 | `macd_eng.compute(&closes)` | `MacdState::push(close)` |
 | `vwap(...)` cumulative | `VwapState::push(...)` + **`reset()` when *you* open a session** |
+| `bsm_price` / `bsm_greeks` | `BsmState::set_spot` / `set_vol_from_price` |
 
-**Quant engine sketch** (per-symbol pipeline; many symbols ⇒ `HashMap<Symbol, SymbolPipeline>`):
+**Quant engine sketch** (per-symbol underlier + optional option chain):
 
 ```rust
 use finance_solution::*;
+use std::collections::HashMap;
 
 const FAST: StochasticParams = StochasticParams::fast(9, 3);
 const MACD: MacdParams = MacdParams::standard();
@@ -172,6 +224,8 @@ struct SymbolPipeline {
     macd: MacdState,
     vwap: VwapState,
     ema20: EmaState,
+    /// Your key type (strike, expiry, right, …) — not defined by this crate
+    options: HashMap<String, BsmState>,
 }
 
 impl SymbolPipeline {
@@ -182,6 +236,7 @@ impl SymbolPipeline {
             macd: MacdState::new(MACD)?,
             vwap: VwapState::new(VWAP)?,
             ema20: EmaState::new(20)?,
+            options: HashMap::new(),
         })
     }
 
@@ -205,6 +260,10 @@ impl SymbolPipeline {
         let _m = self.macd.push(close)?;                    // Option<(macd,signal,hist)>
         let _vw = self.vwap.push(high, low, close, volume)?; // Option<f64>
         let _e = self.ema20.push(close)?;
+        // Spot moved — re-mark the chain (or throttle / rayon in your runtime)
+        for opt in self.options.values_mut() {
+            opt.set_spot(close)?;
+        }
         Ok(())
     }
 
@@ -220,6 +279,18 @@ impl SymbolPipeline {
         let _ = self.macd.push_bars(close)?;
         let _ = self.vwap.push_bars(high, low, close, volume)?;
         let _ = self.ema20.push_bars(close)?;
+        if let Some(&last) = close.last() {
+            for opt in self.options.values_mut() {
+                opt.set_spot(last)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn on_option_quote(&mut self, key: &str, mid: f64) -> FinanceResult<()> {
+        if let Some(opt) = self.options.get_mut(key) {
+            let _iv = opt.set_vol_from_price(mid)?;
+        }
         Ok(())
     }
 
@@ -375,16 +446,6 @@ path.print_summary();
 path.series().print_table();
 ```
 
-## Examples
-
-```bash
-cargo run --example common_word_problems
-cargo run --example amortization_table_demo
-cargo run --example early_payoff_what_if
-cargo run --example doubling_rules
-cargo run --example price_path_analysis
-```
-
 ## Testing & CI
 
 ```bash
@@ -394,7 +455,12 @@ cargo clippy --all-targets -- -D warnings
 cargo bench   # optional Criterion suites (local / on demand)
 ```
 
-Symmetry tests, Excel golden values, and integration tests cover core TVM, cashflow, amortization, returns, and stocks paths. CI runs build, tests, doctests, clippy, and fmt on stable and MSRV 1.70.
+Symmetry tests, Excel golden values, integration tests, and **TA proptests** (batch ↔ stream parity) cover TVM, cashflow, amortization, returns, stocks, and TA. Derivatives unit tests cover BSM price/Greeks/IV/parity and `BsmState`. CI runs build, tests, doctests, clippy, and fmt on **stable** and **MSRV 1.70**, and asserts there are no public `try_*` dual-API symbols.
+
+## Package notes
+
+- **crates.io** ships the library + small examples; large OHLCV under `examples/data/` is **excluded** (see `Cargo.toml` `exclude`).
+- Clone from **GitHub** if you want `cargo run --example real_bars_ta_bsm --release`.
 
 ## License
 

@@ -1,21 +1,23 @@
 [package]
 name = "finance-solution"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Shan Newton <shan.alexander2020@gmail.com>", "David Thureson <David.G.Thureson@gmail.com>"]
 edition = "2021"
 rust-version = "1.70"
 license = "MIT"
-description = "Finance math: TVM, cashflow, amortization, equity path metrics, and technical analysis (SMA/EMA/MACD/Bollinger/Keltner/Stoch/VWAP/RVOL) with Result-only APIs, batch series, incremental state, solutions, and tables."
+description = "Finance math: TVM, cashflow, amortization, equity path metrics, technical analysis (SMA/EMA/MACD/Bollinger/Keltner/Stoch/VWAP/RVOL), and European BSM options (price, Greeks, IV) with Result-only APIs, solutions, tables, and incremental state."
 repository = "https://github.com/shan-alexander/finance-solution"
 documentation = "https://docs.rs/finance-solution"
 readme = "README.md"
-keywords = ["finance", "tvm", "technical-analysis", "quant", "amortization"]
+keywords = ["finance", "tvm", "options", "quant", "black-scholes"]
 categories = ["mathematics", "science"]
 exclude = [
     "target/*",
     "roadmap_to_v0.1.md",
     "rust_design_patterns.md",
     "rust_design_patterns_tldr.md",
+    # Real-data OHLCV fixtures (large); GitHub/examples only, not crates.io
+    "examples/data/*",
 ]
 
 [dependencies]
@@ -80,3 +82,11 @@ path = "examples/amortization_table_demo.rs"
 [[example]]
 name = "ta_indicators"
 path = "examples/ta_indicators.rs"
+
+[[example]]
+name = "bsm_option"
+path = "examples/bsm_option.rs"
+
+[[example]]
+name = "real_bars_ta_bsm"
+path = "examples/real_bars_ta_bsm.rs"

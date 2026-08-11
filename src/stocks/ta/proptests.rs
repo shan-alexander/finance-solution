@@ -126,5 +126,38 @@ mod tests {
             let sl = st.last().map(|o| o.middle);
             approx_opt(bl, sl)?;
         }
+
+        #[test]
+        fn macd_last_matches_state(
+            closes in prop::collection::vec(-100.0f64..100.0, 40..90),
+        ) {
+            let p = MacdParams::standard();
+            let batch = macd(&closes, p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let mut st = MacdState::new(p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let _ = st.push_bars(&closes).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            match (batch.last(), st.last()) {
+                (Some((a, b, c)), Some((d, e, f))) => {
+                    prop_assert!((a - d).abs() < 1e-7);
+                    prop_assert!((b - e).abs() < 1e-7);
+                    prop_assert!((c - f).abs() < 1e-7);
+                }
+                (None, None) => {}
+                other => prop_assert!(false, "macd last mismatch {other:?}"),
+            }
+        }
+
+        #[test]
+        fn keltner_last_matches_state(
+            (high, low, close) in hlc_strategy(),
+        ) {
+            prop_assume!(close.len() >= 30);
+            let p = KeltnerParams::standard();
+            let batch = keltner(&high, &low, &close, p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let mut st = KeltnerState::new(p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let _ = st.push_bars(&high, &low, &close).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let bm = batch.middle.iter().rev().find_map(|x| *x);
+            let sm = st.last().map(|o| o.middle);
+            approx_opt(bm, sm)?;
+        }
     }
 }

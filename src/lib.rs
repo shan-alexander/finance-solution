@@ -1,5 +1,6 @@
 //! `finance_solution` is a collection of financial functions for time-value-of-money, cashflows,
-//! amortization, returns, equity path metrics, and **technical analysis** (`stocks::ta`).
+//! amortization, returns, equity path metrics, **technical analysis** (`stocks::ta`), and
+//! **European option math** (`derivatives`: BSM price, Greeks, implied vol).
 //!
 //! In addition to being rigorously tested with symmetry tests, Excel-matching tests, and
 //! property tests on TA batch↔stream parity, the library provides `solution` structs with
@@ -141,6 +142,14 @@ pub use returns::*;
 pub mod stocks;
 #[doc(inline)]
 pub use stocks::*;
+
+pub mod derivatives;
+#[doc(inline)]
+pub use derivatives::{
+    bsm_greeks, bsm_implied_vol, bsm_price, bsm_solution, bsm_terms, forward_moneyness, intrinsic,
+    put_call_parity_residual, spot_moneyness, time_value, BsmGreeks, BsmParams, BsmSolution,
+    BsmState, BsmTerms, OptionType, ValidatedBsm,
+};
 
 use std::cmp::max;
 use std::fmt::{Debug, Error, Formatter};
