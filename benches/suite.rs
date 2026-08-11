@@ -1,7 +1,8 @@
-//! Criterion benches for Result-only hot paths (P7 / E3).
+//! Criterion bench harness (`cargo bench --bench suite`).
 //!
-//! Run: `cargo bench`
-//! Fixtures are valid by construction; `.expect` is only for bench harness.
+//! Suites A–E cover TVM/cashflow, solution overhead, stocks path metrics, TA, and
+//! European option closed forms. Fixtures are valid by construction; `.expect` is
+//! only for the bench harness.
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use finance_solution::*;

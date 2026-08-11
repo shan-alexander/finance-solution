@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optional PDE / Monte Carlo
 - Futures linear fair-value / basis helpers
 
+## [0.4.1] — 2026-08-11
+
+### Changed
+
+- crates.io `categories`: `finance`, `mathematics` (valid slugs)
+- Criterion harness renamed: `benches/my_benchmark.rs` → `benches/suite.rs` (`cargo bench --bench suite`)
+
 ## [0.4.0] — 2026-08-11
 
 Additive derivatives models, TA indicators, solvers, and test depth. **No** dual panicking / `try_*` public math. Still a pure math library.

@@ -1,6 +1,6 @@
 # Benchmark notes (P7 / E3)
 
-Criterion suite: `cargo bench` → `benches/my_benchmark.rs`.
+Criterion harness: `cargo bench` → `benches/suite.rs` (`--bench suite`).
 
 ## Suites
 
@@ -18,7 +18,7 @@ Validation is O(1) field checks. Result wrapping is **noise-level** vs `powf` an
 
 ## Recorded results (0.1.0 Result API)
 
-Measured locally with Criterion (`cargo bench --bench my_benchmark`), same machine, post-migration Result-only API. Times are **mean point estimates** from Criterion `estimates.json` (`new` run).
+Measured locally with Criterion (`cargo bench --bench suite`), same machine, post-migration Result-only API. Times are **mean point estimates** from Criterion `estimates.json` (`new` run).
 
 | Benchmark | Mean | Notes |
 |-----------|------|-------|
@@ -72,9 +72,9 @@ Hot-path indicator series (no formula strings). Params built once (`const` / `Va
 Run:
 
 ```text
-cargo bench --bench my_benchmark
+cargo bench --bench suite
 # or only TA-ish names:
-cargo bench --bench my_benchmark -- sma
+cargo bench --bench suite -- sma
 ```
 
 ## Suite E — European closed-form derivatives (post-0.3)
@@ -95,13 +95,13 @@ Hot-path BSM / Black ’76 / Garman–Kohlhagen (no market data I/O).
 **Guidance:** price/greeks should sit in the **~tens–hundreds of ns** class (CDF cost); IV is a handful of model evals (~µs); `*_solution` pays for formula strings.
 
 ```text
-cargo bench --bench my_benchmark -- bsm_
+cargo bench --bench suite -- bsm_
 ```
 
 ## How to re-measure
 
 ```text
-cargo bench --bench my_benchmark
+cargo bench --bench suite
 ```
 
 Inspect HTML reports under `target/criterion/*/report/index.html`, or `estimates.json` under `target/criterion/<bench>/new/`.

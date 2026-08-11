@@ -21,7 +21,7 @@ In the v0.0.0 release, this library was geared only towards the basic financial 
 
 > The v0.3.0 release added the **`derivatives`** module (European Black–Scholes–Merton price, Greeks ΔΓθνρ, implied vol, put–call parity helpers, `BsmState`) plus a real 1m OHLCV example joining underlier TA with a BSM snapshot.
 
-> **Current Status:** **0.4.0** (edition 2021, MSRV 1.70). Extends derivatives (cross Greeks; Black ’76; Garman–Kohlhagen; CRR American/European tree + American IV) and TA (RSI, ATR), with deeper proptests and audit polish. Public math remains **Result-only** — no dual panicking / `try_*` APIs. The crate is a **math library** for engines and frameworks (not a market-data feed or order router).
+> **Current Status:** **0.4.1** (edition 2021, MSRV 1.70). Extends derivatives (cross Greeks; Black ’76; Garman–Kohlhagen; CRR American/European tree + American IV) and TA (RSI, ATR, WMA/HMA, Donchian, LinReg), with deeper proptests and audit polish. Public math remains **Result-only** — no dual panicking / `try_*` APIs. The crate is a **math library** for engines and frameworks (not a market-data feed or order router).
 
 ## Modules (0.4 layout)
 

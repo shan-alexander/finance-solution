@@ -1,6 +1,6 @@
 [package]
 name = "finance-solution"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Shan Newton <shan.alexander2020@gmail.com>", "David Thureson <David.G.Thureson@gmail.com>"]
 edition = "2021"
 rust-version = "1.70"
@@ -10,7 +10,7 @@ repository = "https://github.com/shan-alexander/finance-solution"
 documentation = "https://docs.rs/finance-solution"
 readme = "README.md"
 keywords = ["finance", "tvm", "options", "quant", "black-scholes"]
-categories = ["mathematics", "science"]
+categories = ["finance", "mathematics"]
 exclude = [
     "target/*",
     "roadmap_to_v0.1.md",
@@ -68,7 +68,7 @@ type_complexity = "allow"
 result_large_err = "allow"
 
 [[bench]]
-name = "my_benchmark"
+name = "suite"
 harness = false
 
 [[example]]
