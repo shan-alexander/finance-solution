@@ -1,11 +1,11 @@
 [package]
 name = "finance-solution"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Shan Newton <shan.alexander2020@gmail.com>", "David Thureson <David.G.Thureson@gmail.com>"]
 edition = "2021"
 rust-version = "1.70"
 license = "MIT"
-description = "Finance math: TVM, cashflow, amortization, equity path metrics, technical analysis (SMA/EMA/MACD/Bollinger/Keltner/Stoch/VWAP/RVOL), and European BSM options (price, Greeks, IV) with Result-only APIs, solutions, tables, and incremental state."
+description = "Finance math: TVM, cashflow, amortization, equity path metrics, technical analysis (SMA/EMA/WMA/HMA/MACD/BB/Keltner/Donchian/Stoch/VWAP/RVOL/RSI/ATR/LinReg), and options (BSM, Black76, GK, CRR American) with Result-only APIs, solutions, tables, and incremental state."
 repository = "https://github.com/shan-alexander/finance-solution"
 documentation = "https://docs.rs/finance-solution"
 readme = "README.md"
@@ -90,3 +90,15 @@ path = "examples/bsm_option.rs"
 [[example]]
 name = "real_bars_ta_bsm"
 path = "examples/real_bars_ta_bsm.rs"
+
+[[example]]
+name = "closed_form_options"
+path = "examples/closed_form_options.rs"
+
+[[example]]
+name = "crr_american"
+path = "examples/crr_american.rs"
+
+[[example]]
+name = "ta_rsi_atr"
+path = "examples/ta_rsi_atr.rs"

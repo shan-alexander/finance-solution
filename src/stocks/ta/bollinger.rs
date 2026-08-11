@@ -319,6 +319,20 @@ mod tests {
     }
 
     #[test]
+    fn pct_b_midpoint_on_middle() {
+        // Price at middle → %B = 0.5 when width > 0
+        let closes: Vec<f64> = (0..40).map(|i| 100.0 + (i as f64 - 20.0) * 0.1).collect();
+        let s = bollinger(&closes, BollingerParams::standard()).unwrap();
+        let i = 30;
+        let mid = s.middle[i].unwrap();
+        let u = s.upper[i].unwrap();
+        let l = s.lower[i].unwrap();
+        // synthetic check of formula at close = mid
+        let pct = (mid - l) / (u - l);
+        assert!((pct - 0.5).abs() < 1e-9);
+    }
+
+    #[test]
     fn sample_wider_than_population() {
         let closes: Vec<f64> = (1..=30).map(|x| x as f64).collect();
         let s = bollinger(&closes, BollingerParams::standard()).unwrap();

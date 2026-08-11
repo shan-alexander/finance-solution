@@ -162,6 +162,14 @@ impl ValidatedBsm {
     ) -> FinanceResult<crate::derivatives::black_scholes::BsmGreeks> {
         crate::derivatives::black_scholes::bsm_greeks(self.params, option_type)
     }
+
+    /// Cross Greeks (vanna, volga, charm).
+    pub fn cross_greeks(
+        self,
+        option_type: OptionType,
+    ) -> FinanceResult<crate::derivatives::black_scholes::BsmCrossGreeks> {
+        crate::derivatives::black_scholes::bsm_cross_greeks(self.params, option_type)
+    }
 }
 
 pub(crate) fn validate_bsm_params(p: BsmParams) -> FinanceResult<()> {

@@ -1,6 +1,7 @@
 //! # Black–Scholes–Merton European options
 //!
-//! Continuous dividend yield `q`. Call/put **prices** and first-order **Greeks**.
+//! Continuous dividend yield `q`. Call/put **prices**, first-order **Greeks**, and
+//! **cross Greeks** (vanna, volga, charm).
 //!
 //! ---
 //!
@@ -13,6 +14,9 @@
 //! | **Vega** | ≥ 0 | IV long/short; event premium; surface relative value |
 //! | **Theta** | often ≤ 0 for long options | Overnight bleed; why short premium earns carry |
 //! | **Rho** | call ≥ 0, put ≤ 0 | Rate sensitivity; larger for long-dated |
+//! | **Vanna** | mixed | Δ change when IV moves; sticky-strike / sticky-delta stories |
+//! | **Volga** | ≥ 0 near ATM often | Convexity in vol; smile risk |
+//! | **Charm** | mixed | Δ bleed as time passes; overnight hedge drift |
 //!
 //! **Hedge sketch (per long call):** short ≈ `delta` shares of underlier to flatten Δ.
 //! Gamma makes that hedge wrong as spot moves — traders who are long gamma rebalance
@@ -108,6 +112,34 @@ impl BsmGreeks {
     }
 }
 
+/// Cross / second-order BSM Greeks (vol surface &amp; hedge-drift risk).
+///
+/// # Units
+///
+/// | Field | Unit |
+/// |-------|------|
+/// | `vanna` | ∂²V/∂S∂σ = ∂Δ/∂σ (per +1.0 absolute vol) |
+/// | `volga` | ∂²V/∂σ² (per +1.0 absolute vol squared) |
+/// | `charm` | ∂Δ/∂T per **year** of calendar time to expiry |
+///
+/// Use [`BsmCrossGreeks::charm_per_calendar_day`] for overnight Δ drift estimates.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct BsmCrossGreeks {
+    pub vanna: f64,
+    pub volga: f64,
+    /// ∂Δ/∂T (time-to-expiry year basis). As one calendar day passes, Δ ≈ changes by
+    /// `−charm_per_calendar_day()` if other inputs are held fixed.
+    pub charm: f64,
+}
+
+impl BsmCrossGreeks {
+    /// Charm scaled to one calendar day: `charm / 365.25`.
+    #[inline]
+    pub fn charm_per_calendar_day(self) -> f64 {
+        self.charm / 365.25
+    }
+}
+
 /// Intermediate terms shared by price and Greeks (`d1`, `d2`, discounts).
 ///
 /// **Teaching:** show `d1`/`d2` next to N(d1) stories.  
@@ -121,7 +153,7 @@ pub struct BsmTerms {
     pub sqrt_t: f64,
 }
 
-/// Teaching solution: price, greeks, parity check, formulas.
+/// Teaching solution: price, greeks, cross Greeks, parity check, formulas.
 ///
 /// Prefer this for notebooks and audit logs. Prefer [`bsm_price`] / [`BsmState`] in production.
 #[derive(Clone, Debug)]
@@ -130,6 +162,7 @@ pub struct BsmSolution {
     pub params: BsmParams,
     pub price: f64,
     pub greeks: BsmGreeks,
+    pub cross_greeks: BsmCrossGreeks,
     pub terms: BsmTerms,
     pub intrinsic: f64,
     pub time_value: f64,
@@ -211,6 +244,18 @@ pub fn bsm_greeks(params: BsmParams, option_type: OptionType) -> FinanceResult<B
     Ok(greeks_unchecked(params, option_type))
 }
 
+/// Cross Greeks: vanna, volga, charm (see [`BsmCrossGreeks`]).
+///
+/// **Trading:** surface risk (vanna/volga) and overnight Δ drift (charm).  
+/// **Engineering:** same validation as [`bsm_greeks`]; zeros at T=0 or σ=0.
+pub fn bsm_cross_greeks(
+    params: BsmParams,
+    option_type: OptionType,
+) -> FinanceResult<BsmCrossGreeks> {
+    validate_bsm_params(params)?;
+    Ok(cross_greeks_unchecked(params, option_type))
+}
+
 /// d1/d2 and discount factors (for teaching / advanced use).
 pub fn bsm_terms(params: BsmParams) -> FinanceResult<BsmTerms> {
     validate_bsm_params(params)?;
@@ -245,6 +290,7 @@ pub fn bsm_solution(params: BsmParams, option_type: OptionType) -> FinanceResult
     let _ = ValidatedBsm::new(params)?;
     let price = price_unchecked(params, option_type);
     let greeks = greeks_unchecked(params, option_type);
+    let cross_greeks = cross_greeks_unchecked(params, option_type);
     let terms = terms_unchecked(params);
     let intrinsic_v = intrinsic(params.spot, params.strike, option_type)?;
     let tv = time_value(price, params.spot, params.strike, option_type)?;
@@ -272,6 +318,7 @@ pub fn bsm_solution(params: BsmParams, option_type: OptionType) -> FinanceResult
         params,
         price,
         greeks,
+        cross_greeks,
         terms,
         intrinsic: intrinsic_v,
         time_value: tv,
@@ -428,6 +475,42 @@ fn greeks_unchecked(p: BsmParams, option_type: OptionType) -> BsmGreeks {
     }
 }
 
+fn cross_greeks_unchecked(p: BsmParams, option_type: OptionType) -> BsmCrossGreeks {
+    if p.time_years == 0.0 || p.vol == 0.0 {
+        return BsmCrossGreeks {
+            vanna: 0.0,
+            volga: 0.0,
+            charm: 0.0,
+        };
+    }
+
+    let t = terms_unchecked(p);
+    let df_q = t.dividend_discount;
+    let n_d1 = norm_pdf(t.d1);
+    let sqrt_t = t.sqrt_t;
+    let sigma = p.vol;
+    let tt = p.time_years;
+
+    // vanna = ∂Δ/∂σ = −e^{-qT} n(d1) d2 / σ
+    let vanna = -df_q * n_d1 * t.d2 / sigma;
+    // volga = vega * d1 * d2 / σ
+    let vega = p.spot * df_q * n_d1 * sqrt_t;
+    let volga = vega * t.d1 * t.d2 / sigma;
+
+    let common = n_d1 * (2.0 * (p.rate - p.dividend_yield) * tt - t.d2 * sigma * sqrt_t)
+        / (2.0 * tt * sigma * sqrt_t);
+    let charm = match option_type {
+        OptionType::Call => -df_q * (common + p.dividend_yield * norm_cdf(t.d1)),
+        OptionType::Put => -df_q * (common - p.dividend_yield * norm_cdf(-t.d1)),
+    };
+
+    BsmCrossGreeks {
+        vanna,
+        volga,
+        charm,
+    }
+}
+
 pub(crate) fn price_raw(params: BsmParams, option_type: OptionType) -> FinanceResult<f64> {
     bsm_price(params, option_type)
 }
@@ -493,5 +576,69 @@ mod tests {
         let mut p = BsmParams::atm_one_year(100.0, 0.05, 0.2);
         p.spot = 0.0;
         assert!(bsm_price(p, OptionType::Call).is_err());
+    }
+
+    #[test]
+    fn cross_greeks_finite_and_volga_sign_atm() {
+        let p = BsmParams::atm_one_year(100.0, 0.05, 0.2);
+        let x = bsm_cross_greeks(p, OptionType::Call).unwrap();
+        assert!(x.vanna.is_finite() && x.volga.is_finite() && x.charm.is_finite());
+        // ATM-ish: d1,d2 same sign often → volga can be positive
+        assert!(x.volga > 0.0);
+        assert!((x.charm_per_calendar_day() * 365.25 - x.charm).abs() < 1e-12);
+    }
+
+    #[test]
+    fn vanna_matches_finite_difference() {
+        let p = BsmParams::atm_one_year(100.0, 0.05, 0.25);
+        let h = 1e-5;
+        let mut p_up = p;
+        p_up.vol += h;
+        let mut p_dn = p;
+        p_dn.vol -= h;
+        let d_up = bsm_greeks(p_up, OptionType::Call).unwrap().delta;
+        let d_dn = bsm_greeks(p_dn, OptionType::Call).unwrap().delta;
+        let fd = (d_up - d_dn) / (2.0 * h);
+        let analytic = bsm_cross_greeks(p, OptionType::Call).unwrap().vanna;
+        assert!((fd - analytic).abs() < 1e-4, "fd={fd} analytic={analytic}");
+    }
+
+    #[test]
+    fn volga_matches_finite_difference() {
+        let p = BsmParams::atm_one_year(100.0, 0.05, 0.25);
+        let h = 1e-4;
+        let mut p_up = p;
+        p_up.vol += h;
+        let mut p_dn = p;
+        p_dn.vol -= h;
+        let v_up = bsm_greeks(p_up, OptionType::Call).unwrap().vega;
+        let v_dn = bsm_greeks(p_dn, OptionType::Call).unwrap().vega;
+        let fd = (v_up - v_dn) / (2.0 * h);
+        let analytic = bsm_cross_greeks(p, OptionType::Call).unwrap().volga;
+        assert!((fd - analytic).abs() < 5e-2, "fd={fd} analytic={analytic}");
+    }
+
+    #[test]
+    fn put_delta_negative_and_call_put_sum_near_df_q() {
+        let p = BsmParams {
+            spot: 100.0,
+            strike: 100.0,
+            time_years: 0.75,
+            rate: 0.04,
+            dividend_yield: 0.01,
+            vol: 0.22,
+        };
+        let dc = bsm_greeks(p, OptionType::Call).unwrap().delta;
+        let dp = bsm_greeks(p, OptionType::Put).unwrap().delta;
+        let df_q = (-p.dividend_yield * p.time_years).exp();
+        assert!(dp < 0.0);
+        assert!((dc - dp - df_q).abs() < 1e-10);
+    }
+
+    #[test]
+    fn solution_includes_cross_greeks() {
+        let sol =
+            bsm_solution(BsmParams::atm_one_year(100.0, 0.05, 0.2), OptionType::Call).unwrap();
+        assert!(sol.cross_greeks.volga > 0.0);
     }
 }

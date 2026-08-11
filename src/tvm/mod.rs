@@ -36,6 +36,8 @@ pub mod periods;
 #[doc(inline)]
 pub use periods::*;
 
+#[cfg(test)]
+mod proptests;
 pub mod rate;
 #[doc(inline)]
 pub use rate::*;

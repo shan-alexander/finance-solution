@@ -249,11 +249,55 @@ fn suite_d_ta(c: &mut Criterion) {
     });
 }
 
+/// Suite E — European closed-form options (BSM / Black ’76 / GK).
+fn suite_e_derivatives(c: &mut Criterion) {
+    let bsm = BsmParams::atm_one_year(100.0, 0.05, 0.20);
+    let b76 = Black76Params::atm_one_year(100.0, 0.05, 0.20);
+    let gk = GkParams::atm_one_year(1.10, 0.05, 0.03, 0.12);
+    let eng = ValidatedBsm::new(bsm).expect("bench params");
+
+    c.bench_function("bsm_price_atm_1y", |b| {
+        b.iter(|| bsm_price(black_box(bsm), black_box(OptionType::Call)).expect("bench"))
+    });
+    c.bench_function("bsm_greeks_atm_1y", |b| {
+        b.iter(|| bsm_greeks(black_box(bsm), black_box(OptionType::Call)).expect("bench"))
+    });
+    c.bench_function("bsm_cross_greeks_atm_1y", |b| {
+        b.iter(|| bsm_cross_greeks(black_box(bsm), black_box(OptionType::Call)).expect("bench"))
+    });
+    c.bench_function("bsm_validated_price_atm_1y", |b| {
+        b.iter(|| eng.price(black_box(OptionType::Call)).expect("bench"))
+    });
+    c.bench_function("bsm_implied_vol_atm_1y", |b| {
+        let mkt = bsm_price(bsm, OptionType::Call).expect("fixture");
+        b.iter(|| {
+            bsm_implied_vol(black_box(bsm), black_box(OptionType::Call), black_box(mkt))
+                .expect("bench")
+        })
+    });
+    c.bench_function("bsm_solution_atm_1y", |b| {
+        b.iter(|| bsm_solution(black_box(bsm), black_box(OptionType::Call)).expect("bench"))
+    });
+    c.bench_function("black76_price_atm_1y", |b| {
+        b.iter(|| black76_price(black_box(b76), black_box(OptionType::Call)).expect("bench"))
+    });
+    c.bench_function("black76_greeks_atm_1y", |b| {
+        b.iter(|| black76_greeks(black_box(b76), black_box(OptionType::Call)).expect("bench"))
+    });
+    c.bench_function("gk_price_atm_1y", |b| {
+        b.iter(|| gk_price(black_box(gk), black_box(OptionType::Call)).expect("bench"))
+    });
+    c.bench_function("gk_greeks_atm_1y", |b| {
+        b.iter(|| gk_greeks(black_box(gk), black_box(OptionType::Call)).expect("bench"))
+    });
+}
+
 criterion_group!(
     benches,
     suite_a_core_math,
     suite_b_solution_overhead,
     suite_c_stocks,
-    suite_d_ta
+    suite_d_ta,
+    suite_e_derivatives
 );
 criterion_main!(benches);

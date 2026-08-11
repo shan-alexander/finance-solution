@@ -305,4 +305,20 @@ mod tests {
     fn fast_not_lt_slow_err() {
         assert!(ValidatedMacd::new(MacdParams::new(26, 12, 9)).is_err());
     }
+
+    #[test]
+    fn histogram_is_macd_minus_signal() {
+        let c: Vec<_> = (1..=60).map(|x| 100.0 + x as f64 * 0.15).collect();
+        let s = macd(&c, MacdParams::standard()).unwrap();
+        for i in 0..s.macd.len() {
+            if let (Some(m), Some(sig), Some(h)) = (s.macd[i], s.signal[i], s.histogram[i]) {
+                assert!((h - (m - sig)).abs() < 1e-12);
+            }
+        }
+    }
+
+    #[test]
+    fn empty_err() {
+        assert!(macd(&[], MacdParams::standard()).is_err());
+    }
 }

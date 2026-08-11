@@ -442,4 +442,24 @@ mod tests {
         // unless prior raw happened to be 50.
         assert!(s.k[4].is_some());
     }
+
+    #[test]
+    fn k_in_unit_interval_when_range_positive() {
+        let n = 40;
+        let high: Vec<_> = (0..n).map(|i| 100.0 + (i % 5) as f64).collect();
+        let low: Vec<_> = (0..n).map(|i| 90.0 + (i % 5) as f64).collect();
+        let close: Vec<_> = (0..n).map(|i| 95.0 + (i % 5) as f64 * 0.5).collect();
+        let s = stochastics(&high, &low, &close, StochasticParams::full(14, 3, 3)).unwrap();
+        for k in s.k.iter().flatten() {
+            assert!(*k >= -1e-9 && *k <= 100.0 + 1e-9, "k={k}");
+        }
+    }
+
+    #[test]
+    fn high_lt_low_err() {
+        let h = [10.0, 9.0];
+        let l = [9.0, 10.0];
+        let c = [9.5, 9.5];
+        assert!(stochastics(&h, &l, &c, StochasticParams::fast(2, 1)).is_err());
+    }
 }

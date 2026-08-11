@@ -320,4 +320,53 @@ mod tests {
         let s = vwap(&h, &l, &c, &v, VwapParams::cumulative_typical()).unwrap();
         assert!((s.vwap[1].unwrap() - 10.0).abs() < 1e-12);
     }
+
+    #[test]
+    fn rolling_window() {
+        let h = [10.0, 12.0, 14.0, 16.0];
+        let l = [10.0, 12.0, 14.0, 16.0];
+        let c = [10.0, 12.0, 14.0, 16.0];
+        let v = [1.0, 1.0, 1.0, 1.0];
+        let s = vwap(&h, &l, &c, &v, VwapParams::rolling_typical(2)).unwrap();
+        assert!(s.vwap[0].is_none());
+        // bars 0-1 typical = 10, 12 → vwap = 11
+        assert!((s.vwap[1].unwrap() - 11.0).abs() < 1e-12);
+        // bars 2-3: 14, 16 → 15
+        assert!((s.vwap[3].unwrap() - 15.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn close_price_source() {
+        let h = [20.0, 20.0];
+        let l = [10.0, 10.0];
+        let c = [11.0, 13.0];
+        let v = [100.0, 100.0];
+        let p = VwapParams {
+            mode: VwapMode::Cumulative,
+            price_source: VwapPriceSource::Close,
+        };
+        let s = vwap(&h, &l, &c, &v, p).unwrap();
+        // equal volume → mid of closes
+        assert!((s.vwap[1].unwrap() - 12.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn zero_volume_stays_none_until_flow() {
+        let h = [10.0, 11.0];
+        let l = [10.0, 11.0];
+        let c = [10.0, 11.0];
+        let v = [0.0, 0.0];
+        let s = vwap(&h, &l, &c, &v, VwapParams::cumulative_typical()).unwrap();
+        assert!(s.vwap[0].is_none());
+        assert!(s.vwap[1].is_none());
+    }
+
+    #[test]
+    fn length_mismatch_err() {
+        let h = [10.0, 11.0];
+        let l = [9.0, 10.0];
+        let c = [9.5, 10.5];
+        let v = [100.0];
+        assert!(vwap(&h, &l, &c, &v, VwapParams::cumulative_typical()).is_err());
+    }
 }

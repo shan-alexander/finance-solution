@@ -67,13 +67,17 @@
 //!
 //! | Indicator | Params / presets | Series | Solution + table |
 //! |-----------|------------------|--------|------------------|
-//! | SMA / EMA | `period` | [`sma`], [`ema`] (via [`SmaState`]/[`EmaState`]) | — |
+//! | SMA / EMA / WMA / HMA | `period` | [`sma`], [`ema`], [`wma`], [`hma`] (+ `*State`) | — |
 //! | Stochastic | [`StochasticParams::fast`] / [`full`](StochasticParams::full) | [`stochastics`] | [`stochastics_solution`] |
 //! | MACD | [`MacdParams::standard`] (12,26,9) | [`macd`] | [`macd_solution`] |
 //! | Bollinger | [`BollingerParams::standard`] (20,2, sample stdev) | [`bollinger`] | [`bollinger_solution`] |
 //! | Keltner | [`KeltnerParams::standard`] (20,10,2) | [`keltner`] | [`keltner_solution`] |
+//! | Donchian | [`DonchianParams::period_20`] | [`donchian`] | [`donchian_solution`] |
 //! | VWAP | [`VwapParams::cumulative_typical`] | [`vwap`] | [`vwap_solution`] |
 //! | RVOL | [`RvolParams::days_20`] | [`rvol`] | [`rvol_solution`] |
+//! | RSI | [`RsiParams::period_14`] | [`rsi`] | [`rsi_solution`] |
+//! | ATR | [`AtrParams::period_14`] | [`atr`] | [`atr_solution`] |
+//! | LinReg | [`LinRegParams::period_20`] | [`linear_regression`] | [`linear_regression_solution`] |
 //!
 //! # Incremental / streaming state (live bars)
 //!
@@ -87,29 +91,41 @@
 //! - **Bollinger stdev**: [`StdevKind::Sample`] (`n−1`) default; optional population (`n`).
 //! - **SMA/EMA batch** shares code with [`SmaState`] / [`EmaState`] (parity by construction).
 
+pub mod atr;
 pub mod bollinger;
 pub mod common;
+pub mod donchian;
 pub mod keltner;
+pub mod linear_regression;
 pub mod macd;
 pub mod moving_average;
 #[cfg(test)]
 mod proptests;
 pub mod ring;
+pub mod rsi;
 pub mod rvol;
 pub mod state;
 pub mod stochastic;
 pub mod vwap;
 
 #[doc(inline)]
+pub use atr::*;
+#[doc(inline)]
 pub use bollinger::*;
 #[doc(inline)]
 pub use common::StdevKind;
 #[doc(inline)]
+pub use donchian::*;
+#[doc(inline)]
 pub use keltner::*;
+#[doc(inline)]
+pub use linear_regression::*;
 #[doc(inline)]
 pub use macd::*;
 #[doc(inline)]
 pub use moving_average::*;
+#[doc(inline)]
+pub use rsi::*;
 #[doc(inline)]
 pub use rvol::*;
 #[doc(inline)]

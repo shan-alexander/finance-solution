@@ -98,9 +98,11 @@
 //! | [`keltner`](super::keltner) | [`KeltnerState`] |
 //! | [`vwap`](super::vwap) | [`VwapState`] |
 //! | [`rvol`](super::rvol) | [`RvolState`] |
+//! | [`rsi`](super::rsi) | [`RsiState`] |
+//! | [`atr`](super::atr) | [`AtrState`] |
 
 use crate::stocks::ta::bollinger::{BollingerParams, ValidatedBollinger};
-use crate::stocks::ta::common::{require_hlc, true_range, validate_positive_volume, window_stdev};
+use crate::stocks::ta::common::{require_hlc, validate_positive_volume, window_stdev};
 use crate::stocks::ta::keltner::{KeltnerParams, ValidatedKeltner};
 use crate::stocks::ta::macd::{MacdParams, ValidatedMacd};
 use crate::stocks::ta::ring::{RingF64, RingPv};
@@ -466,10 +468,7 @@ impl BollingerState {
 pub struct KeltnerState {
     params: KeltnerParams,
     mid: EmaState,
-    atr_period: usize,
-    tr_seed: RingF64,
-    atr: Option<f64>,
-    prev_close: Option<f64>,
+    atr: crate::stocks::ta::atr::AtrState,
     last: Option<KeltnerBarOutput>,
 }
 
@@ -487,10 +486,9 @@ impl KeltnerState {
         Ok(Self {
             params,
             mid: EmaState::new(params.ema_period)?,
-            atr_period: params.atr_period,
-            tr_seed: RingF64::with_capacity(params.atr_period),
-            atr: None,
-            prev_close: None,
+            atr: crate::stocks::ta::atr::AtrState::new(crate::stocks::ta::atr::AtrParams::new(
+                params.atr_period,
+            ))?,
             last: None,
         })
     }
@@ -515,9 +513,7 @@ impl KeltnerState {
 
     pub fn reset(&mut self) {
         self.mid.reset();
-        self.tr_seed.clear();
-        self.atr = None;
-        self.prev_close = None;
+        self.atr.reset();
         self.last = None;
     }
 
@@ -527,33 +523,7 @@ impl KeltnerState {
         low: f64,
         close: f64,
     ) -> FinanceResult<Option<KeltnerBarOutput>> {
-        require_finite("high", high)?;
-        require_finite("low", low)?;
-        require_finite("close", close)?;
-        if high < low {
-            return Err(FinanceError::InvalidCashflow {
-                message: "high must be >= low for each bar",
-            });
-        }
-        let tr = true_range(high, low, self.prev_close);
-        self.prev_close = Some(close);
-
-        let atr_val = if let Some(prev_atr) = self.atr {
-            let n = self.atr_period as f64;
-            let next = (prev_atr * (n - 1.0) + tr) / n;
-            self.atr = Some(next);
-            Some(next)
-        } else {
-            self.tr_seed.push(tr);
-            if self.tr_seed.is_full() {
-                let seed = self.tr_seed.sum() / self.atr_period as f64;
-                self.atr = Some(seed);
-                Some(seed)
-            } else {
-                None
-            }
-        };
-
+        let atr_val = self.atr.push(high, low, close)?;
         let mid = self.mid.push(close)?;
         match (mid, atr_val) {
             (Some(m), Some(a)) => {
@@ -991,6 +961,31 @@ mod tests {
         for i in 0..v.len() {
             approx_opt(st.push(v[i]).unwrap(), batch.rvol[i]);
         }
+    }
+
+    #[test]
+    fn rsi_atr_parity_via_from_history() {
+        let (h, l, c, _) = path(60);
+        let rsi_b = crate::stocks::ta::rsi::rsi(&c, crate::stocks::ta::rsi::RsiParams::period_14())
+            .unwrap();
+        let rsi_s = crate::stocks::ta::rsi::RsiState::from_history(
+            crate::stocks::ta::rsi::RsiParams::period_14(),
+            &c,
+        )
+        .unwrap();
+        approx_opt(rsi_b.last(), rsi_s.last());
+
+        let atr_b =
+            crate::stocks::ta::atr::atr(&h, &l, &c, crate::stocks::ta::atr::AtrParams::period_14())
+                .unwrap();
+        let atr_s = crate::stocks::ta::atr::AtrState::from_history(
+            crate::stocks::ta::atr::AtrParams::period_14(),
+            &h,
+            &l,
+            &c,
+        )
+        .unwrap();
+        approx_opt(atr_b.last(), atr_s.last());
     }
 
     #[test]

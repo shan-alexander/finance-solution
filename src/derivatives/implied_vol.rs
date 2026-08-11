@@ -1,13 +1,14 @@
 //! # Implied volatility
 //!
-//! Invert a European BSM **market premium** → annualized σ.
+//! Invert a European **market premium** → annualized σ for BSM, Black ’76, or
+//! Garman–Kohlhagen (same Newton + bisection core).
 //!
 //! ---
 //!
 //! ## Trading perspective
 //!
 //! The market does not quote “model vol”; it quotes **prices**. IV is the σ that makes
-//! BSM match that price — the language of surfaces, skew, and “IV crush”.
+//! the model match that price — the language of surfaces, skew, and “IV crush”.
 //!
 //! | Use | How |
 //! |-----|-----|
@@ -22,10 +23,10 @@
 //!
 //! ## Engineering perspective
 //!
-//! - Solver: Newton–Raphson on vega, bisection fallback.  
-//! - `params.vol` is **ignored** as an input seed for the root (only S,K,T,r,q, type matter).  
-//! - Prefer [`crate::derivatives::BsmState::set_vol_from_price`] in live loops so IV is stored once.  
-//! - Hot path cost: a handful of BSM evaluations — fine per quote; batch chains may parallelize **across strikes** in your engine.
+//! - Solver: Newton–Raphson on vega, **Brent** bracketed fallback (not plain bisection).  
+//! - Model `vol` field is **ignored** as a seed (only other market/contract inputs matter).  
+//! - Prefer `*State::set_vol_from_price` in live loops so IV is stored once.  
+//! - Hot path cost: a handful of model evaluations — fine per quote; batch chains may parallelize **across strikes** in your engine.
 //!
 //! ---
 //!
@@ -48,9 +49,9 @@ use crate::derivatives::black_scholes::{price_raw, vega_raw};
 use crate::derivatives::types::{validate_bsm_params, BsmParams, OptionType};
 use crate::util::error::{require_finite, FinanceError, FinanceResult};
 
-/// Solve for annualized vol given a target premium.
+/// Solve for annualized vol given a target BSM premium.
 ///
-/// Uses Newton–Raphson on vega with bisection fallback. `params.vol` is not used as a seed.
+/// Uses Newton–Raphson on vega with **Brent** fallback. `params.vol` is not used as a seed.
 ///
 /// # Errors
 /// Invalid BSM domain, non-finite premium, T=0, premium outside achievable range, or solver failure.
@@ -67,36 +68,65 @@ pub fn bsm_implied_vol(
         });
     }
 
-    let mut p = params;
     let intrinsic = match option_type {
-        OptionType::Call => (p.spot - p.strike).max(0.0),
-        OptionType::Put => (p.strike - p.spot).max(0.0),
+        OptionType::Call => (params.spot - params.strike).max(0.0),
+        OptionType::Put => (params.strike - params.spot).max(0.0),
     };
-    if market_price + 1e-12 < intrinsic && p.time_years == 0.0 {
+    if market_price + 1e-12 < intrinsic && params.time_years == 0.0 {
         return Err(FinanceError::Unsolvable {
             message: "market_price below intrinsic",
         });
     }
 
-    if p.time_years == 0.0 {
+    if params.time_years == 0.0 {
         return Err(FinanceError::Unsolvable {
             message: "implied vol undefined at expiry (T=0)",
         });
     }
 
-    let mut lo = 1e-8;
+    solve_implied_vol(
+        market_price,
+        |sigma| {
+            let mut q = params;
+            q.vol = sigma;
+            price_raw(q, option_type).unwrap_or(f64::NAN)
+        },
+        |sigma| {
+            let mut q = params;
+            q.vol = sigma;
+            vega_raw(q, option_type).unwrap_or(0.0)
+        },
+    )
+}
+
+/// Generic IV root-finder shared by BSM / Black ’76 / GK.
+///
+/// `price_at(σ)` and `vega_at(σ)` must be pure in σ for fixed contract inputs.
+pub(crate) fn solve_implied_vol(
+    market_price: f64,
+    mut price_at: impl FnMut(f64) -> f64,
+    mut vega_at: impl FnMut(f64) -> f64,
+) -> FinanceResult<f64> {
+    let lo = 1e-8;
     let mut hi = 5.0;
-    p.vol = hi;
-    let mut price_hi = price_raw(p, option_type)?;
+    let mut price_hi = price_at(hi);
+    if !price_hi.is_finite() {
+        return Err(FinanceError::Unsolvable {
+            message: "model price non-finite during IV solve",
+        });
+    }
     let mut expand = 0;
     while price_hi < market_price && hi < 50.0 && expand < 10 {
         hi *= 2.0;
-        p.vol = hi;
-        price_hi = price_raw(p, option_type)?;
+        price_hi = price_at(hi);
         expand += 1;
     }
-    p.vol = lo;
-    let price_lo = price_raw(p, option_type)?;
+    let price_lo = price_at(lo);
+    if !price_lo.is_finite() || !price_hi.is_finite() {
+        return Err(FinanceError::Unsolvable {
+            message: "model price non-finite during IV solve",
+        });
+    }
     if market_price < price_lo - 1e-10 {
         return Err(FinanceError::Unsolvable {
             message: "market_price below zero-vol price",
@@ -110,13 +140,12 @@ pub fn bsm_implied_vol(
 
     let mut sigma = 0.25_f64.max(lo).min(hi);
     for _ in 0..30 {
-        p.vol = sigma;
-        let price = price_raw(p, option_type)?;
+        let price = price_at(sigma);
         let diff = price - market_price;
         if diff.abs() < 1e-10 {
             return Ok(sigma);
         }
-        let vega = vega_raw(p, option_type)?;
+        let vega = vega_at(sigma);
         if vega < 1e-14 {
             break;
         }
@@ -124,20 +153,10 @@ pub fn bsm_implied_vol(
         sigma = next.clamp(lo, hi);
     }
 
-    for _ in 0..80 {
-        let mid = 0.5 * (lo + hi);
-        p.vol = mid;
-        let price = price_raw(p, option_type)?;
-        if (price - market_price).abs() < 1e-10 {
-            return Ok(mid);
-        }
-        if price > market_price {
-            hi = mid;
-        } else {
-            lo = mid;
-        }
-    }
-    Ok(0.5 * (lo + hi))
+    // Brent on residual price(σ) - market (sign change: price_lo - mkt <= 0 <= price_hi - mkt
+    // for calls/puts with monotone vol under usual conditions).
+    let target = market_price;
+    crate::util::root_find::brent_root(lo, hi, |s| price_at(s) - target, 1e-12, 100)
 }
 
 #[cfg(test)]

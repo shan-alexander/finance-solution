@@ -226,4 +226,33 @@ mod tests {
         let s = rvol(&v, RvolParams::days_20()).unwrap();
         assert!((s.rvol[19].unwrap() - 1.0).abs() < 1e-12);
     }
+
+    #[test]
+    fn lookback_one_is_unity_when_positive() {
+        let v = [10.0, 20.0, 5.0];
+        let s = rvol(&v, RvolParams::new(1)).unwrap();
+        assert!((s.rvol[0].unwrap() - 1.0).abs() < 1e-12);
+        assert!((s.rvol[1].unwrap() - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn zero_mean_window_is_none() {
+        let v = vec![0.0; 25];
+        let s = rvol(&v, RvolParams::days_20()).unwrap();
+        assert!(s.rvol[19].is_none());
+    }
+
+    #[test]
+    fn spike_matches_doc_formula() {
+        let mut vol = vec![1_000.0; 20];
+        vol.push(2_000.0);
+        let s = rvol(&vol, RvolParams::days_20()).unwrap();
+        // mean includes current: (19*1000 + 2000)/20 = 1050
+        assert!((s.rvol[20].unwrap() - 2000.0 / 1050.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn negative_volume_err() {
+        assert!(rvol(&[1.0, -1.0], RvolParams::new(2)).is_err());
+    }
 }

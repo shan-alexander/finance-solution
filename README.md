@@ -19,9 +19,11 @@ In the v0.0.0 release, this library was geared only towards the basic financial 
 
 > The v0.2.0 release added domain newtypes, full `stocks::ta` technical analysis indicators like Bollinger and Stochastics for both batch + incremental `*State`, and added teaching solutions/tables, and Criterion TA benches.
 
-> **Current Status:** **0.3.0** (edition 2021, MSRV 1.70). Adds the **`derivatives`** module (European Black–Scholes–Merton price, Greeks ΔΓθνρ, implied vol, put–call parity helpers, `BsmState`) plus a real 1m OHLCV example joining underlier TA with a BSM snapshot. Public math remains **Result-only** — no dual panicking / `try_*` APIs. The crate is a **math library** for engines and frameworks (not a market-data feed or order router).
+> The v0.3.0 release added the **`derivatives`** module (European Black–Scholes–Merton price, Greeks ΔΓθνρ, implied vol, put–call parity helpers, `BsmState`) plus a real 1m OHLCV example joining underlier TA with a BSM snapshot.
 
-## Modules (0.3 layout)
+> **Current Status:** **0.4.0** (edition 2021, MSRV 1.70). Extends derivatives (cross Greeks; Black ’76; Garman–Kohlhagen; CRR American/European tree + American IV) and TA (RSI, ATR), with deeper proptests and audit polish. Public math remains **Result-only** — no dual panicking / `try_*` APIs. The crate is a **math library** for engines and frameworks (not a market-data feed or order router).
+
+## Modules (0.4 layout)
 
 | Module | Contents |
 |--------|----------|
@@ -31,8 +33,8 @@ In the v0.0.0 release, this library was geared only towards the basic financial 
 | `amortization` | Solution/series/tables + PPMT, IPMT, CUMPRINC, CUMIPMT |
 | `returns` | Doubling rules: solution + comparison tables (72/70/69 vs exact) |
 | `stocks` | Price-path solution/series/tables; returns, vol, Sharpe, Sortino, beta, drawdowns |
-| `stocks::ta` | Technical analysis: SMA/EMA, Stochastic, MACD, Bollinger, Keltner, VWAP, RVOL (+ `*State`) |
-| `derivatives` | European BSM option price, Greeks, IV, parity residual, intrinsic/time value, `BsmState` (Black ’76 / FX planned later) |
+| `stocks::ta` | SMA/EMA/WMA/HMA, Stoch, MACD, BB, Keltner, Donchian, VWAP, RVOL, RSI, ATR, LinReg (+ `*State`) |
+| `derivatives` | BSM (+ cross Greeks), Black ’76, Garman–Kohlhagen, CRR American/European tree + American IV; live `*State` |
 | `util` | `FinanceError`, `FinanceResult`, domain newtypes (`Rate`, `PeriodLength`, …) |
 | `round` | Rounding + test assert helpers |
 
@@ -133,20 +135,28 @@ let bb = ValidatedBollinger::new(BB_20_2).expect("params");
 ```
 
 Common stochastic packs: `StochasticParams::fast(9, 3)`, `fast(14, 3)`, `full(14, 3, 3)`,
-`full(60, 10, 1)`. Same idea for MACD, Bollinger, Keltner, VWAP, RVOL — see `stocks::ta` rustdoc.
+`full(60, 10, 1)`. Same idea for MACD, Bollinger, Keltner, Donchian, VWAP, RVOL, RSI, ATR,
+WMA/HMA, LinReg — see `stocks::ta` rustdoc.
 
-### Options — European Black–Scholes–Merton
+### Options — closed forms + CRR tree (BSM / Black ’76 / GK / American)
 
-**Trading:** model mark vs mid, delta hedge ratio, vega/theta carry, IV from mid.  
-**Engineering:** sync pure functions; your feed calls `set_spot` / `set_vol_from_price` on per-contract [`BsmState`].
+**Trading:** model mark vs mid, delta hedge ratio, vega/theta carry, surface risk (vanna/volga), IV from mid; American early-exercise premium via tree.  
+**Engineering:** sync pure functions; your feed calls `set_spot` / `set_forward` / `set_vol_from_price` on per-contract state.
+
+| Model | When | Entry points |
+|-------|------|----------------|
+| **BSM** | Equity / index spot + continuous yield \(q\) | `bsm_price`, `bsm_greeks`, `bsm_cross_greeks`, `BsmState` |
+| **Black ’76** | Options on **forward/futures** \(F\) | `black76_price`, `Black76State` (forward Δ) |
+| **Garman–Kohlhagen** | **FX** spot with \(r_d\), \(r_f\) | `gk_price`, `gk_greeks` (ρ_d + ρ_f), `GkState` |
+| **CRR tree** | European or **American** exercise | `crr_price`, `crr_solution` (node tables), `american_implied_vol` |
 
 | Input | Unit in this crate |
 |-------|--------------------|
 | `time_years` | **years** (`21.0/365.25` ≈ 21 calendar days) |
-| `rate`, `dividend_yield` | continuous absolute (`0.05` = 5%) |
+| rates | continuous absolute (`0.05` = 5%) |
 | `vol` | annualized absolute (`0.20` = 20%) |
 | raw **vega** | per **+1.0** in σ → use `vega_per_vol_point()` for per 1% |
-| raw **theta** | per **year** → use `theta_per_calendar_day()` for daily |
+| raw **theta** / **charm** | per **year** → use `*_per_calendar_day()` |
 
 ```rust
 use finance_solution::*;
@@ -154,20 +164,32 @@ use finance_solution::*;
 let p = BsmParams::atm_one_year(100.0, 0.05, 0.20);
 let call = bsm_price(p, OptionType::Call).expect("fixture");
 let g = bsm_greeks(p, OptionType::Call).expect("fixture");
-// Desk scales: per 1% vol, per calendar day
+let x = bsm_cross_greeks(p, OptionType::Call).expect("fixture");
+let _vanna = x.vanna;
 let _vega_1pct = g.vega_per_vol_point();
-let _theta_day = g.theta_per_calendar_day();
 let iv = bsm_implied_vol(p, OptionType::Call, call).expect("fixture");
 assert!((iv - 0.20).abs() < 1e-4);
 
-// Live: per-contract state in *your* HashMap (not inside this crate)
+// Futures-style mark
+let f = Black76Params::atm_one_year(100.0, 0.05, 0.20);
+let _fut_call = black76_price(f, OptionType::Call).expect("fixture");
+
+// FX-style
+let fx = GkParams::atm_one_year(1.10, 0.05, 0.03, 0.12);
+let _fx_call = gk_price(fx, OptionType::Call).expect("fixture");
+
+// Live: per-contract state in *your* HashMap
 let mut opt = BsmState::new(p, OptionType::Call).expect("fixture");
 opt.set_spot(101.0).expect("fixture");
 let _ = opt.greeks();
-// opt.set_vol_from_price(mid)?;  // on option quote
+// opt.set_vol_from_price(mid)?;
+
+// American put via CRR (N steps; teaching tables when N is small)
+let tree = CrrParams::atm_one_year(100.0, 0.05, 0.25, 100, ExerciseStyle::American);
+let _am_put = crr_price(tree, OptionType::Put).expect("fixture");
 ```
 
-Join underlier TA with the option chain in **your** engine: `StochState` on bars + `BsmState` on strikes, same process, sync math, optional `rayon` over the chain on a spot tick.
+Join underlier TA with the option chain in **your** engine: `StochState` / `RsiState` on bars + `BsmState` / `Black76State` / `GkState` on strikes.
 
 ### Examples
 
@@ -178,7 +200,10 @@ cargo run --example early_payoff_what_if
 cargo run --example doubling_rules
 cargo run --example price_path_analysis
 cargo run --example ta_indicators
+cargo run --example ta_rsi_atr
 cargo run --example bsm_option
+cargo run --example closed_form_options
+cargo run --example crr_american
 # Real 1m OHLCV (GitHub tree only; excluded from crates.io package size)
 cargo run --example real_bars_ta_bsm --release
 # REAL_BARS_SYMBOL=SPY cargo run --example real_bars_ta_bsm --release
@@ -455,7 +480,7 @@ cargo clippy --all-targets -- -D warnings
 cargo bench   # optional Criterion suites (local / on demand)
 ```
 
-Symmetry tests, Excel golden values, integration tests, and **TA proptests** (batch ↔ stream parity) cover TVM, cashflow, amortization, returns, stocks, and TA. Derivatives unit tests cover BSM price/Greeks/IV/parity and `BsmState`. CI runs build, tests, doctests, clippy, and fmt on **stable** and **MSRV 1.70**, and asserts there are no public `try_*` dual-API symbols.
+Symmetry tests, Excel golden values, integration tests, **TA proptests** (batch ↔ stream parity), and **TVM identity proptests** cover the core surface. Derivatives unit tests cover BSM (incl. cross Greeks), Black ’76, Garman–Kohlhagen, CRR / American IV, and live `*State` types. CI runs build, tests, doctests, clippy, and fmt on **stable** and **MSRV 1.70**, and asserts there are no public `try_*` dual-API symbols.
 
 ## Package notes
 

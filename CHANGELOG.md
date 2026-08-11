@@ -7,12 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned
+### Planned (later)
 
-- Black ’76 / Garman–Kohlhagen (roadmap D2–D3)
-- Optional RSI / more oscillators
-- Optional TVM identity proptests (E5 remainder)
-- Optional BSM Criterion benches
+- BAW / other American approximations
+- Optional PDE / Monte Carlo
+- Futures linear fair-value / basis helpers
+
+## [0.4.0] — 2026-08-11
+
+Additive derivatives models, TA indicators, solvers, and test depth. **No** dual panicking / `try_*` public math. Still a pure math library.
+
+### Added
+
+**European closed-form lane**
+
+- **Cross Greeks (BSM):** `bsm_cross_greeks` / `BsmCrossGreeks` (vanna, volga, charm)
+- **Black ’76** + **Garman–Kohlhagen** full stacks (price/greeks/IV/state/solution)
+- Shared IV root-finder; Criterion **suite E** benches
+- Examples: `closed_form_options`, `bsm_option`
+
+**Trees / American**
+
+- **CRR binomial:** `CrrParams`, `ExerciseStyle`, `crr_price` / `crr_greeks` / `crr_solution` (node tables for \(N\le 12\))
+- **American IV:** `american_implied_vol` / `tree_implied_vol`
+- Example: `crr_american`
+
+**TA**
+
+- **RSI** / **ATR** (Wilder) with `*State` and solutions
+- **WMA** / **Hull HMA** (`wma` / `WmaState`, `hma` / `HmaState`)
+- **Donchian channels** (`donchian` / `DonchianState`)
+- **Rolling linear regression** (`linear_regression` / `LinRegState`: slope, angle, \(R^2\)) on any series
+- Examples: `ta_rsi_atr`, `real_bars_ta_bsm` (GitHub OHLCV fixture)
+
+**Solvers**
+
+- **`brent_root`** — Brent’s method; used as implied-vol fallback after Newton–Raphson
+
+**Quality**
+
+- TVM identity proptests; expanded TA batch↔stream proptests
+- CRR audit: N=1 Δ fix, same-tree Γ, reject illegal RN \(p^*\)
+- Keltner uses shared Wilder ATR path
 
 ## [0.3.0] — 2026-08-11
 
@@ -34,7 +70,6 @@ Additive **European option math** and a real-bar demo joining underlier TA with 
 ### Design notes
 
 - Option + underlier concurrency lives in **your** engine (`HashMap` of `BsmState`, optional `rayon` over strikes).
-- Black ’76 (futures options) and Garman–Kohlhagen (FX) remain planned.
 
 ## [0.2.0] — 2026-08-10
 

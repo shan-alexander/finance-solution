@@ -77,6 +77,27 @@ cargo bench --bench my_benchmark
 cargo bench --bench my_benchmark -- sma
 ```
 
+## Suite E — European closed-form derivatives (post-0.3)
+
+Hot-path BSM / Black ’76 / Garman–Kohlhagen (no market data I/O).
+
+| Benchmark | Intent |
+|-----------|--------|
+| `bsm_price_atm_1y` | Scalar BSM price |
+| `bsm_greeks_atm_1y` | First-order Greeks pack |
+| `bsm_cross_greeks_atm_1y` | Vanna / volga / charm |
+| `bsm_validated_price_atm_1y` | Validate-once + price |
+| `bsm_implied_vol_atm_1y` | Newton + bisection IV |
+| `bsm_solution_atm_1y` | Teaching solution overhead |
+| `black76_price_atm_1y` / `black76_greeks_atm_1y` | Futures-style |
+| `gk_price_atm_1y` / `gk_greeks_atm_1y` | FX-style |
+
+**Guidance:** price/greeks should sit in the **~tens–hundreds of ns** class (CDF cost); IV is a handful of model evals (~µs); `*_solution` pays for formula strings.
+
+```text
+cargo bench --bench my_benchmark -- bsm_
+```
+
 ## How to re-measure
 
 ```text

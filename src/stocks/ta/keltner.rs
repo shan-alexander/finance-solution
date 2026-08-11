@@ -43,7 +43,8 @@
 //!     19  101.90  101.20  103.00   99.40  0.9000
 //! ```
 
-use crate::stocks::ta::common::{opt_cell, require_hlc, true_range};
+use crate::stocks::ta::atr::{atr, AtrParams};
+use crate::stocks::ta::common::{opt_cell, require_hlc};
 use crate::stocks::ta::moving_average::ema;
 use crate::util::error::{require_finite, FinanceError, FinanceResult};
 use crate::util::primitives::PeriodLength;
@@ -227,12 +228,14 @@ fn keltner_validated(
     require_hlc(high, low, close)?;
     let p = v.params;
     let middle = ema(close, p.ema_period)?;
-    let atr = wilder_atr(high, low, close, p.atr_period)?;
+    // Single Wilder ATR implementation (shared with `stocks::ta::atr`).
+    let atr_series = atr(high, low, close, AtrParams::new(p.atr_period))?;
+    let atr_vals = atr_series.atr;
     let n = close.len();
     let mut upper = vec![None; n];
     let mut lower = vec![None; n];
     for i in 0..n {
-        match (middle[i], atr[i]) {
+        match (middle[i], atr_vals[i]) {
             (Some(m), Some(a)) => {
                 upper[i] = Some(m + p.atr_mult * a);
                 lower[i] = Some(m - p.atr_mult * a);
@@ -244,44 +247,15 @@ fn keltner_validated(
         middle,
         upper,
         lower,
-        atr,
+        atr: atr_vals,
         params: p,
     })
-}
-
-/// Wilder ATR series. First ATR at index `period-1` = SMA of first `period` true ranges.
-fn wilder_atr(
-    high: &[f64],
-    low: &[f64],
-    close: &[f64],
-    period: usize,
-) -> FinanceResult<Vec<Option<f64>>> {
-    let n = close.len();
-    let mut out = vec![None; n];
-    if n == 0 || period == 0 {
-        return Ok(out);
-    }
-    let mut trs = Vec::with_capacity(n);
-    for i in 0..n {
-        let prev = if i == 0 { None } else { Some(close[i - 1]) };
-        trs.push(true_range(high[i], low[i], prev));
-    }
-    if n < period {
-        return Ok(out);
-    }
-    let sum: f64 = trs[..period].iter().sum();
-    let mut prev_atr = sum / period as f64;
-    out[period - 1] = Some(prev_atr);
-    for i in period..n {
-        prev_atr = (prev_atr * (period as f64 - 1.0) + trs[i]) / period as f64;
-        out[i] = Some(prev_atr);
-    }
-    Ok(out)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stocks::ta::atr::{atr, AtrParams};
 
     #[test]
     fn runs() {
@@ -292,5 +266,22 @@ mod tests {
         let s = keltner(&high, &low, &close, KeltnerParams::standard()).unwrap();
         assert!(s.middle[19].is_some());
         assert!(s.atr[9].is_some());
+    }
+
+    #[test]
+    fn atr_leg_matches_public_atr() {
+        let n = 50usize;
+        let high: Vec<_> = (0..n).map(|i| 12.0 + i as f64 * 0.05).collect();
+        let low: Vec<_> = (0..n).map(|i| 10.0 + i as f64 * 0.05).collect();
+        let close: Vec<_> = (0..n).map(|i| 11.0 + i as f64 * 0.05).collect();
+        let kc = keltner(&high, &low, &close, KeltnerParams::standard()).unwrap();
+        let a = atr(&high, &low, &close, AtrParams::period_10()).unwrap();
+        for i in 0..n {
+            match (kc.atr[i], a.atr[i]) {
+                (None, None) => {}
+                (Some(x), Some(y)) => assert!((x - y).abs() < 1e-12, "i={i}"),
+                other => panic!("mismatch at {i}: {other:?}"),
+            }
+        }
     }
 }

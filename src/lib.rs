@@ -1,6 +1,6 @@
 //! `finance_solution` is a collection of financial functions for time-value-of-money, cashflows,
 //! amortization, returns, equity path metrics, **technical analysis** (`stocks::ta`), and
-//! **European option math** (`derivatives`: BSM price, Greeks, implied vol).
+//! **European option math** (`derivatives`: BSM + Black ’76 + Garman–Kohlhagen; price, Greeks, cross Greeks, IV).
 //!
 //! In addition to being rigorously tested with symmetry tests, Excel-matching tests, and
 //! property tests on TA batch↔stream parity, the library provides `solution` structs with
@@ -98,7 +98,9 @@ pub use num_format;
 
 pub mod util;
 #[doc(inline)]
-pub use util::{FinanceError, FinanceResult, Money, PeriodLength, Periods, PositivePrice, Rate};
+pub use util::{
+    brent_root, FinanceError, FinanceResult, Money, PeriodLength, Periods, PositivePrice, Rate,
+};
 
 pub mod round;
 #[doc(inline)]
@@ -146,9 +148,15 @@ pub use stocks::*;
 pub mod derivatives;
 #[doc(inline)]
 pub use derivatives::{
-    bsm_greeks, bsm_implied_vol, bsm_price, bsm_solution, bsm_terms, forward_moneyness, intrinsic,
-    put_call_parity_residual, spot_moneyness, time_value, BsmGreeks, BsmParams, BsmSolution,
-    BsmState, BsmTerms, OptionType, ValidatedBsm,
+    american_implied_vol, black76_greeks, black76_implied_vol, black76_parity_residual,
+    black76_price, black76_solution, black76_terms, bsm_cross_greeks, bsm_greeks, bsm_implied_vol,
+    bsm_price, bsm_solution, bsm_terms, crr_greeks, crr_price, crr_solution, forward_moneyness,
+    gk_cross_greeks, gk_greeks, gk_implied_vol, gk_parity_residual, gk_price, gk_solution,
+    intrinsic, put_call_parity_residual, spot_moneyness, time_value, tree_implied_vol,
+    Black76Greeks, Black76Params, Black76Solution, Black76State, Black76Terms, BsmCrossGreeks,
+    BsmGreeks, BsmParams, BsmSolution, BsmState, BsmTerms, CrrGreeks, CrrNode, CrrParams,
+    CrrSolution, ExerciseStyle, GkGreeks, GkParams, GkSolution, GkState, OptionType,
+    ValidatedBlack76, ValidatedBsm, ValidatedCrr, ValidatedGk,
 };
 
 use std::cmp::max;

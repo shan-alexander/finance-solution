@@ -57,7 +57,9 @@
 //! assert!(opt.params().vol > 0.0);
 //! ```
 
-use crate::derivatives::black_scholes::{bsm_greeks, bsm_price, BsmGreeks};
+use crate::derivatives::black_scholes::{
+    bsm_cross_greeks, bsm_greeks, bsm_price, BsmCrossGreeks, BsmGreeks,
+};
 use crate::derivatives::implied_vol::bsm_implied_vol;
 use crate::derivatives::types::{validate_bsm_params, BsmParams, OptionType};
 use crate::util::error::{require_finite, FinanceResult};
@@ -162,6 +164,11 @@ impl BsmState {
     /// Model Greeks at current params.
     pub fn greeks(&self) -> FinanceResult<BsmGreeks> {
         bsm_greeks(self.params, self.option_type)
+    }
+
+    /// Cross Greeks (vanna, volga, charm) at current params.
+    pub fn cross_greeks(&self) -> FinanceResult<BsmCrossGreeks> {
+        bsm_cross_greeks(self.params, self.option_type)
     }
 }
 
