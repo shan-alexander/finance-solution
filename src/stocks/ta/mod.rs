@@ -78,6 +78,10 @@
 //! | RSI | [`RsiParams::period_14`] | [`rsi`] | [`rsi_solution`] |
 //! | ATR | [`AtrParams::period_14`] | [`atr`] | [`atr_solution`] |
 //! | LinReg | [`LinRegParams::period_20`] | [`linear_regression`] | [`linear_regression_solution`] |
+//! | Williams %R | [`WillrParams::period_14`] | [`willr`] | [`willr_solution`] |
+//! | OBV | [`ObvParams::default_pack`] | [`obv`] | [`obv_solution`] |
+//! | CCI | [`CciParams::period_20`] | [`cci`] | [`cci_solution`] |
+//! | ADX / DI / DX | [`AdxParams::period_14`] | [`adx`] | [`adx_solution`] |
 //!
 //! # Incremental / streaming state (live bars)
 //!
@@ -85,31 +89,33 @@
 //! multi-bar messages, or `from_history` then only push live updates. See [`state`] module docs
 //! and the README quant-engine sketch. **You** call `reset()` on VWAP when your calendar says so.
 //!
-//! **Every public TA indicator has a matching `*State`** (SMA/EMA/WMA/HMA, Stoch, MACD, BB,
-//! Keltner, Donchian, VWAP, RVOL, RSI, ATR, LinReg). Running *all* of them on one symbol each
-//! 5s bar is supported: hold one struct of states per symbol and call `push` sequentially.
+//! **Every public TA indicator has a matching `*State`**. Running *all* of them on one symbol
+//! each 5s bar is supported: hold one struct of states per symbol and call `push` sequentially.
 //! That is **caller-owned composition** (and multi-symbol parallelism is caller-side `rayon`).
 //! The crate does **not** ship a multi-indicator “run everything” engine.
 //!
-//! Hot-window slides (after warm-up): SMA/EMA/WMA/HMA/BB/LinReg/RSI/ATR/… are O(1);
-//! Stoch HH/LL and Donchian max/min are **amortized O(1)** via monotonic deques.
+//! Hot-window slides (after warm-up): SMA/EMA/WMA/HMA/BB/LinReg/RSI/ATR/OBV/ADX/… are O(1);
+//! Stoch/WillR HH/LL and Donchian max/min are **amortized O(1)** via monotonic deques.
 //!
 //! Conventions worth knowing:
 //!
 //! - **Stochastic flat window** (HH == LL): carry previous raw %K, else 50.
+//! - **Williams %R flat window**: carry previous %R, else −50.
 //! - **Bollinger stdev**: [`StdevKind::Sample`] (`n−1`) default; optional population (`n`).
-//! - **Batch = stream path:** free functions / `Validated*::compute` for SMA/EMA/WMA/HMA,
-//!   Stoch, MACD, Bollinger, RVOL, VWAP, RSI, ATR, LinReg, Donchian route through the same
-//!   `*State` machines as live `push` (parity by construction; amortized O(1) hot windows).
+//! - **Batch = stream path:** free functions / `Validated*::compute` route through the same
+//!   `*State` machines as live `push` (parity by construction).
 
+pub mod adx;
 pub mod atr;
 pub mod bollinger;
+pub mod cci;
 pub mod common;
 pub mod donchian;
 pub mod keltner;
 pub mod linear_regression;
 pub mod macd;
 pub mod moving_average;
+pub mod obv;
 #[cfg(test)]
 mod proptests;
 pub mod ring;
@@ -118,11 +124,16 @@ pub mod rvol;
 pub mod state;
 pub mod stochastic;
 pub mod vwap;
+pub mod willr;
 
+#[doc(inline)]
+pub use adx::*;
 #[doc(inline)]
 pub use atr::*;
 #[doc(inline)]
 pub use bollinger::*;
+#[doc(inline)]
+pub use cci::*;
 #[doc(inline)]
 pub use common::StdevKind;
 #[doc(inline)]
@@ -136,6 +147,8 @@ pub use macd::*;
 #[doc(inline)]
 pub use moving_average::*;
 #[doc(inline)]
+pub use obv::*;
+#[doc(inline)]
 pub use rsi::*;
 #[doc(inline)]
 pub use rvol::*;
@@ -145,3 +158,5 @@ pub use state::*;
 pub use stochastic::*;
 #[doc(inline)]
 pub use vwap::*;
+#[doc(inline)]
+pub use willr::*;

@@ -7,12 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Wave A TA — pending next release)
+
+- **Williams %R** — `willr` / `WillrState` / `willr_solution` (sliding HH/LL)
+- **OBV** — `obv` / `ObvState` / `obv_solution`
+- **CCI** — `cci` / `CciState` / `cci_solution` (typical price, 0.015 MD)
+- **ADX / +DI / −DI / DX** — `adx` / `AdxState` / `adx_solution` (Wilder)
+- Proptests: batch ↔ stream for all four
+
 ### Planned (later)
 
 - BAW / other American approximations
 - Optional PDE / Monte Carlo
 - Futures linear fair-value / basis helpers
-- Wave A desk TA breadth (ADX, OBV, …)
+- Wave A remainder: Supertrend, SAR, MFI, ROC/MOM, NATR
 
 ## [0.4.2] — 2026-08-12
 

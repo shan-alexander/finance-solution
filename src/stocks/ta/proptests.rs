@@ -358,5 +358,65 @@ mod tests {
                 }
             }
         }
+
+        #[test]
+        fn willr_batch_matches_state(
+            (high, low, close) in hlc_strategy(),
+            period in 2usize..20,
+        ) {
+            let p = WillrParams::new(period);
+            let batch = willr(&high, &low, &close, p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let mut st = WillrState::new(p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let streamed = st.push_bars(&high, &low, &close).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            for i in 0..batch.willr.len() {
+                approx_opt(batch.willr[i], streamed[i])?;
+            }
+        }
+
+        #[test]
+        fn obv_batch_matches_state(
+            (closes, volume) in closes_strategy().prop_flat_map(|closes| {
+                let n = closes.len();
+                prop::collection::vec(0.0f64..1e6, n..=n)
+                    .prop_map(move |volume| (closes.clone(), volume))
+            }),
+        ) {
+            let p = ObvParams::default_pack();
+            let batch = obv(&closes, &volume, p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let mut st = ObvState::new(p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let streamed = st.push_bars(&closes, &volume).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            for i in 0..batch.obv.len() {
+                approx_opt(batch.obv[i], streamed[i])?;
+            }
+        }
+
+        #[test]
+        fn cci_batch_matches_state(
+            (high, low, close) in hlc_strategy(),
+            period in 2usize..20,
+        ) {
+            let p = CciParams::new(period);
+            let batch = cci(&high, &low, &close, p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let mut st = CciState::new(p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let streamed = st.push_bars(&high, &low, &close).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            for i in 0..batch.cci.len() {
+                approx_opt(batch.cci[i], streamed[i])?;
+            }
+        }
+
+        #[test]
+        fn adx_batch_matches_state((high, low, close) in hlc_strategy()) {
+            prop_assume!(close.len() >= 40);
+            let p = AdxParams::period_14();
+            let batch = adx(&high, &low, &close, p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let mut st = AdxState::new(p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let streamed = st.push_bars(&high, &low, &close).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            for i in 0..streamed.len() {
+                approx_opt(batch.plus_di[i], streamed[i].plus_di)?;
+                approx_opt(batch.minus_di[i], streamed[i].minus_di)?;
+                approx_opt(batch.dx[i], streamed[i].dx)?;
+                approx_opt(batch.adx[i], streamed[i].adx)?;
+            }
+        }
     }
 }

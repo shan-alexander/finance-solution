@@ -21,7 +21,7 @@ In the v0.0.0 release, this library was geared only towards the basic financial 
 
 > The v0.3.0 release added the **`derivatives`** module (European Black–Scholes–Merton price, Greeks ΔΓθνρ, implied vol, put–call parity helpers, `BsmState`) plus a real 1m OHLCV example joining underlier TA with a BSM snapshot.
 
-> **Current Status:** **0.4.2** (edition 2021, MSRV 1.70). Same public surface as 0.4.x (TVM → TA → options/CRR), with **algorithmic TA hot-window slides** (WMA/HMA, Bollinger, LinReg, Stoch HH/LL, Donchian) and **batch = stream** via shared `*State` paths. Public math remains **Result-only** — no dual panicking / `try_*` APIs. The crate is a **math library** for engines and frameworks (not a market-data feed or order router).
+> **Current Status:** **0.4.2+** (edition 2021, MSRV 1.70; next publish will bump). TVM → TA → options/CRR, with **algorithmic TA hot-window slides**, **batch = stream** via `*State`, and Wave A TA: **Williams %R, OBV, CCI, ADX/+DI/−DI/DX**. Public math remains **Result-only**. The crate is a **math library** for engines (not a market-data feed or order router).
 
 ## Modules (0.4.x layout)
 
@@ -33,7 +33,7 @@ In the v0.0.0 release, this library was geared only towards the basic financial 
 | `amortization` | Solution/series/tables + PPMT, IPMT, CUMPRINC, CUMIPMT |
 | `returns` | Doubling rules: solution + comparison tables (72/70/69 vs exact) |
 | `stocks` | Price-path solution/series/tables; returns, vol, Sharpe, Sortino, beta, drawdowns |
-| `stocks::ta` | SMA/EMA/WMA/HMA, Stoch, MACD, BB, Keltner, Donchian, VWAP, RVOL, RSI, ATR, LinReg (+ `*State`) |
+| `stocks::ta` | SMA/EMA/WMA/HMA, Stoch, MACD, BB, Keltner, Donchian, VWAP, RVOL, RSI, ATR, LinReg, WillR, OBV, CCI, ADX/DI (+ `*State`) |
 | `derivatives` | BSM (+ cross Greeks), Black ’76, Garman–Kohlhagen, CRR American/European tree + American IV; live `*State` |
 | `util` | `FinanceError`, `FinanceResult`, domain newtypes (`Rate`, `PeriodLength`, …) |
 | `round` | Rounding + test assert helpers |
