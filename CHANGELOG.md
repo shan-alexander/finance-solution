@@ -7,25 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added (Wave A TA complete — pending 0.5.0 publish)
-
-**First commit:** Williams %R, OBV, CCI, ADX/+DI/−DI/DX  
-
-**Remainder:**
-
-- **MOM / ROC / ROCP** — `mom` / `roc` / `rocp` / `MomState` / `mom_solution`
-- **MFI** — `mfi` / `MfiState` / `mfi_solution`
-- **Supertrend** — `supertrend` / `SupertrendState` / `supertrend_solution` (ATR × mult)
-- **Parabolic SAR** — `sar` / `SarState` / `sar_solution`
-- **TR / NATR** — `true_range_series`, `natr` / `NatrState`
-- Proptests: batch ↔ stream for Wave A set
-
 ### Planned (later)
 
 - BAW / other American approximations
 - Optional PDE / Monte Carlo
 - Futures linear fair-value / basis helpers
-- Wave B: DEMA/TEMA, KAMA, StochRSI, …
+- Wave B TA: DEMA/TEMA, KAMA, StochRSI, RMA, PPO/APO, …
+- Wave S1 risk helpers: Calmar, etc.
+
+## [0.5.0] — 2026-08-12
+
+**Wave A desk-critical TA breadth.** Additive only: new indicators + helpers. Result-only public math unchanged. MSRV 1.70.
+
+### Added
+
+**Momentum / oscillators**
+
+- **Williams %R** — `willr` / `WillrState` / `willr_solution` (sliding HH/LL, amortized O(1))
+- **CCI** — `cci` / `CciState` / `cci_solution` (typical price, 0.015·MD; flat → `None`)
+- **MOM / ROC / ROCP** — `mom` / `roc` / `rocp` / `MomState` / `mom_solution`
+
+**Trend strength / trailing**
+
+- **ADX / +DI / −DI / DX** — `adx` / `AdxState` / `adx_solution` (Wilder)
+- **Supertrend** — `supertrend` / `SupertrendState` / `supertrend_solution` (ATR × mult; ±1 direction)
+- **Parabolic SAR** — `sar` / `SarState` / `sar_solution` (start/increment/maximum)
+
+**Volume**
+
+- **OBV** — `obv` / `ObvState` / `obv_solution`
+- **MFI** — `mfi` / `MfiState` / `mfi_solution`
+
+**Volatility helpers**
+
+- **`true_range_series`** — per-bar TR
+- **NATR** — `natr` / `NatrState` (`100 * ATR / close`)
+
+**Quality**
+
+- Unit tests + batch ↔ stream proptests for Wave A
+- Re-exports from `stocks` / `stocks::ta`; README / crate docs updated
 
 ## [0.4.2] — 2026-08-12
 

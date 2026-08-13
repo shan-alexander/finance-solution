@@ -1,6 +1,6 @@
 [package]
 name = "finance-solution"
-version = "0.4.2"
+version = "0.5.0"
 authors = ["Shan Newton <shan.alexander2020@gmail.com>", "David Thureson <David.G.Thureson@gmail.com>"]
 edition = "2021"
 rust-version = "1.70"

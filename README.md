@@ -21,9 +21,9 @@ In the v0.0.0 release, this library was geared only towards the basic financial 
 
 > The v0.3.0 release added the **`derivatives`** module (European Black–Scholes–Merton price, Greeks ΔΓθνρ, implied vol, put–call parity helpers, `BsmState`) plus a real 1m OHLCV example joining underlier TA with a BSM snapshot.
 
-> **Current Status:** **0.4.2+** (edition 2021, MSRV 1.70; **Wave A TA complete** on tree, next publish **0.5.0**). TVM → TA → options/CRR; hot-window slides; batch = stream; desk TA: WillR, OBV, CCI, ADX, MOM/ROC, MFI, Supertrend, SAR, NATR. Public math remains **Result-only**. Math library only (not a feed/engine).
+> **Current Status:** **0.5.0** (edition 2021, MSRV 1.70). TVM → TA → options/CRR; **Wave A** desk TA (WillR, OBV, CCI, ADX, MOM/ROC, MFI, Supertrend, SAR, NATR/TR) plus hot-window slides and batch = stream. Public math remains **Result-only**. Math library only (not a feed/engine).
 
-## Modules (0.4.x layout)
+## Modules (0.5 layout)
 
 | Module | Contents |
 |--------|----------|
