@@ -12,8 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - BAW / other American approximations
 - Optional PDE / Monte Carlo
 - Futures linear fair-value / basis helpers
-- Wave B TA: DEMA/TEMA, KAMA, StochRSI, RMA, PPO/APO, …
-- Wave S1 risk helpers: Calmar, etc.
+- Further Wave B TA: StochRSI, PPO/APO, …
+- More risk / portfolio helpers as needed
+
+## [0.5.1] — 2026-08-12
+
+### Changed
+
+- crates.io / package **description** polish (readable TA keyword grouping)
+- README current-status line for **0.5.1**
+
+No API changes vs 0.5.0.
 
 ## [0.5.0] — 2026-08-12
 

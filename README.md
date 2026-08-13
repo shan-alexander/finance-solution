@@ -21,7 +21,7 @@ In the v0.0.0 release, this library was geared only towards the basic financial 
 
 > The v0.3.0 release added the **`derivatives`** module (European Black–Scholes–Merton price, Greeks ΔΓθνρ, implied vol, put–call parity helpers, `BsmState`) plus a real 1m OHLCV example joining underlier TA with a BSM snapshot.
 
-> **Current Status:** **0.5.0** (edition 2021, MSRV 1.70). TVM → TA → options/CRR; **Wave A** desk TA + **DEMA/TEMA/RMA/KAMA** + **Calmar/Ulcer/correlation/IR/trade stats**; hot-window slides; batch = stream. Public math remains **Result-only**. Math library only (not a feed/engine).
+> **Current Status:** **0.5.1** (edition 2021, MSRV 1.70). Same surface as 0.5.0 (TVM → TA → options/CRR; Wave A desk TA; DEMA/TEMA/RMA/KAMA; Calmar/Ulcer/IR/trade stats; hot-window slides; batch = stream). Public math remains **Result-only**. Math library only (not a feed/engine).
 
 ## Modules (0.5 layout)
 

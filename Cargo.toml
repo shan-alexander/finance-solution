@@ -1,11 +1,11 @@
 [package]
 name = "finance-solution"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Shan Newton <shan.alexander2020@gmail.com>", "David Thureson <David.G.Thureson@gmail.com>"]
 edition = "2021"
 rust-version = "1.70"
 license = "MIT"
-description = "Finance math: TVM, cashflow, amortization, equity path metrics, technical analysis (SMA/EMA/WMA/HMA/RMA/DEMA/TEMA/KAMA/MACD/BB/Keltner/Donchian/Stoch/VWAP/RVOL/RSI/ATR/LinReg/WillR/OBV/CCI/ADX/MOM/MFI/Supertrend/SAR), risk (Sharpe/Sortino/Calmar/Ulcer/IR), and options (BSM, Black76, GK, CRR American) with Result-only APIs and incremental state."
+description = "Finance math: TVM, cashflow, amortization, equity path metrics, technical analysis (SMA/EMA/WMA/HMA/RMA/DEMA/TEMA/KAMA/MACD, BB/Keltner/Donchian/Stoch/VWAP/RVOL/RSI/ATR/LinReg, WillR/OBV/CCI/ADX/MOM/MFI/Supertrend/SAR), risk (Sharpe/Sortino/Calmar/Ulcer/IR), and options (BSM, Black76, GK, CRR American) with Result-only APIs and incremental state."
 repository = "https://github.com/shan-alexander/finance-solution"
 documentation = "https://docs.rs/finance-solution"
 readme = "README.md"
