@@ -68,6 +68,7 @@
 //! | Indicator | Params / presets | Series | Solution + table |
 //! |-----------|------------------|--------|------------------|
 //! | SMA / EMA / WMA / HMA | `period` | [`sma`], [`ema`], [`wma`], [`hma`] (+ `*State`) | — |
+//! | RMA / DEMA / TEMA / KAMA | period / [`KamaParams`] | [`rma`], [`dema`], [`tema`], [`kama`] | — |
 //! | Stochastic | [`StochasticParams::fast`] / [`full`](StochasticParams::full) | [`stochastics`] | [`stochastics_solution`] |
 //! | MACD | [`MacdParams::standard`] (12,26,9) | [`macd`] | [`macd_solution`] |
 //! | Bollinger | [`BollingerParams::standard`] (20,2, sample stdev) | [`bollinger`] | [`bollinger_solution`] |
@@ -110,6 +111,7 @@
 //! - **Batch = stream path:** free functions / `Validated*::compute` route through the same
 //!   `*State` machines as live `push` (parity by construction).
 
+pub mod advanced_ma;
 pub mod adx;
 pub mod atr;
 pub mod bollinger;
@@ -135,6 +137,8 @@ pub mod supertrend;
 pub mod vwap;
 pub mod willr;
 
+#[doc(inline)]
+pub use advanced_ma::*;
 #[doc(inline)]
 pub use adx::*;
 #[doc(inline)]

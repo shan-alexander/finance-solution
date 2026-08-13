@@ -21,7 +21,7 @@ In the v0.0.0 release, this library was geared only towards the basic financial 
 
 > The v0.3.0 release added the **`derivatives`** module (European Black–Scholes–Merton price, Greeks ΔΓθνρ, implied vol, put–call parity helpers, `BsmState`) plus a real 1m OHLCV example joining underlier TA with a BSM snapshot.
 
-> **Current Status:** **0.5.0** (edition 2021, MSRV 1.70). TVM → TA → options/CRR; **Wave A** desk TA (WillR, OBV, CCI, ADX, MOM/ROC, MFI, Supertrend, SAR, NATR/TR) plus hot-window slides and batch = stream. Public math remains **Result-only**. Math library only (not a feed/engine).
+> **Current Status:** **0.5.0** (edition 2021, MSRV 1.70). TVM → TA → options/CRR; **Wave A** desk TA + **DEMA/TEMA/RMA/KAMA** + **Calmar/Ulcer/correlation/IR/trade stats**; hot-window slides; batch = stream. Public math remains **Result-only**. Math library only (not a feed/engine).
 
 ## Modules (0.5 layout)
 
@@ -33,7 +33,8 @@ In the v0.0.0 release, this library was geared only towards the basic financial 
 | `amortization` | Solution/series/tables + PPMT, IPMT, CUMPRINC, CUMIPMT |
 | `returns` | Doubling rules: solution + comparison tables (72/70/69 vs exact) |
 | `stocks` | Price-path solution/series/tables; returns, vol, Sharpe, Sortino, beta, drawdowns |
-| `stocks::ta` | SMA/EMA/WMA/HMA, Stoch, MACD, BB, Keltner, Donchian, VWAP, RVOL, RSI, ATR, LinReg, WillR, OBV, CCI, ADX/DI, MOM/ROC, MFI, Supertrend, SAR, NATR (+ `*State`) |
+| `stocks::ta` | SMA/EMA/WMA/HMA/RMA/DEMA/TEMA/KAMA, Stoch, MACD, BB, Keltner, Donchian, VWAP, RVOL, RSI, ATR, LinReg, WillR, OBV, CCI, ADX, MOM/ROC, MFI, Supertrend, SAR, NATR (+ `*State`) |
+| `stocks::risk` | Vol, Sharpe, Sortino, max DD, beta, Calmar, Ulcer, correlation, IR, trade PF/expectancy |
 | `derivatives` | BSM (+ cross Greeks), Black ’76, Garman–Kohlhagen, CRR American/European tree + American IV; live `*State` |
 | `util` | `FinanceError`, `FinanceResult`, domain newtypes (`Rate`, `PeriodLength`, …) |
 | `round` | Rounding + test assert helpers |

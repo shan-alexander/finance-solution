@@ -48,6 +48,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit tests + batch ↔ stream proptests for Wave A
 - Re-exports from `stocks` / `stocks::ta`; README / crate docs updated
 
+**Wave B averages (also in 0.5.0)**
+
+- **RMA / Wilder / SMMA** — `rma` / `RmaState`
+- **DEMA** — `dema` / `DemaState`
+- **TEMA** — `tema` / `TemaState`
+- **KAMA** — `kama` / `KamaState` / `KamaParams::standard` (10, 2, 30)
+
+**Risk helpers (Wave S1)**
+
+- **CAGR** — `cagr_from_prices`, `cagr_from_prices_periods`
+- **Calmar** — `calmar_ratio`, `calmar_ratio_periods`
+- **Ulcer index** — `ulcer_index`
+- **Pearson correlation** — `correlation`
+- **Information ratio** — `information_ratio`
+- **Trade stats** — `win_rate`, `profit_factor`, `expectancy`
+
 ## [0.4.2] — 2026-08-12
 
 Performance and API-coherence release: same public indicator/derivative set as 0.4.1, with **faster streaming TA** and **batch = stream** math paths. **No** dual panicking / `try_*` public math.

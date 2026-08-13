@@ -501,5 +501,37 @@ mod tests {
                 approx_opt(batch.natr[i], streamed[i])?;
             }
         }
+
+        #[test]
+        fn dema_tema_rma_kama_batch_matches_state(
+            closes in prop::collection::vec(-200.0f64..200.0, 15..50),
+            period in 2usize..12,
+        ) {
+            let batch = dema(&closes, period).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let mut st = DemaState::new(period).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let streamed = st.push_bars(&closes).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            for i in 0..batch.len() {
+                approx_opt(batch[i], streamed[i])?;
+            }
+            let batch = tema(&closes, period).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let mut st = TemaState::new(period).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let streamed = st.push_bars(&closes).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            for i in 0..batch.len() {
+                approx_opt(batch[i], streamed[i])?;
+            }
+            let batch = rma(&closes, period).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let mut st = RmaState::new(period).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let streamed = st.push_bars(&closes).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            for i in 0..batch.len() {
+                approx_opt(batch[i], streamed[i])?;
+            }
+            let p = KamaParams::new(period, 2, 30.max(period + 1));
+            let batch = kama(&closes, p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let mut st = KamaState::new(p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let streamed = st.push_bars(&closes).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            for i in 0..batch.len() {
+                approx_opt(batch[i], streamed[i])?;
+            }
+        }
     }
 }

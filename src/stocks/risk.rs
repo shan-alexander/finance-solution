@@ -1,4 +1,5 @@
-//! Risk metrics: volatility, Sharpe, Sortino, max drawdown, beta, rolling drawdown.
+//! Risk metrics: volatility, Sharpe, Sortino, max drawdown, beta, rolling drawdown,
+//! Calmar, Ulcer index, correlation, information ratio, and trade-PnL helpers.
 //!
 //! # Error handling (v0.1+)
 //!
@@ -291,6 +292,238 @@ pub fn price_volatility(prices: &[f64]) -> FinanceResult<f64> {
     volatility(&rets)
 }
 
+/// CAGR from a positive price path over `years` years: `(end/start)^(1/years) − 1`.
+///
+/// # Examples
+/// ```
+/// use finance_solution::cagr_from_prices;
+/// // Double in 2 years → CAGR ≈ 41.42%
+/// let g = cagr_from_prices(&[100.0, 200.0], 2.0).unwrap();
+/// assert!((g - (2.0_f64.sqrt() - 1.0)).abs() < 1e-12);
+/// ```
+pub fn cagr_from_prices(prices: &[f64], years: f64) -> FinanceResult<f64> {
+    require_finite("years", years)?;
+    if years <= 0.0 {
+        return Err(FinanceError::Unsolvable {
+            message: "years must be positive",
+        });
+    }
+    if prices.len() < 2 {
+        return Err(FinanceError::Unsolvable {
+            message: "cagr_from_prices requires at least two prices",
+        });
+    }
+    let start = prices[0];
+    let end = *prices.last().unwrap();
+    require_finite("prices", start)?;
+    require_finite("prices", end)?;
+    if start <= 0.0 || end <= 0.0 {
+        return Err(FinanceError::Unsolvable {
+            message: "cagr_from_prices requires strictly positive prices",
+        });
+    }
+    Ok((end / start).powf(1.0 / years) - 1.0)
+}
+
+/// CAGR using `(prices.len()−1) / periods_per_year` as the year fraction.
+pub fn cagr_from_prices_periods(prices: &[f64], periods_per_year: f64) -> FinanceResult<f64> {
+    require_finite("periods_per_year", periods_per_year)?;
+    if periods_per_year <= 0.0 {
+        return Err(FinanceError::Unsolvable {
+            message: "periods_per_year must be positive",
+        });
+    }
+    if prices.len() < 2 {
+        return Err(FinanceError::Unsolvable {
+            message: "cagr_from_prices_periods requires at least two prices",
+        });
+    }
+    let years = (prices.len() - 1) as f64 / periods_per_year;
+    cagr_from_prices(prices, years)
+}
+
+/// Calmar ratio: `CAGR / |max drawdown|` on a positive price series.
+///
+/// # Examples
+/// ```
+/// use finance_solution::calmar_ratio;
+/// // Mild path with some drawdown
+/// let prices = [100.0, 120.0, 90.0, 150.0];
+/// let c = calmar_ratio(&prices, 2.0).unwrap();
+/// assert!(c.is_finite());
+/// ```
+pub fn calmar_ratio(prices: &[f64], years: f64) -> FinanceResult<f64> {
+    let cagr = cagr_from_prices(prices, years)?;
+    let dd = max_drawdown(prices)?.abs();
+    if dd == 0.0 {
+        return Err(FinanceError::Unsolvable {
+            message: "calmar_ratio undefined when max drawdown is zero",
+        });
+    }
+    Ok(cagr / dd)
+}
+
+/// Calmar with year fraction from sample length and `periods_per_year`.
+pub fn calmar_ratio_periods(prices: &[f64], periods_per_year: f64) -> FinanceResult<f64> {
+    let cagr = cagr_from_prices_periods(prices, periods_per_year)?;
+    let dd = max_drawdown(prices)?.abs();
+    if dd == 0.0 {
+        return Err(FinanceError::Unsolvable {
+            message: "calmar_ratio undefined when max drawdown is zero",
+        });
+    }
+    Ok(cagr / dd)
+}
+
+/// Ulcer index: `sqrt(mean of squared percentage drawdowns)` (Martin).
+///
+/// Uses [`drawdown_series`] fractions (already negative or zero); squares them.
+pub fn ulcer_index(prices: &[f64]) -> FinanceResult<f64> {
+    let dd = drawdown_series(prices)?;
+    if dd.is_empty() {
+        return Err(FinanceError::Unsolvable {
+            message: "ulcer_index requires prices",
+        });
+    }
+    let mut sum = 0.0;
+    for d in &dd {
+        // store as percent points (×100) for classic Ulcer scale
+        let pct = d * 100.0;
+        sum += pct * pct;
+    }
+    Ok((sum / dd.len() as f64).sqrt())
+}
+
+/// Pearson correlation of two equal-length series (sample correlation, `n−1`).
+///
+/// # Examples
+/// ```
+/// use finance_solution::correlation;
+/// let x = [1.0, 2.0, 3.0, 4.0];
+/// let y = [2.0, 4.0, 6.0, 8.0];
+/// assert!((correlation(&x, &y).unwrap() - 1.0).abs() < 1e-12);
+/// ```
+pub fn correlation(x: &[f64], y: &[f64]) -> FinanceResult<f64> {
+    if x.len() != y.len() {
+        return Err(FinanceError::Unsolvable {
+            message: "correlation requires equal-length series",
+        });
+    }
+    if x.len() < 2 {
+        return Err(FinanceError::Unsolvable {
+            message: "correlation requires at least two pairs",
+        });
+    }
+    for (a, b) in x.iter().zip(y.iter()) {
+        require_finite("x", *a)?;
+        require_finite("y", *b)?;
+    }
+    let n = x.len() as f64;
+    let mean_x = x.iter().sum::<f64>() / n;
+    let mean_y = y.iter().sum::<f64>() / n;
+    let mut cov = 0.0;
+    let mut vx = 0.0;
+    let mut vy = 0.0;
+    for i in 0..x.len() {
+        let dx = x[i] - mean_x;
+        let dy = y[i] - mean_y;
+        cov += dx * dy;
+        vx += dx * dx;
+        vy += dy * dy;
+    }
+    let denom = (vx * vy).sqrt();
+    if denom == 0.0 {
+        return Err(FinanceError::Unsolvable {
+            message: "correlation undefined when a series has zero variance",
+        });
+    }
+    Ok(cov / denom)
+}
+
+/// Information ratio: `mean(active) / stdev(active)` where `active[i] = asset[i] − benchmark[i]`.
+pub fn information_ratio(asset_returns: &[f64], benchmark_returns: &[f64]) -> FinanceResult<f64> {
+    if asset_returns.len() != benchmark_returns.len() {
+        return Err(FinanceError::Unsolvable {
+            message: "information_ratio requires equal-length series",
+        });
+    }
+    if asset_returns.len() < 2 {
+        return Err(FinanceError::Unsolvable {
+            message: "information_ratio requires at least two returns",
+        });
+    }
+    let mut active = Vec::with_capacity(asset_returns.len());
+    for i in 0..asset_returns.len() {
+        require_finite("asset_returns", asset_returns[i])?;
+        require_finite("benchmark_returns", benchmark_returns[i])?;
+        active.push(asset_returns[i] - benchmark_returns[i]);
+    }
+    let vol = volatility(&active)?;
+    if vol == 0.0 {
+        return Err(FinanceError::Unsolvable {
+            message: "information_ratio undefined when tracking error is zero",
+        });
+    }
+    Ok(mean_return(&active)? / vol)
+}
+
+/// Win rate over a trade P&amp;L series: `count(pnl > 0) / n` (zeros count as non-wins).
+pub fn win_rate(trade_pnls: &[f64]) -> FinanceResult<f64> {
+    if trade_pnls.is_empty() {
+        return Err(FinanceError::Unsolvable {
+            message: "win_rate requires at least one trade",
+        });
+    }
+    let mut wins = 0usize;
+    for &p in trade_pnls {
+        require_finite("trade_pnls", p)?;
+        if p > 0.0 {
+            wins += 1;
+        }
+    }
+    Ok(wins as f64 / trade_pnls.len() as f64)
+}
+
+/// Profit factor: `sum(positive pnl) / |sum(negative pnl)|`.
+///
+/// Errors if there are no losses (denominator zero) or no trades.
+pub fn profit_factor(trade_pnls: &[f64]) -> FinanceResult<f64> {
+    if trade_pnls.is_empty() {
+        return Err(FinanceError::Unsolvable {
+            message: "profit_factor requires at least one trade",
+        });
+    }
+    let mut gp = 0.0;
+    let mut gl = 0.0;
+    for &p in trade_pnls {
+        require_finite("trade_pnls", p)?;
+        if p > 0.0 {
+            gp += p;
+        } else if p < 0.0 {
+            gl += -p;
+        }
+    }
+    if gl == 0.0 {
+        return Err(FinanceError::Unsolvable {
+            message: "profit_factor undefined when there are no losing trades",
+        });
+    }
+    Ok(gp / gl)
+}
+
+/// Expectancy: mean trade P&amp;L (including zeros).
+pub fn expectancy(trade_pnls: &[f64]) -> FinanceResult<f64> {
+    if trade_pnls.is_empty() {
+        return Err(FinanceError::Unsolvable {
+            message: "expectancy requires at least one trade",
+        });
+    }
+    for &p in trade_pnls {
+        require_finite("trade_pnls", p)?;
+    }
+    Ok(trade_pnls.iter().sum::<f64>() / trade_pnls.len() as f64)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -350,5 +583,39 @@ mod tests {
         assert_approx_equal!(d[0], 0.0);
         assert_approx_equal!(d[1], 0.0);
         assert_approx_equal!(d[2], 0.25);
+    }
+
+    #[test]
+    fn test_cagr_and_calmar() {
+        let prices = [100.0, 200.0];
+        let g = cagr_from_prices(&prices, 2.0).unwrap();
+        assert!((g - (2.0_f64.sqrt() - 1.0)).abs() < 1e-12);
+        // With drawdown path
+        let p = [100.0, 150.0, 80.0, 200.0];
+        let c = calmar_ratio(&p, 3.0).unwrap();
+        assert!(c.is_finite() && c > 0.0);
+        assert!(calmar_ratio(&[100.0, 110.0, 120.0], 1.0).is_err()); // no DD
+    }
+
+    #[test]
+    fn test_ulcer_and_correlation() {
+        let prices = [100.0, 120.0, 90.0, 100.0];
+        let u = ulcer_index(&prices).unwrap();
+        assert!(u > 0.0);
+        let x = [1.0, 2.0, 3.0, 4.0];
+        let y = [2.0, 4.0, 6.0, 8.0];
+        assert!((correlation(&x, &y).unwrap() - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn test_information_ratio_and_trades() {
+        let a = [0.02, 0.01, 0.03, -0.01];
+        let b = [0.01, 0.01, 0.01, 0.01];
+        let ir = information_ratio(&a, &b).unwrap();
+        assert!(ir.is_finite());
+        let pnls = [10.0, -5.0, 20.0, -2.0, 0.0];
+        assert!((win_rate(&pnls).unwrap() - 2.0 / 5.0).abs() < 1e-12);
+        assert!((profit_factor(&pnls).unwrap() - 30.0 / 7.0).abs() < 1e-12);
+        assert!((expectancy(&pnls).unwrap() - 23.0 / 5.0).abs() < 1e-12);
     }
 }
