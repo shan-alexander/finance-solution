@@ -1,6 +1,21 @@
 //! Risk metrics: volatility, Sharpe, Sortino, max drawdown, beta, rolling drawdown,
 //! Calmar, Ulcer index, correlation, information ratio, and trade-PnL helpers.
 //!
+//! ## Which ratio when?
+//!
+//! | Metric | Question it answers | Needs |
+//! |--------|---------------------|--------|
+//! | [`sharpe_ratio`] | Return per unit total vol | Return series + RF |
+//! | [`sortino_ratio`] | Return per unit *downside* vol | Returns + target |
+//! | [`calmar_ratio`] | CAGR per unit peak–trough pain | Price path + years |
+//! | [`ulcer_index`] | How deep/persistent were drawdowns? | Prices |
+//! | [`information_ratio`] | Active return per tracking error | Asset + benchmark returns |
+//! | [`correlation`] | Do two series move together? | Paired series |
+//! | [`win_rate`] / [`profit_factor`] / [`expectancy`] | Trade list quality | Per-trade PnL |
+//!
+//! **Calmar** is path-level (prices + time); **Sharpe/Sortino** are return-series. Do not mix
+//! without aligning sampling frequency.
+//!
 //! # Error handling (v0.1+)
 //!
 //! All public functions return [`FinanceResult`]. Short series, zero sample vol, empty
@@ -344,6 +359,10 @@ pub fn cagr_from_prices_periods(prices: &[f64], periods_per_year: f64) -> Financ
 
 /// Calmar ratio: `CAGR / |max drawdown|` on a positive price series.
 ///
+/// Higher is better (more growth per unit historical peak-to-trough loss).  
+/// Undefined when max drawdown is zero (monotone path). Compare funds only with
+/// similar `years` / sampling.
+///
 /// # Examples
 /// ```
 /// use finance_solution::calmar_ratio;
@@ -377,7 +396,8 @@ pub fn calmar_ratio_periods(prices: &[f64], periods_per_year: f64) -> FinanceRes
 
 /// Ulcer index: `sqrt(mean of squared percentage drawdowns)` (Martin).
 ///
-/// Uses [`drawdown_series`] fractions (already negative or zero); squares them.
+/// Uses [`drawdown_series`] fractions (≤ 0), converted to percent points before squaring.
+/// Higher Ulcer ⇒ more painful path; often paired with return for “Ulcer Performance”.
 pub fn ulcer_index(prices: &[f64]) -> FinanceResult<f64> {
     let dd = drawdown_series(prices)?;
     if dd.is_empty() {
@@ -394,7 +414,11 @@ pub fn ulcer_index(prices: &[f64]) -> FinanceResult<f64> {
     Ok((sum / dd.len() as f64).sqrt())
 }
 
-/// Pearson correlation of two equal-length series (sample correlation, `n−1`).
+/// Pearson correlation of two equal-length series.
+///
+/// Uses the algebraically equivalent form
+/// `Σ(dx·dy) / sqrt(Σdx² · Σdy²)` (same as sample correlation; `n−1` cancels).
+/// Errors if either series has zero variance.
 ///
 /// # Examples
 /// ```
@@ -441,6 +465,9 @@ pub fn correlation(x: &[f64], y: &[f64]) -> FinanceResult<f64> {
 }
 
 /// Information ratio: `mean(active) / stdev(active)` where `active[i] = asset[i] − benchmark[i]`.
+///
+/// Active returns and tracking error use the same sampling frequency as the inputs
+/// (not annualized). For desk IR, pass already-period-matched excess returns.
 pub fn information_ratio(asset_returns: &[f64], benchmark_returns: &[f64]) -> FinanceResult<f64> {
     if asset_returns.len() != benchmark_returns.len() {
         return Err(FinanceError::Unsolvable {

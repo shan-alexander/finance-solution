@@ -16,23 +16,36 @@
 //!
 //! ## Trading perspective
 //!
-//! | Region | Habit (classic) |
-//! |--------|-----------------|
-//! | CCI \> +100 | Extended / breakout screen |
+//! | Region | Habit (classic, not a rule) |
+//! |--------|-----------------------------|
+//! | CCI \> +100 | Extended / breakout participation screen |
 //! | CCI \< −100 | Oversold / mean-reversion screen |
+//! | Zero line cross | Momentum shift screen |
+//!
+//! ## vs RSI / Stochastic / WillR
+//!
+//! | | CCI | RSI | Stoch / %R |
+//! |--|-----|-----|------------|
+//! | Centered on | Typical price vs its mean | Close momentum | Close in HH–LL range |
+//! | Bounds | Unbounded (soft ±100 zones) | 0–100 | 0–100 or −100–0 |
+//! | Best narrative | “How stretched vs recent TP?” | Overbought/oversold on closes | Where is close in the range? |
+//!
+//! Use **CCI** for channel stretch on HLC; **RSI** for pure close momentum; **Stoch/%R** for
+//! range position. They often agree at extremes but diverge in trends (CCI can stay > +100).
+//!
+//! ## Pairs well with
+//!
+//! - **Donchian / Bollinger / Keltner** — breakout when CCI already extended.
+//! - **ADX** — high ADX + CCI > +100 → trend continuation more than fade.
+//! - **ATR** — size stops in price units, not CCI points.
 //!
 //! ---
 //!
 //! ## Engineering
 //!
-//! [`CciParams`] → [`cci`] / [`CciState`] → [`cci_solution`].  
-//! Batch uses [`CciState`]. After warm-up each push is **O(1)** via ring `Σ` / `Σ|x−μ|`
-//! recomputed from ordered window only when needed… actually MD needs absolute deviations
-//! from **current** mean, so naive O(N) per bar unless we store the window.
-//!
-//! We keep the ring and compute MD in O(N) on the ordered copy **or** O(N) scan of ring.
-//! For typical N=20 this is fine; parity with a simple definition is the priority.
-//! (Future: not the same as WMA identity — mean-deviation depends on μ each bar.)
+//! [`CciParams`] → [`cci`] / [`CciState`] → [`cci_solution`]. Batch via [`CciState`].  
+//! Mean deviation uses the **current** window mean, so each ready bar is **O(period)** over
+//! the ring (fine for N≈20; not the same O(1) slide as Bollinger’s Σx² identity).
 //!
 //! ## Word problem
 //!
@@ -105,7 +118,7 @@ impl CciSeries {
     }
 }
 
-/// Incremental CCI. After warm-up each push is O(period) mean-deviation (typical N≤20).
+/// Incremental CCI. After warm-up each push is **O(period)** (mean absolute deviation).
 #[derive(Clone, Debug)]
 pub struct CciState {
     params: CciParams,

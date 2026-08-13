@@ -9,15 +9,33 @@
 //! ```
 //!
 //! First bar: **OBV = volume[0]** (common convention; signed flow starts on bar 1).
+//! Absolute level is arbitrary — desks watch **slope and divergence**, not a magic OBV number.
 //!
 //! ---
 //!
 //! ## Trading perspective
 //!
-//! | Story | Habit |
-//! |-------|-------|
+//! | Story | Habit (classic) |
+//! |-------|-----------------|
 //! | Price up, OBV up | Volume confirms trend |
-//! | Price up, OBV flat/down | Divergence screen |
+//! | Price up, OBV flat/down | Bearish divergence screen |
+//! | Price down, OBV up | Bullish accumulation screen |
+//!
+//! ## vs other volume tools
+//!
+//! | | OBV | MFI | RVOL | VWAP |
+//! |--|-----|-----|------|------|
+//! | Idea | Cumulative signed volume | Bounded oscillator 0–100 | Volume vs its mean | Volume-weighted price |
+//! | Best for | Divergence / confirmation | Overbought/oversold w/ volume | Spike detection | Intraday fair value |
+//!
+//! Prefer **MFI** when you want RSI-like bounds; **OBV** when you want unbounded cumulative flow;
+//! **RVOL** for “is this bar loud?”; **VWAP** for session price, not volume trend.
+//!
+//! ## Pairs well with
+//!
+//! - **Price structure / Donchian or Supertrend** — breakout + rising OBV.
+//! - **ADX** — strong trend + confirming OBV slope.
+//! - **RSI/WillR** — oscillator extreme + OBV not confirming → divergence narrative.
 //!
 //! ---
 //!

@@ -1,15 +1,37 @@
 //! # Advanced moving averages: DEMA, TEMA, RMA (Wilder), KAMA
 //!
-//! | Name | Formula sketch |
-//! |------|----------------|
-//! | **RMA / Wilder** | α = 1/n; seed = SMA; then α·P + (1−α)·prev |
-//! | **DEMA** | `2·EMA − EMA(EMA)` |
-//! | **TEMA** | `3·EMA − 3·EMA(EMA) + EMA(EMA(EMA))` |
-//! | **KAMA** | Kaufman adaptive: efficiency ratio scales SC between fast/slow |
+//! Smoothers beyond SMA/EMA/WMA/HMA. Same API layers: free batch + `*State` +
+//! (for KAMA) [`KamaParams`].
 //!
-//! Defaults: RMA/DEMA/TEMA period **20**; KAMA **(10, 2, 30)**.
+//! | Name | Formula sketch | vs SMA/EMA | Typical use |
+//! |------|----------------|------------|-------------|
+//! | **RMA / Wilder** | α = 1/n; seed SMA | **Slower** than EMA(α=2/(n+1)); same family as RSI/ATR smoothers | Match Wilder indicators; “SMMA” on some platforms |
+//! | **DEMA** | `2·EMA − EMA(EMA)` | **Faster** / less lag than EMA of same period | Trend follow when EMA feels late |
+//! | **TEMA** | `3·e1 − 3·e2 + e3` | Still more lag reduction than DEMA | Aggressive smooth; longer warm-up |
+//! | **KAMA** | ER scales SC between fast/slow EMA constants | **Adaptive**: quiet → slow; trending → fast | Choppy markets where fixed EMA whipsaws |
 //!
-//! Batch free functions use the matching `*State` end-to-end.
+//! ## When to pick which
+//!
+//! | Goal | Prefer | Avoid / caution |
+//! |------|--------|-----------------|
+//! | Classic chart MA | SMA / EMA | TEMA until you need speed |
+//! | Less lag than EMA | DEMA → TEMA | TEMA needs ~3× period warm-up bars |
+//! | Same math as RSI/ATR | **RMA** | Using EMA(14) and calling it Wilder |
+//! | Regime-adaptive | **KAMA** | Expecting a fixed “period feel” |
+//!
+//! ## Pairing for stock signals (illustrative, not advice)
+//!
+//! - **DEMA/TEMA** + **ADX**: only take MA crossovers when ADX shows trend strength.
+//! - **KAMA** + **ATR/Supertrend**: adaptive midline + volatility stop.
+//! - **RMA** + **RSI**: both Wilder-family; consistent smoothing philosophy.
+//! - Fast/slow **EMA** still the default for MACD-style spreads; DEMA/TEMA are optional legs.
+//!
+//! ## Engineering
+//!
+//! Batch free functions use the matching `*State` end-to-end.  
+//! KAMA first value when the ER window fills is **seeded to price** (common convention).
+//!
+//! Defaults: RMA/DEMA/TEMA period often **20** in call sites; KAMA **(10, 2, 30)**.
 
 use crate::stocks::ta::common::validate_series;
 use crate::stocks::ta::moving_average::EmaState;
@@ -22,6 +44,8 @@ use crate::util::primitives::PeriodLength;
 // ---------------------------------------------------------------------------
 
 /// Incremental Wilder RMA (also called SMMA). α = 1/`period`.
+///
+/// Use when you want the same recursive smoother as Wilder RSI/ATR, not EMA’s 2/(n+1).
 #[derive(Clone, Debug)]
 pub struct RmaState {
     period: usize,
@@ -106,6 +130,8 @@ pub fn rma_last(closes: &[f64], period: usize) -> FinanceResult<Option<f64>> {
 // ---------------------------------------------------------------------------
 
 /// Double exponential moving average: `2·EMA − EMA(EMA)`.
+///
+/// Reduces lag vs a single EMA of the same period (Mulloy). Warm-up is longer (nested EMA).
 #[derive(Clone, Debug)]
 pub struct DemaState {
     e1: EmaState,
@@ -182,6 +208,8 @@ pub fn dema_last(closes: &[f64], period: usize) -> FinanceResult<Option<f64>> {
 // ---------------------------------------------------------------------------
 
 /// Triple exponential moving average: `3·e1 − 3·e2 + e3`.
+///
+/// Further lag reduction vs DEMA; longest warm-up of the EMA-family stack here.
 #[derive(Clone, Debug)]
 pub struct TemaState {
     e1: EmaState,
@@ -265,6 +293,9 @@ pub fn tema_last(closes: &[f64], period: usize) -> FinanceResult<Option<f64>> {
 // ---------------------------------------------------------------------------
 
 /// Kaufman Adaptive Moving Average parameters.
+///
+/// Efficiency ratio over `period` maps between `fast` and `slow` EMA-style smoothing
+/// constants. Classic desk pack: [`KamaParams::standard`] `(10, 2, 30)`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct KamaParams {
     /// Efficiency-ratio lookback (typically 10).
@@ -318,12 +349,15 @@ impl ValidatedKama {
 }
 
 /// Incremental KAMA.
+///
+/// First defined bar seeds KAMA to the current price; thereafter  
+/// `KAMA += SC²-scaled step toward price` with SC from the efficiency ratio.
 #[derive(Clone, Debug)]
 pub struct KamaState {
     params: KamaParams,
     fast_sc: f64,
     slow_sc: f64,
-    /// Last `period` closes for ER (capacity period+? we need change over period and n diffs)
+    /// Rolling window of `period + 1` closes for ER (change over `period` steps).
     closes: RingF64,
     kama: Option<f64>,
     last: Option<f64>,

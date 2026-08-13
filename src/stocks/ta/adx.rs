@@ -21,18 +21,38 @@
 //!
 //! ## Trading perspective
 //!
-//! | Signal | Habit |
-//! |--------|-------|
-//! | ADX rising / \> 25 | Trend strength screen |
+//! | Signal | Habit (classic, not a rule) |
+//! |--------|-----------------------------|
+//! | ADX rising / \> ~25 | Trend strength — trend systems “allowed” |
+//! | ADX low / falling | Range — oscillators / mean-reversion more natural |
 //! | +DI \> −DI | Bullish directional bias |
 //! | −DI \> +DI | Bearish directional bias |
+//! | DI cross | Direction change screen (filter with ADX level) |
+//!
+//! **ADX is not direction** — only strength. Always read **+DI / −DI** (or price structure)
+//! for side.
+//!
+//! ## vs ATR / Supertrend / MACD
+//!
+//! | | ADX/DI | ATR | Supertrend | MACD |
+//! |--|--------|-----|------------|------|
+//! | Measures | Trend *strength* + DI direction | Volatility size | Trail stop / side | Momentum of closes |
+//! | Good at | Regime filter | Stops / size | In/out of trend | Timing / hist flips |
+//!
+//! ## Pairs well with
+//!
+//! - **Supertrend / SAR / Donchian** — take breakouts only if ADX confirms trend.
+//! - **RSI / WillR / CCI** — fade extremes only if ADX is weak (range regime).
+//! - **Moving averages** — DI side + MA slope agreement.
 //!
 //! ---
 //!
 //! ## Engineering
 //!
 //! [`AdxParams`] → [`adx`] / [`AdxState`] → [`adx_solution`].  
-//! Batch uses [`AdxState`] end-to-end. After seeds, each push is **O(1)**.
+//! Batch uses [`AdxState`] end-to-end. After seeds, each push is **O(1)**.  
+//! Smoothing uses the same **average-seed then Wilder** style as this crate’s ATR
+//! (SMA of first N samples, then \((prev·(N−1)+x)/N\)).
 //!
 //! ## Word problem
 //!

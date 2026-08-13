@@ -17,10 +17,37 @@
 //!
 //! ---
 //!
+//! ## Trading perspective
+//!
+//! | Region | Habit (classic) |
+//! |--------|-----------------|
+//! | MFI \> 80 | “Overbought” with volume |
+//! | MFI \< 20 | “Oversold” with volume |
+//! | Divergence vs price | Volume not confirming price extreme |
+//!
+//! ## vs RSI / OBV
+//!
+//! | | MFI | RSI | OBV |
+//! |--|-----|-----|-----|
+//! | Uses volume | Yes (× TP) | No | Yes (cumulative) |
+//! | Bounded | 0–100 | 0–100 | Unbounded |
+//! | Narrative | Money flow heat | Close momentum | Flow confirmation |
+//!
+//! Prefer **MFI** when volume quality matters for OB/OS; **RSI** when volume is noisy or
+//! missing; **OBV** for cumulative divergence without bounds.
+//!
+//! ## Pairs well with
+//!
+//! - **Price oscillators (RSI/WillR)** — agreement at extremes is stronger; disagreement is a flag.
+//! - **VWAP** — intraday location vs session VWAP + MFI.
+//! - **ADX** — high MFI in a strong ADX trend can stay elevated (trend, not auto-fade).
+//!
+//! ---
+//!
 //! ## Engineering
 //!
 //! [`MfiParams`] → [`mfi`] / [`MfiState`] → [`mfi_solution`]. Batch via state.
-//! After warm-up each push is O(1) via rings of +MF/−MF contributions.
+//! After warm-up each push is **O(1)** via rings of +MF/−MF contributions.
 
 use crate::stocks::ta::common::{opt_cell, require_hlc, validate_positive_volume};
 use crate::stocks::ta::ring::RingF64;

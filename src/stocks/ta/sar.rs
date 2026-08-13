@@ -15,9 +15,40 @@
 //!
 //! ---
 //!
+//! ## Trading perspective
+//!
+//! | Reading | Habit (classic) |
+//! |---------|-----------------|
+//! | SAR below price (dir +1) | Long / trail under |
+//! | SAR above price (dir −1) | Short / trail over |
+//! | Flip | Stop-and-reverse system signal |
+//!
+//! SAR is **aggressive** in chop (many flips). Often filtered by ADX or a slow MA.
+//!
+//! ## vs Supertrend
+//!
+//! | | SAR | Supertrend |
+//! |--|-----|------------|
+//! | Mechanism | AF toward extreme point | ATR bands around mid |
+//! | Feel | Can hug price tightly | Smoother ATR trail |
+//! | Choppy markets | Whipsaws more | Mult tuning helps |
+//!
+//! Many desks pick **one** primary trail (SAR *or* Supertrend), not both as simultaneous
+//! entry signals.
+//!
+//! ## Pairs well with
+//!
+//! - **ADX** — only reverse with SAR when ADX shows trend (or only *enter* with SAR + ADX).
+//! - **RSI** — avoid long SAR flips into overbought extremes without confirmation.
+//! - **ATR** — independent stop size check (SAR distance ≠ risk budget).
+//!
+//! ---
+//!
 //! ## Engineering
 //!
-//! [`SarParams`] → [`sar`] / [`SarState`] → [`sar_solution`]. Batch via state.
+//! [`SarParams`] → [`sar`] / [`SarState`] → [`sar_solution`]. Batch via state.  
+//! Initial long/short seed uses a simple first-bar extreme heuristic (documented convention;
+//! platforms differ slightly on the very first flip).
 
 use crate::stocks::ta::common::{opt_cell, require_hlc};
 use crate::util::error::{require_finite, FinanceError, FinanceResult};

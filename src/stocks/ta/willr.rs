@@ -15,10 +15,29 @@
 //!
 //! ## Trading perspective
 //!
-//! | Region | Habit (classic) |
-//! |--------|-----------------|
+//! | Region | Habit (classic, not a rule) |
+//! |--------|-----------------------------|
 //! | %R \> −20 | “Overbought” screen |
 //! | %R \< −80 | “Oversold” screen |
+//! | Cross back from extreme | Momentum resume / mean-reversion exit screen |
+//!
+//! ## vs other oscillators
+//!
+//! | | Williams %R | Stochastic | RSI |
+//! |--|-------------|------------|-----|
+//! | Scale | \[−100, 0\] | \[0, 100\] | \[0, 100\] |
+//! | Inputs | H/L/C window | H/L/C + smooth | Closes only |
+//! | Feel | Fast, inverted Stoch-like | Smoothed %K/%D | Wilder smooth, slower |
+//!
+//! Rough map: raw Stoch %K ≈ `100 + %R` (same HH/LL idea; sign/offset differ). Prefer
+//! **Stochastic** when you want %D signal line; **%R** when you want a single fast line.
+//!
+//! ## Pairs well with
+//!
+//! - **ADX / DI** — only fade %R extremes when ADX is low (range); avoid fading when ADX is high.
+//! - **SMA/EMA trend filter** — long setups only above rising MA, etc.
+//! - **Volume (OBV/MFI)** — confirm oversold bounce with rising money flow.
+//! - **ATR stops** — oscillator does not size risk; ATR does.
 //!
 //! ---
 //!

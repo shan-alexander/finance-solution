@@ -8,16 +8,44 @@
 //! ROCP[i] = (close[i] − close[i−N]) / close[i−N]         // fraction
 //! ```
 //!
-//! Warm-up: first \(N\) bars are `None`. If `close[i−N] == 0`, ROC/ROCP are `None`.
+//! Warm-up: first \(N\) bars are `None`. If `close[i−N] == 0`, ROC/ROCP are `None`
+//! (MOM can still be defined).
 //!
 //! Defaults: **period 10** ([`MomParams::period_10`]).
+//!
+//! ---
+//!
+//! ## Trading perspective
+//!
+//! | Reading | Habit (classic) |
+//! |---------|-----------------|
+//! | ROC \> 0 | Price above N-bar-ago close (up momentum) |
+//! | ROC zero cross | Momentum flip screen |
+//! | Rising ROC while price flat | Acceleration narrative |
+//!
+//! **MOM** is absolute points (scale depends on price level). **ROC/ROCP** are scale-free —
+//! prefer them when comparing names or eras.
+//!
+//! ## vs RSI / MACD
+//!
+//! | | MOM/ROC | RSI | MACD |
+//! |--|---------|-----|------|
+//! | Lag / smooth | None (raw N-bar change) | Wilder smooth | Dual EMA smooth |
+//! | Best for | Simple impulse / ranking | Bounded OB/OS | Crossover systems |
+//!
+//! ## Pairs well with
+//!
+//! - **SMA/EMA** — only long when ROC \> 0 and price above MA.
+//! - **ADX** — strong ROC moves with rising ADX = trend impulse.
+//! - **Bollinger** — ROC spike into band tag for exhaustion screens.
 //!
 //! ---
 //!
 //! ## Engineering
 //!
 //! [`MomParams`] → [`mom`] / [`roc`] / [`rocp`] / [`MomState`] → [`mom_solution`].  
-//! Batch uses [`MomState`]. After warm-up each push is **O(1)** (ring of closes).
+//! Batch uses [`MomState`]. After warm-up each push is **O(1)** (ring of lag closes).
+//! One state computes all three outputs per bar ([`MomBarOutput`]).
 
 use crate::stocks::ta::common::{opt_cell, validate_series};
 use crate::stocks::ta::ring::RingF64;

@@ -16,10 +16,37 @@
 //!
 //! ---
 //!
+//! ## Trading perspective
+//!
+//! | Event | Habit (classic) |
+//! |-------|-----------------|
+//! | Direction flips to +1 | Long regime / trail under price |
+//! | Direction flips to −1 | Short regime / trail over price |
+//! | Price pulls to ST line | Support/resistance screen in trend |
+//!
+//! Supertrend is a **stop + regime** tool, not an oscillator. Mult↑ → fewer flips, wider trail.
+//!
+//! ## vs Parabolic SAR / Donchian / Keltner
+//!
+//! | | Supertrend | SAR | Donchian | Keltner |
+//! |--|------------|-----|----------|---------|
+//! | Driver | ATR × mid | Acceleration on extremes | Pure HH/LL | EMA + ATR |
+//! | Flip style | Close through band | Touch SAR | Channel break | Band tag |
+//! | Best for | ATR-scaled trail | Fast reverse systems | Breakout structure | Channel mean reversion |
+//!
+//! ## Pairs well with
+//!
+//! - **ADX** — enter Supertrend flips only when ADX rising / above threshold.
+//! - **Volume (OBV/RVOL)** — confirm breakout volume.
+//! - **Higher-timeframe MA** — only long Supertrend with HTF trend.
+//!
+//! ---
+//!
 //! ## Engineering
 //!
 //! [`SupertrendParams`] → [`supertrend`] / [`SupertrendState`] → [`supertrend_solution`].  
-//! Uses shared [`AtrState`]. Batch via state.
+//! Uses shared [`AtrState`] (Wilder). Batch via state.  
+//! First defined bar seeds direction from close vs mid (implementation convention).
 
 use crate::stocks::ta::atr::{AtrParams, AtrState};
 use crate::stocks::ta::common::{opt_cell, require_hlc};

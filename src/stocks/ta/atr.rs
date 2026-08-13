@@ -13,6 +13,15 @@
 //!
 //! Also public: [`true_range_series`] (per-bar TR) and [`natr`] (normalized ATR = `100 * ATR / close`).
 //!
+//! | Helper | Use when |
+//! |--------|----------|
+//! | [`atr`] | Absolute volatility (price units) for stops / Keltner / Supertrend |
+//! | [`natr`] | Compare volatility **across names** (percent of price) |
+//! | [`true_range_series`] | Bar-level range including gaps (building block / research) |
+//!
+//! Pair **ATR** with Supertrend, Keltner, position sizing; pair **NATR** with cross-sectional
+//! screens; pair **TR** with custom range stats.
+//!
 //! ---
 //!
 //! ## Trading perspective
