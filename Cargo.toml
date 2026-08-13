@@ -1,6 +1,6 @@
 [package]
 name = "finance-solution"
-version = "0.4.1"
+version = "0.4.2"
 authors = ["Shan Newton <shan.alexander2020@gmail.com>", "David Thureson <David.G.Thureson@gmail.com>"]
 edition = "2021"
 rust-version = "1.70"
@@ -69,6 +69,14 @@ result_large_err = "allow"
 
 [[bench]]
 name = "suite"
+harness = false
+
+[[bench]]
+name = "algo_hot_windows"
+harness = false
+
+[[bench]]
+name = "crr_tree_buffers"
 harness = false
 
 [[example]]

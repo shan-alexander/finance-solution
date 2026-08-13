@@ -12,6 +12,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - BAW / other American approximations
 - Optional PDE / Monte Carlo
 - Futures linear fair-value / basis helpers
+- Wave A desk TA breadth (ADX, OBV, …)
+
+## [0.4.2] — 2026-08-12
+
+Performance and API-coherence release: same public indicator/derivative set as 0.4.1, with **faster streaming TA** and **batch = stream** math paths. **No** dual panicking / `try_*` public math.
+
+### Changed
+
+**TA hot windows (after warm-up)**
+
+- **WMA / HMA:** O(1) sliding weighted sum (`W' = W − Σ + n·p_new`)
+- **Bollinger:** O(1) via running `Σ` / `Σx²` (sample or population stdev)
+- **LinReg:** O(1) sufficient stats (`Σy`, `Σxy`, `Σy²`; fixed `x = 0..N−1`)
+- **Stoch** HH/LL and **Donchian** max/min: **amortized O(1)** monotonic deques
+- **`RingF64`:** `push` returns evicted oldest; `oldest()` helper for slides
+
+**Batch = stream**
+
+- Free functions / `Validated*::compute` for Stoch, Bollinger, MACD, RVOL, VWAP (and already state-backed SMA/EMA/WMA/HMA, RSI, ATR, LinReg, Donchian) route through the same `*State` machines as live `push`
+- **`MacdState::push_detail` / `push_bars_detail` / `MacdBarOutput`:** per-line warm-up (MACD before signal) for batch parity
+
+### Added
+
+- Criterion **`algo_hot_windows`**: before/after wallclock + parity gate  
+  (`cargo bench --bench algo_hot_windows`)
+- Criterion **`crr_tree_buffers`**: CRR alloc-per-layer vs ping-pong workspace experiment  
+  (measured: no production win; crate CRR unchanged)  
+  (`cargo bench --bench crr_tree_buffers`)
+- README performance table (desk-scale multi-indicator framing)
+
+### Docs
+
+- `stocks::ta` / `state` / crate root: hot-window costs, batch=stream, multi-indicator caller composition
+- Linear regression module: O(1) push documentation
 
 ## [0.4.1] — 2026-08-11
 

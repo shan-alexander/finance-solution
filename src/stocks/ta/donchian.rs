@@ -22,7 +22,9 @@
 //!
 //! ## Engineering
 //!
-//! [`DonchianParams`] → [`donchian`] / [`DonchianState`] → [`donchian_solution`].
+//! [`DonchianParams`] → [`donchian`] / [`DonchianState`] → [`donchian_solution`].  
+//! Live [`DonchianState::push`] is **amortized O(1)** via monotonic sliding max/min
+//! (not an O(period) scan of the window).
 //!
 //! ## Word problem
 //!
@@ -40,7 +42,7 @@
 //! ```
 
 use crate::stocks::ta::common::{opt_cell, require_same_len, validate_series};
-use crate::stocks::ta::ring::RingF64;
+use crate::stocks::ta::ring::{SlidingMax, SlidingMin};
 use crate::util::error::{require_finite, FinanceError, FinanceResult};
 use crate::util::primitives::PeriodLength;
 use crate::{columns_with_strings, print_table_locale_opt};
@@ -112,11 +114,13 @@ pub struct DonchianBarOutput {
 }
 
 /// Incremental Donchian.
+///
+/// After warm-up each [`push`](Self::push) is **amortized O(1)** (sliding max/min deques).
 #[derive(Clone, Debug)]
 pub struct DonchianState {
     params: DonchianParams,
-    high: RingF64,
-    low: RingF64,
+    high_max: SlidingMax,
+    low_min: SlidingMin,
     last: Option<DonchianBarOutput>,
 }
 
@@ -125,8 +129,8 @@ impl DonchianState {
         let _ = ValidatedDonchian::new(params)?;
         Ok(Self {
             params,
-            high: RingF64::with_capacity(params.period),
-            low: RingF64::with_capacity(params.period),
+            high_max: SlidingMax::with_window(params.period),
+            low_min: SlidingMin::with_window(params.period),
             last: None,
         })
     }
@@ -142,8 +146,8 @@ impl DonchianState {
     }
 
     pub fn reset(&mut self) {
-        self.high.clear();
-        self.low.clear();
+        self.high_max.clear();
+        self.low_min.clear();
         self.last = None;
     }
 
@@ -155,14 +159,12 @@ impl DonchianState {
                 message: "high must be >= low for each bar",
             });
         }
-        self.high.push(high);
-        self.low.push(low);
-        if !self.high.is_full() {
+        let u = self.high_max.push(high).unwrap();
+        let l = self.low_min.push(low).unwrap();
+        if !self.high_max.is_full() {
             self.last = None;
             return Ok(None);
         }
-        let u = self.high.max().unwrap();
-        let l = self.low.min().unwrap();
         let out = DonchianBarOutput {
             upper: u,
             middle: 0.5 * (u + l),

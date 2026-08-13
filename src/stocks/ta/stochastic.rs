@@ -72,8 +72,12 @@
 //! **This crate uses carry-forward (else 50).** Batch and [`StochState`] share the rule so live
 //! and research match. Documented so you can wrap with a different policy if your desk requires it.
 //!
+//! Batch [`stochastics`] / [`ValidatedStochastic::compute`] is **the same path** as live state:
+//! `StochState::new` + [`StochState::push_bars`] (amortized O(1) HH/LL + ring SMAs).
+//!
 use crate::stocks::ta::common::opt_cell;
-use crate::util::error::{require_finite, FinanceError, FinanceResult};
+use crate::stocks::ta::state::StochState;
+use crate::util::error::FinanceResult;
 use crate::util::primitives::PeriodLength;
 use crate::{columns_with_strings, print_table_locale_opt};
 
@@ -296,93 +300,15 @@ fn stochastics_validated(
     v: ValidatedStochastic,
 ) -> FinanceResult<StochasticSeries> {
     let p = v.params;
-    check_hlc(high, low, close)?;
-    let n = close.len();
-    let mut raw_k = vec![None; n];
-    let kp = p.k_period;
-    let mut prev_raw: Option<f64> = None;
-
-    for i in 0..n {
-        if i + 1 < kp {
-            continue;
-        }
-        let start = i + 1 - kp;
-        let mut hh = f64::NEG_INFINITY;
-        let mut ll = f64::INFINITY;
-        for j in start..=i {
-            hh = hh.max(high[j]);
-            ll = ll.min(low[j]);
-        }
-        let range = hh - ll;
-        // Flat window: carry previous raw %K, else 50 (see module docs).
-        let raw = if range == 0.0 {
-            prev_raw.unwrap_or(50.0)
-        } else {
-            100.0 * (close[i] - ll) / range
-        };
-        prev_raw = Some(raw);
-        raw_k[i] = Some(raw);
+    let mut st = StochState::new(p)?;
+    let bars = st.push_bars(high, low, close)?;
+    let mut k = Vec::with_capacity(bars.len());
+    let mut d = Vec::with_capacity(bars.len());
+    for b in bars {
+        k.push(b.k);
+        d.push(b.d);
     }
-
-    let smooth_k = sma_option_series(&raw_k, p.k_smooth);
-    let d_line = sma_option_series(&smooth_k, p.d_period);
-
-    Ok(StochasticSeries {
-        k: smooth_k,
-        d: d_line,
-        params: p,
-    })
-}
-
-/// SMA over a series that already contains `None` warm-up: only full windows of `Some` values.
-fn sma_option_series(data: &[Option<f64>], period: usize) -> Vec<Option<f64>> {
-    let n = data.len();
-    let mut out = vec![None; n];
-    if period == 0 || n < period {
-        return out;
-    }
-    for i in (period - 1)..n {
-        let start = i + 1 - period;
-        let mut sum = 0.0;
-        let mut ok = true;
-        for j in start..=i {
-            match data[j] {
-                Some(v) => sum += v,
-                None => {
-                    ok = false;
-                    break;
-                }
-            }
-        }
-        if ok {
-            out[i] = Some(sum / period as f64);
-        }
-    }
-    out
-}
-
-fn check_hlc(high: &[f64], low: &[f64], close: &[f64]) -> FinanceResult<()> {
-    if high.is_empty() {
-        return Err(FinanceError::EmptyInput { what: "high" });
-    }
-    if high.len() != low.len() || high.len() != close.len() {
-        return Err(FinanceError::LengthMismatch {
-            left: high.len(),
-            right: close.len(),
-            context: "stochastic high/low/close",
-        });
-    }
-    for i in 0..high.len() {
-        require_finite("high", high[i])?;
-        require_finite("low", low[i])?;
-        require_finite("close", close[i])?;
-        if high[i] < low[i] {
-            return Err(FinanceError::InvalidCashflow {
-                message: "high must be >= low for each bar",
-            });
-        }
-    }
-    Ok(())
+    Ok(StochasticSeries { k, d, params: p })
 }
 
 #[cfg(test)]

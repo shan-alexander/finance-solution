@@ -194,7 +194,7 @@ impl AtrState {
         let period = self.params.period;
         let tr = true_range(high, low, self.prev_close);
         let out = if self.atr.is_none() {
-            self.seed_tr.push(tr);
+            let _ = self.seed_tr.push(tr);
             if self.seed_tr.len() == period {
                 let a = self.seed_tr.iter().sum::<f64>() / period as f64;
                 self.atr = Some(a);

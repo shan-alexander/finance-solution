@@ -41,6 +41,8 @@
 //!
 //! ## Quant pattern
 //!
+//! Batch [`bollinger`] / [`ValidatedBollinger::compute`] uses [`BollingerState`] (O(1) Σ/Σx² after warm-up).
+//!
 //! ```
 //! use finance_solution::stocks::ta::{BollingerParams, ValidatedBollinger, BollingerState};
 //!
@@ -67,8 +69,8 @@
 //!
 //! `%B = (close − lower) / (upper − lower)` when width > 0; otherwise `None`.
 
-use crate::stocks::ta::common::{opt_cell, validate_series, window_stdev, StdevKind};
-use crate::stocks::ta::moving_average::sma;
+use crate::stocks::ta::common::{opt_cell, StdevKind};
+use crate::stocks::ta::state::BollingerState;
 use crate::util::error::{require_finite, FinanceError, FinanceResult};
 use crate::util::primitives::PeriodLength;
 use crate::{columns_with_strings, print_table_locale_opt};
@@ -273,31 +275,24 @@ pub fn bollinger_solution(
 }
 
 fn bollinger_validated(closes: &[f64], v: ValidatedBollinger) -> FinanceResult<BollingerSeries> {
-    validate_series("close", closes)?;
     let p = v.params;
-    let mid = sma(closes, p.period)?;
-    let n = closes.len();
+    let mut st = BollingerState::new(p)?;
+    let bars = st.push_bars(closes)?;
+    let n = bars.len();
+    let mut middle = vec![None; n];
     let mut upper = vec![None; n];
     let mut lower = vec![None; n];
     let mut pct_b = vec![None; n];
-    for i in 0..n {
-        if let Some(m) = mid[i] {
-            let start = i + 1 - p.period;
-            let window = &closes[start..=i];
-            let sd = window_stdev(window, p.stdev).unwrap_or(0.0);
-            let band = p.num_std * sd;
-            let u = m + band;
-            let l = m - band;
-            upper[i] = Some(u);
-            lower[i] = Some(l);
-            let width = u - l;
-            if width > 0.0 {
-                pct_b[i] = Some((closes[i] - l) / width);
-            }
+    for (i, bar) in bars.into_iter().enumerate() {
+        if let Some(b) = bar {
+            middle[i] = Some(b.middle);
+            upper[i] = Some(b.upper);
+            lower[i] = Some(b.lower);
+            pct_b[i] = b.pct_b;
         }
     }
     Ok(BollingerSeries {
-        middle: mid,
+        middle,
         upper,
         lower,
         pct_b,

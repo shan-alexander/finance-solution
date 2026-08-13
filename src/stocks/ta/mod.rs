@@ -10,7 +10,7 @@
 //! |-------|-----|------------|-----|
 //! | **Config** | `*Params` / `Validated*` (`Copy`) | O(1) validate once | Build at startup / `const` |
 //! | **Hot path (batch)** | `sma`, `ema`, `stochastics`, `macd`, … | O(n) pure math, no `String` | Research, backtests |
-//! | **Hot path (live)** | `SmaState` / `StochState` / … `push` / `push_bars` | O(1)–O(window) per bar | Streaming payloads |
+//! | **Hot path (live)** | `SmaState` / `StochState` / … `push` / `push_bars` | O(1) / amortized O(1) per bar | Streaming payloads |
 //! | **Solution** | `*_solution` | O(n) + formulas + tables | Teaching, audit, observability |
 //!
 //! # Quant ergonomics — recommended pattern (`const` + validate + `.compute`)
@@ -85,11 +85,22 @@
 //! multi-bar messages, or `from_history` then only push live updates. See [`state`] module docs
 //! and the README quant-engine sketch. **You** call `reset()` on VWAP when your calendar says so.
 //!
+//! **Every public TA indicator has a matching `*State`** (SMA/EMA/WMA/HMA, Stoch, MACD, BB,
+//! Keltner, Donchian, VWAP, RVOL, RSI, ATR, LinReg). Running *all* of them on one symbol each
+//! 5s bar is supported: hold one struct of states per symbol and call `push` sequentially.
+//! That is **caller-owned composition** (and multi-symbol parallelism is caller-side `rayon`).
+//! The crate does **not** ship a multi-indicator “run everything” engine.
+//!
+//! Hot-window slides (after warm-up): SMA/EMA/WMA/HMA/BB/LinReg/RSI/ATR/… are O(1);
+//! Stoch HH/LL and Donchian max/min are **amortized O(1)** via monotonic deques.
+//!
 //! Conventions worth knowing:
 //!
 //! - **Stochastic flat window** (HH == LL): carry previous raw %K, else 50.
 //! - **Bollinger stdev**: [`StdevKind::Sample`] (`n−1`) default; optional population (`n`).
-//! - **SMA/EMA batch** shares code with [`SmaState`] / [`EmaState`] (parity by construction).
+//! - **Batch = stream path:** free functions / `Validated*::compute` for SMA/EMA/WMA/HMA,
+//!   Stoch, MACD, Bollinger, RVOL, VWAP, RSI, ATR, LinReg, Donchian route through the same
+//!   `*State` machines as live `push` (parity by construction; amortized O(1) hot windows).
 
 pub mod atr;
 pub mod bollinger;

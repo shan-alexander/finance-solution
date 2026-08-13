@@ -17,95 +17,102 @@
 //! - No sockets, no multi-symbol registry, no auto “session open”
 //! - Day reset of VWAP/RVOL is **your** call to [`VwapState::reset`] / rebuild
 //!
-//! # Quant engine sketch (per symbol)
+//! # Quant engine sketch — **all TA on one symbol, every 5s bar**
+//!
+//! Desks often want every indicator updated on each bar. That is the intended use of
+//! `*State`: **one pipeline struct per symbol**, sequential `push` (microseconds), and
+//! `HashMap<Symbol, Pipeline>` + optional `rayon` **across symbols**. The crate does not
+//! parallelize indicators for a single bar (shared inputs; overhead dominates).
 //!
 //! ```
-//! use finance_solution::stocks::ta::{
-//!     StochasticParams, StochState, VwapParams, VwapState, EmaState,
-//! };
+//! use finance_solution::stocks::ta::*;
 //!
 //! const FAST: StochasticParams = StochasticParams::fast(9, 3);
+//! const MACD: MacdParams = MacdParams::standard();
+//! const BB: BollingerParams = BollingerParams::standard();
 //!
-//! struct SymbolPipeline {
-//!     stoch: StochState,
-//!     vwap: VwapState,
+//! /// Caller-owned: pack as many `*State` fields as the strategy needs.
+//! struct SymbolTa {
+//!     sma20: SmaState,
 //!     ema20: EmaState,
+//!     hma16: HmaState,
+//!     stoch: StochState,
+//!     macd: MacdState,
+//!     bb: BollingerState,
+//!     atr: AtrState,
+//!     rsi: RsiState,
+//!     vwap: VwapState,
+//!     donchian: DonchianState,
+//!     // …add LinReg, RVOL, Keltner, WMA, …
 //! }
 //!
-//! impl SymbolPipeline {
+//! impl SymbolTa {
 //!     fn new() -> finance_solution::FinanceResult<Self> {
 //!         Ok(Self {
-//!             stoch: StochState::new(FAST)?,
-//!             vwap: VwapState::new(VwapParams::cumulative_typical())?,
+//!             sma20: SmaState::new(20)?,
 //!             ema20: EmaState::new(20)?,
+//!             hma16: HmaState::new(16)?,
+//!             stoch: StochState::new(FAST)?,
+//!             macd: MacdState::new(MACD)?,
+//!             bb: BollingerState::new(BB)?,
+//!             atr: AtrState::new(AtrParams::period_14())?,
+//!             rsi: RsiState::new(RsiParams::period_14())?,
+//!             vwap: VwapState::new(VwapParams::cumulative_typical())?,
+//!             donchian: DonchianState::new(DonchianParams::period_20())?,
 //!         })
 //!     }
 //!
-//!     /// Seed from historical bars, then only push live bars.
-//!     fn seed_history(
-//!         &mut self,
-//!         high: &[f64],
-//!         low: &[f64],
-//!         close: &[f64],
-//!         volume: &[f64],
-//!     ) -> finance_solution::FinanceResult<()> {
-//!         self.stoch = StochState::from_history(FAST, high, low, close)?;
-//!         self.vwap = VwapState::from_history(
-//!             VwapParams::cumulative_typical(),
-//!             high, low, close, volume,
-//!         )?;
-//!         self.ema20 = EmaState::from_history(20, close)?;
-//!         Ok(())
-//!     }
-//!
-//!     fn on_bar(
+//!     fn on_5s_bar(
 //!         &mut self,
 //!         high: f64,
 //!         low: f64,
 //!         close: f64,
 //!         volume: f64,
 //!     ) -> finance_solution::FinanceResult<()> {
-//!         let _kd = self.stoch.push(high, low, close)?;
-//!         let _vw = self.vwap.push(high, low, close, volume)?;
-//!         let _e = self.ema20.push(close)?;
+//!         let _ = self.sma20.push(close)?;
+//!         let _ = self.ema20.push(close)?;
+//!         let _ = self.hma16.push(close)?;
+//!         let _ = self.stoch.push(high, low, close)?;
+//!         let _ = self.macd.push(close)?;
+//!         let _ = self.bb.push(close)?;
+//!         let _ = self.atr.push(high, low, close)?;
+//!         let _ = self.rsi.push(close)?;
+//!         let _ = self.vwap.push(high, low, close, volume)?;
+//!         let _ = self.donchian.push(high, low)?;
 //!         Ok(())
-//!     }
-//!
-//!     /// Caller owns the calendar — e.g. regular-session open.
-//!     fn on_session_open_reset_vwap(&mut self) {
-//!         self.vwap.reset();
-//!         // stoch/ema often continue; reset only if *your* strategy wants it
 //!     }
 //! }
 //!
-//! # let mut p = SymbolPipeline::new().unwrap();
-//! # p.on_bar(10.0, 9.0, 9.5, 1000.0).unwrap();
+//! # let mut p = SymbolTa::new().unwrap();
+//! # p.on_5s_bar(10.0, 9.0, 9.5, 1000.0).unwrap();
 //! ```
 //!
 //! # Parity with batch
 //!
-//! Streaming state is defined to match batch series functions on the same path
-//! (within floating-point tolerance). Prefer batch [`compute`](super::ValidatedStochastic::compute)
-//! for research; prefer state for live multi-symbol updates.
+//! Batch free functions and `Validated*::compute` **call the same `*State` path** as live
+//! `push` (parity by construction). Prefer batch for research notebooks; prefer holding
+//! state for multi-symbol live updates.
 //!
 //! | Batch | Incremental |
 //! |-------|-------------|
-//! | [`sma`](super::sma) | [`SmaState`] |
-//! | [`ema`](super::ema) | [`EmaState`] |
+//! | [`sma`](super::sma) / [`ema`](super::ema) | [`SmaState`] / [`EmaState`] |
+//! | [`wma`](super::wma) / [`hma`](super::hma) | [`WmaState`](super::WmaState) / [`HmaState`](super::HmaState) |
 //! | [`stochastics`](super::stochastics) | [`StochState`] |
 //! | [`macd`](super::macd) | [`MacdState`] |
 //! | [`bollinger`](super::bollinger) | [`BollingerState`] |
 //! | [`keltner`](super::keltner) | [`KeltnerState`] |
+//! | [`donchian`](super::donchian) | [`DonchianState`](super::DonchianState) |
 //! | [`vwap`](super::vwap) | [`VwapState`] |
 //! | [`rvol`](super::rvol) | [`RvolState`] |
-//! | [`rsi`](super::rsi) | [`RsiState`] |
-//! | [`atr`](super::atr) | [`AtrState`] |
+//! | [`rsi`](super::rsi) | [`RsiState`](super::RsiState) |
+//! | [`atr`](super::atr) | [`AtrState`](super::AtrState) |
+//! | [`linear_regression`](super::linear_regression) | [`LinRegState`](super::LinRegState) |
 
 use crate::stocks::ta::bollinger::{BollingerParams, ValidatedBollinger};
-use crate::stocks::ta::common::{require_hlc, validate_positive_volume, window_stdev};
+use crate::stocks::ta::common::{require_hlc, validate_positive_volume};
 use crate::stocks::ta::keltner::{KeltnerParams, ValidatedKeltner};
 use crate::stocks::ta::macd::{MacdParams, ValidatedMacd};
-use crate::stocks::ta::ring::{RingF64, RingPv};
+use crate::stocks::ta::ring::{RingF64, RingPv, SlidingMax, SlidingMin};
 use crate::stocks::ta::rvol::{RvolParams, ValidatedRvol};
 use crate::stocks::ta::stochastic::{StochasticParams, ValidatedStochastic};
 use crate::stocks::ta::vwap::{ValidatedVwap, VwapMode, VwapParams, VwapPriceSource};
@@ -120,6 +127,9 @@ pub use crate::stocks::ta::moving_average::{EmaState, SmaState};
 // ---------------------------------------------------------------------------
 
 /// Incremental stochastic (fast/full via [`StochasticParams`]).
+///
+/// Highest-high / lowest-low lookback is **amortized O(1)** per bar (sliding max/min);
+/// %K / %D SMAs stay O(1) via ring sums.
 ///
 /// # Examples
 /// ```
@@ -141,9 +151,8 @@ pub use crate::stocks::ta::moving_average::{EmaState, SmaState};
 #[derive(Clone, Debug)]
 pub struct StochState {
     params: StochasticParams,
-    high: RingF64,
-    low: RingF64,
-    close: RingF64,
+    high_max: SlidingMax,
+    low_min: SlidingMin,
     raw_k: RingF64,
     smooth_k: RingF64,
     last_k: Option<f64>,
@@ -157,9 +166,8 @@ impl StochState {
         let _ = ValidatedStochastic::new(params)?;
         Ok(Self {
             params,
-            high: RingF64::with_capacity(params.k_period),
-            low: RingF64::with_capacity(params.k_period),
-            close: RingF64::with_capacity(params.k_period),
+            high_max: SlidingMax::with_window(params.k_period),
+            low_min: SlidingMin::with_window(params.k_period),
             raw_k: RingF64::with_capacity(params.k_smooth),
             smooth_k: RingF64::with_capacity(params.d_period),
             last_k: None,
@@ -187,9 +195,8 @@ impl StochState {
     }
 
     pub fn reset(&mut self) {
-        self.high.clear();
-        self.low.clear();
-        self.close.clear();
+        self.high_max.clear();
+        self.low_min.clear();
         self.raw_k.clear();
         self.smooth_k.clear();
         self.last_k = None;
@@ -224,16 +231,13 @@ impl StochState {
                 message: "high must be >= low for each bar",
             });
         }
-        self.high.push(high);
-        self.low.push(low);
-        self.close.push(close);
+        let hh = self.high_max.push(high).unwrap();
+        let ll = self.low_min.push(low).unwrap();
 
         let mut k_out = None;
         let mut d_out = None;
 
-        if self.high.is_full() {
-            let hh = self.high.max().unwrap();
-            let ll = self.low.min().unwrap();
+        if self.high_max.is_full() {
             let range = hh - ll;
             // Flat window: carry previous raw %K, else 50 (matches batch stochastics).
             let raw = if range == 0.0 {
@@ -242,12 +246,12 @@ impl StochState {
                 100.0 * (close - ll) / range
             };
             self.prev_raw_k = Some(raw);
-            self.raw_k.push(raw);
+            let _ = self.raw_k.push(raw);
             if self.raw_k.is_full() {
                 let sk = self.raw_k.sum() / self.params.k_smooth as f64;
                 self.last_k = Some(sk);
                 k_out = Some(sk);
-                self.smooth_k.push(sk);
+                let _ = self.smooth_k.push(sk);
                 if self.smooth_k.is_full() {
                     let d = self.smooth_k.sum() / self.params.d_period as f64;
                     self.last_d = Some(d);
@@ -332,22 +336,46 @@ impl MacdState {
 
     /// `Some((macd, signal, hist))` when all three are defined.
     pub fn push(&mut self, close: f64) -> FinanceResult<Option<(f64, f64, f64)>> {
+        let d = self.push_detail(close)?;
+        match (d.macd, d.signal, d.histogram) {
+            (Some(m), Some(s), Some(h)) => Ok(Some((m, s, h))),
+            _ => Ok(None),
+        }
+    }
+
+    /// Per-line warm-up: MACD may be `Some` before signal/histogram.
+    pub fn push_detail(&mut self, close: f64) -> FinanceResult<MacdBarOutput> {
         let f = self.fast.push(close)?;
         let s = self.slow.push(close)?;
         let macd_line = match (f, s) {
             (Some(a), Some(b)) => a - b,
-            _ => return Ok(None),
+            _ => {
+                self.last = None;
+                return Ok(MacdBarOutput {
+                    macd: None,
+                    signal: None,
+                    histogram: None,
+                });
+            }
         };
         let sig = self.signal.push(macd_line)?;
         match sig {
             Some(signal) => {
                 let hist = macd_line - signal;
                 self.last = Some((macd_line, signal, hist));
-                Ok(Some((macd_line, signal, hist)))
+                Ok(MacdBarOutput {
+                    macd: Some(macd_line),
+                    signal: Some(signal),
+                    histogram: Some(hist),
+                })
             }
             None => {
                 self.last = None;
-                Ok(None)
+                Ok(MacdBarOutput {
+                    macd: Some(macd_line),
+                    signal: None,
+                    histogram: None,
+                })
             }
         }
     }
@@ -356,7 +384,7 @@ impl MacdState {
         self.last
     }
 
-    /// Push many closes from one payload.
+    /// Push many closes from one payload (full triple only when signal is ready).
     pub fn push_bars(&mut self, closes: &[f64]) -> FinanceResult<Vec<Option<(f64, f64, f64)>>> {
         let mut out = Vec::with_capacity(closes.len());
         for &c in closes {
@@ -364,18 +392,38 @@ impl MacdState {
         }
         Ok(out)
     }
+
+    /// Push many closes; each bar may have MACD before signal (batch/parity path).
+    pub fn push_bars_detail(&mut self, closes: &[f64]) -> FinanceResult<Vec<MacdBarOutput>> {
+        let mut out = Vec::with_capacity(closes.len());
+        for &c in closes {
+            out.push(self.push_detail(c)?);
+        }
+        Ok(out)
+    }
+}
+
+/// One-bar MACD output (signal/hist may still be warming up).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MacdBarOutput {
+    pub macd: Option<f64>,
+    pub signal: Option<f64>,
+    pub histogram: Option<f64>,
 }
 
 // ---------------------------------------------------------------------------
 // Bollinger
 // ---------------------------------------------------------------------------
 
-/// Incremental Bollinger Bands (sample stdev on the window).
+/// Incremental Bollinger Bands.
+///
+/// After warm-up each [`push`](Self::push) is **O(1)** via running `Σ` / `Σx²`
+/// (sample or population stdev from the ring sum).
 #[derive(Clone, Debug)]
 pub struct BollingerState {
     params: BollingerParams,
     ring: RingF64,
-    scratch: Vec<f64>,
+    sum_sq: f64,
     last: Option<BollingerBarOutput>,
 }
 
@@ -394,7 +442,7 @@ impl BollingerState {
         Ok(Self {
             params,
             ring: RingF64::with_capacity(params.period),
-            scratch: Vec::with_capacity(params.period),
+            sum_sq: 0.0,
             last: None,
         })
     }
@@ -413,19 +461,36 @@ impl BollingerState {
 
     pub fn reset(&mut self) {
         self.ring.clear();
+        self.sum_sq = 0.0;
         self.last = None;
     }
 
     pub fn push(&mut self, close: f64) -> FinanceResult<Option<BollingerBarOutput>> {
         require_finite("close", close)?;
-        self.ring.push(close);
+        let n = self.params.period as f64;
+        if let Some(old) = self.ring.push(close) {
+            self.sum_sq += close * close - old * old;
+        } else {
+            self.sum_sq += close * close;
+        }
         if !self.ring.is_full() {
             self.last = None;
             return Ok(None);
         }
-        self.ring.copy_ordered(&mut self.scratch);
-        let mid = self.ring.sum() / self.params.period as f64;
-        let sd = window_stdev(&self.scratch, self.params.stdev).unwrap_or(0.0);
+        let sum = self.ring.sum();
+        let mid = sum / n;
+        // population var = E[x²] - mean²; sample uses (n-1) denominator on Σ(x-μ)²
+        let ss = (self.sum_sq - sum * sum / n).max(0.0);
+        let sd = match self.params.stdev {
+            crate::stocks::ta::common::StdevKind::Population => (ss / n).sqrt(),
+            crate::stocks::ta::common::StdevKind::Sample => {
+                if n > 1.0 {
+                    (ss / (n - 1.0)).sqrt()
+                } else {
+                    0.0
+                }
+            }
+        };
         let band = self.params.num_std * sd;
         let upper = mid + band;
         let lower = mid - band;
@@ -767,7 +832,7 @@ impl RvolState {
                 message: "volume must be non-negative",
             });
         }
-        self.ring.push(volume);
+        let _ = self.ring.push(volume);
         if !self.ring.is_full() {
             self.last = None;
             return Ok(None);

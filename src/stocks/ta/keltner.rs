@@ -227,8 +227,9 @@ fn keltner_validated(
 ) -> FinanceResult<KeltnerSeries> {
     require_hlc(high, low, close)?;
     let p = v.params;
+    // Legs are already state-backed (`ema` / `atr`); compose for independent warm-up
+    // (mid or ATR may appear before both are ready for the channel).
     let middle = ema(close, p.ema_period)?;
-    // Single Wilder ATR implementation (shared with `stocks::ta::atr`).
     let atr_series = atr(high, low, close, AtrParams::new(p.atr_period))?;
     let atr_vals = atr_series.atr;
     let n = close.len();

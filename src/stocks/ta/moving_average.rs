@@ -122,7 +122,7 @@ impl SmaState {
     /// Push one close. `None` until `period` samples seen.
     pub fn push(&mut self, close: f64) -> FinanceResult<Option<f64>> {
         require_finite("close", close)?;
-        self.ring.push(close);
+        let _ = self.ring.push(close);
         if self.ring.is_full() {
             Ok(Some(self.ring.sum() / self.period as f64))
         } else {
@@ -205,7 +205,7 @@ impl EmaState {
             self.value = Some(next);
             return Ok(Some(next));
         }
-        self.seed.push(close);
+        let _ = self.seed.push(close);
         if self.seed.is_full() {
             let seed = self.seed.sum() / self.period as f64;
             self.value = Some(seed);
@@ -330,12 +330,16 @@ pub fn ema_last(closes: &[f64], period: usize) -> FinanceResult<Option<f64>> {
 /// \[
 /// \mathrm{WMA} = \frac{\sum_{i=1}^{n} i\, P_{t-n+i}}{\sum_{i=1}^{n} i}
 /// \]
+///
+/// After warm-up each [`push`](Self::push) is **O(1)** via the sliding identity  
+/// `W' = W − Σ + n·p_new` (with ring sum for `Σ`).
 #[derive(Clone, Debug)]
 pub struct WmaState {
     period: usize,
     ring: RingF64,
     weight_sum: f64,
-    ordered: Vec<f64>,
+    /// Numerator `Σ i·P_i` once the window is full.
+    weighted: Option<f64>,
 }
 
 impl WmaState {
@@ -346,7 +350,7 @@ impl WmaState {
             period,
             ring: RingF64::with_capacity(period),
             weight_sum,
-            ordered: Vec::with_capacity(period),
+            weighted: None,
         })
     }
 
@@ -362,21 +366,35 @@ impl WmaState {
 
     pub fn reset(&mut self) {
         self.ring.clear();
-        self.ordered.clear();
+        self.weighted = None;
     }
 
     pub fn push(&mut self, close: f64) -> FinanceResult<Option<f64>> {
         require_finite("close", close)?;
-        self.ring.push(close);
-        if !self.ring.is_full() {
-            return Ok(None);
+        let n = self.period as f64;
+        if let Some(w) = self.weighted {
+            // Full window: O(1) slide.
+            let sum_before = self.ring.sum();
+            let _old = self.ring.push(close);
+            // W' = W - sum_old + n * p_new  (sum_old is sum before push)
+            let w_new = w - sum_before + n * close;
+            self.weighted = Some(w_new);
+            Ok(Some(w_new / self.weight_sum))
+        } else {
+            let _ = self.ring.push(close);
+            if !self.ring.is_full() {
+                return Ok(None);
+            }
+            // First full window: O(n) seed of weighted sum.
+            let mut ordered = Vec::with_capacity(self.period);
+            self.ring.copy_ordered(&mut ordered);
+            let mut num = 0.0;
+            for (i, &p) in ordered.iter().enumerate() {
+                num += (i + 1) as f64 * p;
+            }
+            self.weighted = Some(num);
+            Ok(Some(num / self.weight_sum))
         }
-        self.ring.copy_ordered(&mut self.ordered);
-        let mut num = 0.0;
-        for (i, &p) in self.ordered.iter().enumerate() {
-            num += (i + 1) as f64 * p;
-        }
-        Ok(Some(num / self.weight_sum))
     }
 
     pub fn push_bars(&mut self, closes: &[f64]) -> FinanceResult<Vec<Option<f64>>> {
@@ -388,17 +406,7 @@ impl WmaState {
     }
 
     pub fn last(&self) -> Option<f64> {
-        if !self.ring.is_full() {
-            return None;
-        }
-        // recompute from ring (state may have been cloned)
-        let mut ordered = Vec::with_capacity(self.period);
-        self.ring.copy_ordered(&mut ordered);
-        let mut num = 0.0;
-        for (i, &p) in ordered.iter().enumerate() {
-            num += (i + 1) as f64 * p;
-        }
-        Some(num / self.weight_sum)
+        self.weighted.map(|w| w / self.weight_sum)
     }
 }
 

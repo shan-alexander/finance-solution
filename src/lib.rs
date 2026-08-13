@@ -1,12 +1,15 @@
 //! `finance_solution` is a collection of financial functions for time-value-of-money, cashflows,
-//! amortization, returns, equity path metrics, **technical analysis** (`stocks::ta`), and
-//! **European option math** (`derivatives`: BSM + Black ’76 + Garman–Kohlhagen; price, Greeks, cross Greeks, IV).
+//! amortization, returns, equity path metrics, **technical analysis** ([`stocks::ta`]), and
+//! **options** ([`derivatives`]: BSM, Black ’76, Garman–Kohlhagen, CRR American/European tree;
+//! price, Greeks, cross Greeks, IV).
 //!
-//! In addition to being rigorously tested with symmetry tests, Excel-matching tests, and
-//! property tests on TA batch↔stream parity, the library provides `solution` structs with
-//! formulas and period-by-period series — useful for financial software audit trails and for
-//! students of finance. Live systems can use incremental `*State` types (`push` / `push_bars`)
-//! without this crate owning market data or multi-symbol orchestration.
+//! In addition to symmetry tests, Excel-matching tests, and proptests on TA **batch ↔ stream**
+//! parity, the library provides `solution` structs with formulas and period-by-period series —
+//! useful for audit trails and teaching. Live systems hold incremental `*State` types
+//! (`push` / `push_bars`) without this crate owning market data or multi-symbol orchestration.
+//!
+//! TA hot paths after warm-up are **O(1)** or amortized O(1) (sliding sums / deques); free
+//! functions share the same `*State` math as streaming.
 //!
 //! # Error handling (v0.1+)
 //!

@@ -47,7 +47,7 @@
 //!     20  2000.00  1.7540
 //! ```
 
-use crate::stocks::ta::common::{opt_cell, validate_positive_volume};
+use crate::stocks::ta::common::opt_cell;
 use crate::util::error::FinanceResult;
 use crate::util::primitives::PeriodLength;
 use crate::{columns_with_strings, print_table_locale_opt};
@@ -188,30 +188,10 @@ pub fn rvol_solution(volume: &[f64], params: RvolParams) -> FinanceResult<RvolSo
 }
 
 fn rvol_validated(volume: &[f64], v: ValidatedRvol) -> FinanceResult<RvolSeries> {
-    validate_positive_volume(volume)?;
-    let lb = v.params.lookback;
-    let n = volume.len();
-    let mut out = vec![None; n];
-    if n < lb {
-        return Ok(RvolSeries {
-            rvol: out,
-            params: v.params,
-        });
-    }
-    let mut sum: f64 = volume[..lb].iter().sum();
-    let mean0 = sum / lb as f64;
-    if mean0 > 0.0 {
-        out[lb - 1] = Some(volume[lb - 1] / mean0);
-    }
-    for i in lb..n {
-        sum += volume[i] - volume[i - lb];
-        let mean = sum / lb as f64;
-        if mean > 0.0 {
-            out[i] = Some(volume[i] / mean);
-        }
-    }
+    let mut st = crate::stocks::ta::state::RvolState::new(v.params)?;
+    let rvol = st.push_bars(volume)?;
     Ok(RvolSeries {
-        rvol: out,
+        rvol,
         params: v.params,
     })
 }

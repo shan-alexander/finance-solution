@@ -58,9 +58,7 @@
 //!      2  11.5000  150.00  10.6111
 //! ```
 
-use crate::stocks::ta::common::{
-    opt_cell, require_hlc, require_same_len, validate_positive_volume,
-};
+use crate::stocks::ta::common::opt_cell;
 use crate::util::error::FinanceResult;
 use crate::util::primitives::PeriodLength;
 use crate::{columns_with_strings, print_table_locale_opt};
@@ -257,49 +255,19 @@ fn vwap_validated(
     volume: &[f64],
     v: ValidatedVwap,
 ) -> FinanceResult<VwapSeries> {
-    require_hlc(high, low, close)?;
-    validate_positive_volume(volume)?;
-    require_same_len(close, volume, "close/volume")?;
     let p = v.params;
     let n = close.len();
-    let mut typical = vec![0.0; n];
+    let mut typical = Vec::with_capacity(n);
     for i in 0..n {
-        typical[i] = match p.price_source {
+        // Typical is a pure bar transform for tables; VWAP math lives in VwapState.
+        let t = match p.price_source {
             VwapPriceSource::Typical => (high[i] + low[i] + close[i]) / 3.0,
             VwapPriceSource::Close => close[i],
         };
+        typical.push(t);
     }
-    let mut vwap_out = vec![None; n];
-    match p.mode {
-        VwapMode::Cumulative => {
-            let mut cum_pv = 0.0;
-            let mut cum_v = 0.0;
-            for i in 0..n {
-                cum_pv += typical[i] * volume[i];
-                cum_v += volume[i];
-                if cum_v > 0.0 {
-                    vwap_out[i] = Some(cum_pv / cum_v);
-                }
-            }
-        }
-        VwapMode::Rolling { period } => {
-            for i in 0..n {
-                if i + 1 < period {
-                    continue;
-                }
-                let start = i + 1 - period;
-                let mut pv = 0.0;
-                let mut vv = 0.0;
-                for j in start..=i {
-                    pv += typical[j] * volume[j];
-                    vv += volume[j];
-                }
-                if vv > 0.0 {
-                    vwap_out[i] = Some(pv / vv);
-                }
-            }
-        }
-    }
+    let mut st = crate::stocks::ta::state::VwapState::new(p)?;
+    let vwap_out = st.push_bars(high, low, close, volume)?;
     Ok(VwapSeries {
         typical,
         vwap: vwap_out,

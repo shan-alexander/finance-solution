@@ -24,6 +24,8 @@
 //!
 //! ## Quant pattern
 //!
+//! Batch [`macd`] / [`ValidatedMacd::compute`] uses [`MacdState`] end-to-end (same path as live).
+//!
 //! ```
 //! use finance_solution::stocks::ta::{MacdParams, ValidatedMacd, MacdState};
 //!
@@ -47,7 +49,7 @@
 //! ```
 
 use crate::stocks::ta::common::{opt_cell, validate_series};
-use crate::stocks::ta::moving_average::ema;
+use crate::stocks::ta::state::MacdState;
 use crate::util::error::{FinanceError, FinanceResult};
 use crate::util::primitives::PeriodLength;
 use crate::{columns_with_strings, print_table_locale_opt};
@@ -227,23 +229,16 @@ pub fn macd_solution(closes: &[f64], params: MacdParams) -> FinanceResult<MacdSo
 fn macd_validated(closes: &[f64], v: ValidatedMacd) -> FinanceResult<MacdSeries> {
     validate_series("close", closes)?;
     let p = v.params;
-    let fast = ema(closes, p.fast)?;
-    let slow = ema(closes, p.slow)?;
-    let n = closes.len();
+    let mut st = MacdState::new(p)?;
+    let bars = st.push_bars_detail(closes)?;
+    let n = bars.len();
     let mut macd_line = vec![None; n];
-    for i in 0..n {
-        match (fast[i], slow[i]) {
-            (Some(f), Some(s)) => macd_line[i] = Some(f - s),
-            _ => {}
-        }
-    }
-    let signal = ema_on_option_series(&macd_line, p.signal);
+    let mut signal = vec![None; n];
     let mut histogram = vec![None; n];
-    for i in 0..n {
-        match (macd_line[i], signal[i]) {
-            (Some(m), Some(s)) => histogram[i] = Some(m - s),
-            _ => {}
-        }
+    for (i, b) in bars.into_iter().enumerate() {
+        macd_line[i] = b.macd;
+        signal[i] = b.signal;
+        histogram[i] = b.histogram;
     }
     Ok(MacdSeries {
         macd: macd_line,
@@ -251,42 +246,6 @@ fn macd_validated(closes: &[f64], v: ValidatedMacd) -> FinanceResult<MacdSeries>
         histogram,
         params: p,
     })
-}
-
-/// EMA over a series with warm-up `None`s: seed with SMA of first `period` defined values
-/// in order of first availability is awkward — instead: collect contiguous once enough
-/// `Some` values exist from the left after first Some.
-///
-/// Practical approach: build dense vector of macd values with index mapping; run EMA on dense
-/// then scatter back. First seed = SMA of first `period` dense points.
-fn ema_on_option_series(data: &[Option<f64>], period: usize) -> Vec<Option<f64>> {
-    let n = data.len();
-    let mut out = vec![None; n];
-    if period == 0 {
-        return out;
-    }
-    // Gather (index, value) for defined macd points
-    let pts: Vec<(usize, f64)> = data
-        .iter()
-        .enumerate()
-        .filter_map(|(i, v)| v.map(|x| (i, x)))
-        .collect();
-    if pts.len() < period {
-        return out;
-    }
-    let mut sum = 0.0;
-    for j in 0..period {
-        sum += pts[j].1;
-    }
-    let mut prev = sum / period as f64;
-    let seed_idx = pts[period - 1].0;
-    out[seed_idx] = Some(prev);
-    let alpha = 2.0 / (period as f64 + 1.0);
-    for j in period..pts.len() {
-        prev = alpha * pts[j].1 + (1.0 - alpha) * prev;
-        out[pts[j].0] = Some(prev);
-    }
-    out
 }
 
 #[cfg(test)]

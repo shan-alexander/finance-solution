@@ -15,5 +15,6 @@
 
 # Local planning / design notes — not part of the published crate or git history
 roadmap_to_v0.1.md
+roadmap_to_v1.0.md
 rust_design_patterns.md
 rust_design_patterns_tldr.md

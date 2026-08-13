@@ -21,9 +21,9 @@ In the v0.0.0 release, this library was geared only towards the basic financial 
 
 > The v0.3.0 release added the **`derivatives`** module (European Black–Scholes–Merton price, Greeks ΔΓθνρ, implied vol, put–call parity helpers, `BsmState`) plus a real 1m OHLCV example joining underlier TA with a BSM snapshot.
 
-> **Current Status:** **0.4.1** (edition 2021, MSRV 1.70). Extends derivatives (cross Greeks; Black ’76; Garman–Kohlhagen; CRR American/European tree + American IV) and TA (RSI, ATR, WMA/HMA, Donchian, LinReg), with deeper proptests and audit polish. Public math remains **Result-only** — no dual panicking / `try_*` APIs. The crate is a **math library** for engines and frameworks (not a market-data feed or order router).
+> **Current Status:** **0.4.2** (edition 2021, MSRV 1.70). Same public surface as 0.4.x (TVM → TA → options/CRR), with **algorithmic TA hot-window slides** (WMA/HMA, Bollinger, LinReg, Stoch HH/LL, Donchian) and **batch = stream** via shared `*State` paths. Public math remains **Result-only** — no dual panicking / `try_*` APIs. The crate is a **math library** for engines and frameworks (not a market-data feed or order router).
 
-## Modules (0.4 layout)
+## Modules (0.4.x layout)
 
 | Module | Contents |
 |--------|----------|
@@ -477,7 +477,8 @@ path.series().print_table();
 cargo test
 cargo test --doc
 cargo clippy --all-targets -- -D warnings
-cargo bench   # optional Criterion suites (local / on demand)
+cargo bench --bench suite              # TVM / TA / options
+cargo bench --bench algo_hot_windows   # before/after O(window)→O(1) TA slides
 ```
 
 Symmetry tests, Excel golden values, integration tests, **TA proptests** (batch ↔ stream parity), and **TVM identity proptests** cover the core surface. Derivatives unit tests cover BSM (incl. cross Greeks), Black ’76, Garman–Kohlhagen, CRR / American IV, and live `*State` types. CI runs build, tests, doctests, clippy, and fmt on **stable** and **MSRV 1.70**, and asserts there are no public `try_*` dual-API symbols.
@@ -486,6 +487,37 @@ Symmetry tests, Excel golden values, integration tests, **TA proptests** (batch 
 
 - **crates.io** ships the library + small examples; large OHLCV under `examples/data/` is **excluded** (see `Cargo.toml` `exclude`).
 - Clone from **GitHub** if you want `cargo run --example real_bars_ta_bsm --release`.
+
+## Performance — algorithmic hot windows (quant scale)
+
+Live TA is built for **incremental** `*State::push` per bar: several indicators were upgraded from **O(window)** rescans to **O(1)** sliding identities (WMA / HMA, Bollinger Σ/Σx², LinReg sufficient stats). Batch series use the same math paths as streaming where applicable.
+
+That matters at desk scale: dozens of indicators × hundreds of symbols × 5s/1m bars is a **caller-owned** loop of pure `push` calls (optionally parallelize **across symbols** with `rayon`). Per-bar work stays in the **nanosecond–microsecond** class after warm-up, so a full multi-indicator refresh over a liquid universe is realistically **well under one second** on a single machine — dominated by I/O and your strategy logic, not the math.
+
+### Before vs after (Criterion)
+
+Harness: `cargo bench --bench algo_hot_windows`  
+Compares harness-only **before** (O(window) rescans) against production **after** (`WmaState`, `BollingerState`, `LinRegState`, `HmaState`, `DonchianState`, `StochState`). Parity is asserted at bench startup; times below are Criterion **medians** for one full streaming pass over `n` synthetic bars (local machine; re-run to refresh).
+
+| Indicator | Workload | Before (O(window)) | After (O(1)) | Speedup |
+|-----------|----------|--------------------|--------------|---------|
+| **WMA** | 50k bars × window 200 | 13.6 ms | 302 µs | **~45×** |
+| **WMA** | 10k × 100 | 1.43 ms | 58 µs | **~25×** |
+| **LinReg** | 50k × 200 | 37.7 ms | 1.73 ms | **~22×** |
+| **LinReg** | 10k × 100 | 4.06 ms | 353 µs | **~12×** |
+| **Bollinger** | 50k × 200 | 12.2 ms | 747 µs | **~16×** |
+| **Bollinger** | 10k × 100 | 1.26 ms | 147 µs | **~8.6×** |
+| **HMA** (via WMA) | 50k × 100 | 11.8 ms | 1.16 ms | **~10×** |
+| **HMA** | 10k × 64 | 1.53 ms | 237 µs | **~6.4×** |
+| **Donchian** | 50k × 200 | 10.9 ms | 1.37 ms | **~7.9×** |
+| **Donchian** | 10k × 100 | 1.14 ms | 259 µs | **~4.4×** |
+| **Stoch** (fast HH/LL) | 50k × k=200 | 11.7 ms | 2.28 ms | **~5.1×** |
+| **Stoch** | 10k × k=100 | 1.28 ms | 449 µs | **~2.8×** |
+
+After times are nearly **flat in window length** (cost of one arithmetic update / amortized deque ops), while before times scale with the lookback — the classic pattern you want for large periods and multi-symbol fan-out. Stoch highest-high / lowest-low and Donchian use **monotonic sliding deques**.
+
+General Criterion suite (TVM, TA series, options): `cargo bench --bench suite`.  
+CRR allocation experiment (does **not** change production yet): `cargo bench --bench crr_tree_buffers`.
 
 ## License
 

@@ -25,12 +25,12 @@
 //! | Layer | API |
 //! |-------|-----|
 //! | Params | [`LinRegParams`] |
-//! | Batch | [`linear_regression`] |
+//! | Batch | [`linear_regression`] (via [`LinRegState`]) |
 //! | Live | [`LinRegState::push`] / `push_bars` / `from_history` |
 //! | Teaching | [`linear_regression_solution`] |
 //!
-//! Each push when warm is **O(period)** (recompute OLS on the ring). Fine for
-//! typical windows (20–200); not nanosecond-critical path.
+//! Each push when warm is **O(1)** (running `Σy`, `Σxy`, `Σy²`; fixed `x = 0..N-1`).
+//! First full window seeds those sums in O(N).
 //!
 //! ## Word problem
 //!
@@ -115,12 +115,23 @@ impl ValidatedLinReg {
 }
 
 /// Incremental rolling regression on a caller-chosen series.
+///
+/// After warm-up each [`push`](Self::push) is **O(1)** (running `Σy`, `Σxy`, `Σy²`;
+/// `Σx` / `Σx²` are constant for fixed window length with `x = 0..N-1`).
 #[derive(Clone, Debug)]
 pub struct LinRegState {
     params: LinRegParams,
     ring: RingF64,
+    /// Set once the window is full.
+    sums: Option<LinRegSums>,
     last: Option<LinRegBar>,
-    scratch: Vec<f64>,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct LinRegSums {
+    sum_y: f64,
+    sum_xy: f64,
+    sum_y2: f64,
 }
 
 impl LinRegState {
@@ -129,8 +140,8 @@ impl LinRegState {
         Ok(Self {
             params,
             ring: RingF64::with_capacity(params.period),
+            sums: None,
             last: None,
-            scratch: Vec::with_capacity(params.period),
         })
     }
 
@@ -146,21 +157,54 @@ impl LinRegState {
 
     pub fn reset(&mut self) {
         self.ring.clear();
+        self.sums = None;
         self.last = None;
-        self.scratch.clear();
     }
 
     pub fn push(&mut self, y: f64) -> FinanceResult<Option<LinRegBar>> {
         require_finite("series", y)?;
-        self.ring.push(y);
-        if !self.ring.is_full() {
-            self.last = None;
-            return Ok(None);
+        let n = self.params.period;
+        let nf = n as f64;
+
+        if let Some(mut s) = self.sums {
+            let y_old = self.ring.oldest().unwrap();
+            let sum_y_old = s.sum_y;
+            // Slide with re-indexed x=0..n-1:
+            // sum_xy' = sum_xy - sum_y + y_old + (n-1)*y_new
+            s.sum_xy = s.sum_xy - sum_y_old + y_old + (nf - 1.0) * y;
+            s.sum_y = sum_y_old - y_old + y;
+            s.sum_y2 = s.sum_y2 - y_old * y_old + y * y;
+            let _ = self.ring.push(y);
+            self.sums = Some(s);
+            let bar = fit_ols_from_sums(n, s.sum_y, s.sum_xy, s.sum_y2);
+            self.last = Some(bar);
+            Ok(Some(bar))
+        } else {
+            let _ = self.ring.push(y);
+            if !self.ring.is_full() {
+                self.last = None;
+                return Ok(None);
+            }
+            let mut ordered = Vec::with_capacity(n);
+            self.ring.copy_ordered(&mut ordered);
+            let mut sum_y = 0.0;
+            let mut sum_xy = 0.0;
+            let mut sum_y2 = 0.0;
+            for (i, &yi) in ordered.iter().enumerate() {
+                let x = i as f64;
+                sum_y += yi;
+                sum_xy += x * yi;
+                sum_y2 += yi * yi;
+            }
+            self.sums = Some(LinRegSums {
+                sum_y,
+                sum_xy,
+                sum_y2,
+            });
+            let bar = fit_ols_from_sums(n, sum_y, sum_xy, sum_y2);
+            self.last = Some(bar);
+            Ok(Some(bar))
         }
-        self.ring.copy_ordered(&mut self.scratch);
-        let bar = fit_ols(&self.scratch);
-        self.last = Some(bar);
-        Ok(Some(bar))
     }
 
     pub fn push_bars(&mut self, series: &[f64]) -> FinanceResult<Vec<Option<LinRegBar>>> {
@@ -268,52 +312,58 @@ fn linear_regression_validated(
     st.push_bars(series)
 }
 
-/// OLS on a full window `y[0..n)` with `x = 0..n-1`.
-fn fit_ols(y: &[f64]) -> LinRegBar {
-    let n = y.len() as f64;
-    let mut sum_x = 0.0;
-    let mut sum_y = 0.0;
-    let mut sum_xx = 0.0;
-    let mut sum_xy = 0.0;
-    for (i, &yi) in y.iter().enumerate() {
-        let x = i as f64;
-        sum_x += x;
-        sum_y += yi;
-        sum_xx += x * x;
-        sum_xy += x * yi;
-    }
-    let denom = n * sum_xx - sum_x * sum_x;
+/// OLS from sufficient stats with `x = 0..n-1` (fixed for a given `n`).
+fn fit_ols_from_sums(n: usize, sum_y: f64, sum_xy: f64, sum_y2: f64) -> LinRegBar {
+    let nf = n as f64;
+    // sum_x = 0+1+...+(n-1) = (n-1)n/2
+    // sum_xx = (n-1)n(2n-1)/6
+    let sum_x = (nf - 1.0) * nf / 2.0;
+    let sum_xx = (nf - 1.0) * nf * (2.0 * nf - 1.0) / 6.0;
+    let denom = nf * sum_xx - sum_x * sum_x;
     let slope = if denom.abs() < 1e-18 {
         0.0
     } else {
-        (n * sum_xy - sum_x * sum_y) / denom
+        (nf * sum_xy - sum_x * sum_y) / denom
     };
-    let intercept = (sum_y - slope * sum_x) / n;
+    let intercept = (sum_y - slope * sum_x) / nf;
 
-    // R²
-    let mean_y = sum_y / n;
-    let mut ss_tot = 0.0;
-    let mut ss_res = 0.0;
-    for (i, &yi) in y.iter().enumerate() {
-        let fit = intercept + slope * (i as f64);
-        ss_tot += (yi - mean_y) * (yi - mean_y);
-        ss_res += (yi - fit) * (yi - fit);
-    }
+    let mean_y = sum_y / nf;
+    let ss_tot = sum_y2 - nf * mean_y * mean_y;
+    // ss_res = Σ(y - a - b x)² expanded with sufficient stats
+    let ss_res = sum_y2
+        + nf * intercept * intercept
+        + slope * slope * sum_xx
+        + 2.0 * intercept * slope * sum_x
+        - 2.0 * intercept * sum_y
+        - 2.0 * slope * sum_xy;
     let r_squared = if ss_tot <= 1e-18 {
-        1.0 // constant series → perfect "fit"
+        1.0
     } else {
         (1.0 - ss_res / ss_tot).clamp(0.0, 1.0)
     };
 
     let angle_radians = slope.atan();
-    let angle_degrees = angle_radians.to_degrees();
     LinRegBar {
         slope,
         intercept,
         r_squared,
         angle_radians,
-        angle_degrees,
+        angle_degrees: angle_radians.to_degrees(),
     }
+}
+
+/// OLS on a full window `y[0..n)` with `x = 0..n-1` (tests / cold path).
+#[cfg(test)]
+fn fit_ols(y: &[f64]) -> LinRegBar {
+    let mut sum_y = 0.0;
+    let mut sum_xy = 0.0;
+    let mut sum_y2 = 0.0;
+    for (i, &yi) in y.iter().enumerate() {
+        sum_y += yi;
+        sum_xy += (i as f64) * yi;
+        sum_y2 += yi * yi;
+    }
+    fit_ols_from_sums(y.len(), sum_y, sum_xy, sum_y2)
 }
 
 #[cfg(test)]
