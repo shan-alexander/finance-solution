@@ -82,6 +82,11 @@
 //! | OBV | [`ObvParams::default_pack`] | [`obv`] | [`obv_solution`] |
 //! | CCI | [`CciParams::period_20`] | [`cci`] | [`cci_solution`] |
 //! | ADX / DI / DX | [`AdxParams::period_14`] | [`adx`] | [`adx_solution`] |
+//! | MOM / ROC / ROCP | [`MomParams::period_10`] | [`mom`], [`roc`], [`rocp`] | [`mom_solution`] |
+//! | MFI | [`MfiParams::period_14`] | [`mfi`] | [`mfi_solution`] |
+//! | Supertrend | [`SupertrendParams::standard`] | [`supertrend`] | [`supertrend_solution`] |
+//! | Parabolic SAR | [`SarParams::standard`] | [`sar`] | [`sar_solution`] |
+//! | TR / NATR | [`true_range_series`], [`natr`] | | — / via ATR |
 //!
 //! # Incremental / streaming state (live bars)
 //!
@@ -114,6 +119,8 @@ pub mod donchian;
 pub mod keltner;
 pub mod linear_regression;
 pub mod macd;
+pub mod mfi;
+pub mod momentum;
 pub mod moving_average;
 pub mod obv;
 #[cfg(test)]
@@ -121,8 +128,10 @@ mod proptests;
 pub mod ring;
 pub mod rsi;
 pub mod rvol;
+pub mod sar;
 pub mod state;
 pub mod stochastic;
+pub mod supertrend;
 pub mod vwap;
 pub mod willr;
 
@@ -145,6 +154,10 @@ pub use linear_regression::*;
 #[doc(inline)]
 pub use macd::*;
 #[doc(inline)]
+pub use mfi::*;
+#[doc(inline)]
+pub use momentum::*;
+#[doc(inline)]
 pub use moving_average::*;
 #[doc(inline)]
 pub use obv::*;
@@ -153,9 +166,13 @@ pub use rsi::*;
 #[doc(inline)]
 pub use rvol::*;
 #[doc(inline)]
+pub use sar::*;
+#[doc(inline)]
 pub use state::*;
 #[doc(inline)]
 pub use stochastic::*;
+#[doc(inline)]
+pub use supertrend::*;
 #[doc(inline)]
 pub use vwap::*;
 #[doc(inline)]

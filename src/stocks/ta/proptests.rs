@@ -418,5 +418,88 @@ mod tests {
                 approx_opt(batch.adx[i], streamed[i].adx)?;
             }
         }
+
+        #[test]
+        fn mom_batch_matches_state(
+            closes in prop::collection::vec(-200.0f64..200.0, 5..50),
+            period in 1usize..15,
+        ) {
+            let p = MomParams::new(period);
+            let batch = mom(&closes, p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let mut st = MomState::new(p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let streamed = st.push_bars(&closes).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            for i in 0..batch.mom.len() {
+                approx_opt(batch.mom[i], streamed[i].and_then(|b| b.mom))?;
+            }
+        }
+
+        #[test]
+        fn mfi_batch_matches_state(
+            (high, low, close, volume) in hlc_strategy().prop_flat_map(|(high, low, close)| {
+                let n = close.len();
+                prop::collection::vec(1.0f64..1e5, n..=n).prop_map(move |volume| {
+                    (high.clone(), low.clone(), close.clone(), volume)
+                })
+            }),
+        ) {
+            prop_assume!(close.len() >= 20);
+            let p = MfiParams::period_14();
+            let batch = mfi(&high, &low, &close, &volume, p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let mut st = MfiState::new(p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let streamed = st.push_bars(&high, &low, &close, &volume).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            for i in 0..batch.mfi.len() {
+                approx_opt(batch.mfi[i], streamed[i])?;
+            }
+        }
+
+        #[test]
+        fn supertrend_batch_matches_state((high, low, close) in hlc_strategy()) {
+            prop_assume!(close.len() >= 25);
+            let p = SupertrendParams::standard();
+            let batch = supertrend(&high, &low, &close, p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let mut st = SupertrendState::new(p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let streamed = st.push_bars(&high, &low, &close).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            for i in 0..streamed.len() {
+                match (streamed[i], batch.value[i], batch.direction[i]) {
+                    (None, None, None) => {}
+                    (Some(bar), Some(v), Some(d)) => {
+                        prop_assert!((bar.value - v).abs() < 1e-8);
+                        prop_assert_eq!(bar.direction, d);
+                    }
+                    other => prop_assert!(false, "{other:?}"),
+                }
+            }
+        }
+
+        #[test]
+        fn sar_batch_matches_state((high, low, close) in hlc_strategy()) {
+            prop_assume!(close.len() >= 5);
+            let p = SarParams::standard();
+            let batch = sar(&high, &low, &close, p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let mut st = SarState::new(p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let streamed = st.push_bars(&high, &low, &close).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            for i in 0..streamed.len() {
+                match (streamed[i], batch.sar[i], batch.direction[i]) {
+                    (None, None, None) => {}
+                    (Some(bar), Some(v), Some(d)) => {
+                        prop_assert!((bar.sar - v).abs() < 1e-8);
+                        prop_assert_eq!(bar.direction, d);
+                    }
+                    other => prop_assert!(false, "{other:?}"),
+                }
+            }
+        }
+
+        #[test]
+        fn natr_batch_matches_state((high, low, close) in hlc_strategy()) {
+            prop_assume!(close.len() >= 20);
+            let p = AtrParams::period_14();
+            let batch = natr(&high, &low, &close, p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let mut st = NatrState::new(p).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            let streamed = st.push_bars(&high, &low, &close).map_err(|e| TestCaseError::fail(format!("{e}")))?;
+            for i in 0..batch.natr.len() {
+                approx_opt(batch.natr[i], streamed[i])?;
+            }
+        }
     }
 }

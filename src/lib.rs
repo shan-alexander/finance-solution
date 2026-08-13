@@ -10,7 +10,8 @@
 //!
 //! TA hot paths after warm-up are **O(1)** or amortized O(1) (sliding sums / deques); free
 //! functions share the same `*State` math as streaming. Indicators include averages, oscillators
-//! (RSI, Stoch, WillR, CCI, MACD), channels, **ADX/DI**, volume (VWAP, RVOL, OBV), and LinReg.
+//! (RSI, Stoch, WillR, CCI, MACD, MFI, MOM/ROC), channels, **ADX/DI**, Supertrend, SAR,
+//! volume (VWAP, RVOL, OBV), NATR/TR, and LinReg.
 //!
 //! # Error handling (v0.1+)
 //!

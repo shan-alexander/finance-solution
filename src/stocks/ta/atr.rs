@@ -11,6 +11,8 @@
 //! Default pack: **period 14** ([`AtrParams::period_14`]).  
 //! Keltner channels reuse this definition internally for their ATR leg.
 //!
+//! Also public: [`true_range_series`] (per-bar TR) and [`natr`] (normalized ATR = `100 * ATR / close`).
+//!
 //! ---
 //!
 //! ## Trading perspective
@@ -182,6 +184,10 @@ impl AtrState {
         Ok(s)
     }
 
+    pub fn params(&self) -> AtrParams {
+        self.params
+    }
+
     pub fn push(&mut self, high: f64, low: f64, close: f64) -> FinanceResult<Option<f64>> {
         crate::util::error::require_finite("high", high)?;
         crate::util::error::require_finite("low", low)?;
@@ -247,6 +253,135 @@ pub fn atr(
     params: AtrParams,
 ) -> FinanceResult<AtrSeries> {
     ValidatedAtr::new(params)?.compute(high, low, close)
+}
+
+/// Per-bar true range series (same length as inputs). Bar 0 uses `H−L` only.
+///
+/// ```
+/// use finance_solution::stocks::ta::true_range_series;
+/// let h = [10.0, 12.0];
+/// let l = [9.0, 10.0];
+/// let c = [9.5, 11.0];
+/// let tr = true_range_series(&h, &l, &c).unwrap();
+/// assert!((tr[0] - 1.0).abs() < 1e-12);
+/// assert!((tr[1] - 2.5).abs() < 1e-12); // max(2, |12-9.5|, |10-9.5|)
+/// ```
+pub fn true_range_series(high: &[f64], low: &[f64], close: &[f64]) -> FinanceResult<Vec<f64>> {
+    require_hlc(high, low, close)?;
+    let mut out = Vec::with_capacity(close.len());
+    let mut prev = None;
+    for i in 0..close.len() {
+        out.push(true_range(high[i], low[i], prev));
+        prev = Some(close[i]);
+    }
+    Ok(out)
+}
+
+/// Normalized ATR: `100 * ATR / close` when both defined and close ≠ 0.
+///
+/// ```
+/// use finance_solution::stocks::ta::{natr, AtrParams};
+/// let n = 30usize;
+/// let h: Vec<_> = (0..n).map(|_| 102.0).collect();
+/// let l: Vec<_> = (0..n).map(|_| 100.0).collect();
+/// let c: Vec<_> = (0..n).map(|_| 100.0).collect();
+/// let s = natr(&h, &l, &c, AtrParams::period_14()).unwrap();
+/// // ATR≈2 → NATR ≈ 100*2/100 = 2
+/// assert!((s.natr.last().unwrap().unwrap() - 2.0).abs() < 1e-9);
+/// ```
+pub fn natr(
+    high: &[f64],
+    low: &[f64],
+    close: &[f64],
+    params: AtrParams,
+) -> FinanceResult<NatrSeries> {
+    let a = atr(high, low, close, params)?;
+    let mut natr = Vec::with_capacity(close.len());
+    for i in 0..close.len() {
+        let v = match a.atr[i] {
+            Some(atr_v) if close[i] != 0.0 => Some(100.0 * atr_v / close[i]),
+            _ => None,
+        };
+        natr.push(v);
+    }
+    Ok(NatrSeries { natr, params })
+}
+
+/// Normalized ATR series.
+#[derive(Clone, Debug, PartialEq)]
+pub struct NatrSeries {
+    pub natr: Vec<Option<f64>>,
+    pub params: AtrParams,
+}
+
+impl NatrSeries {
+    pub fn last(&self) -> Option<f64> {
+        self.natr.iter().rev().find_map(|x| *x)
+    }
+}
+
+/// Incremental NATR (wraps [`AtrState`]).
+#[derive(Clone, Debug)]
+pub struct NatrState {
+    atr: AtrState,
+    last: Option<f64>,
+}
+
+impl NatrState {
+    pub fn new(params: AtrParams) -> FinanceResult<Self> {
+        Ok(Self {
+            atr: AtrState::new(params)?,
+            last: None,
+        })
+    }
+
+    pub fn from_history(
+        params: AtrParams,
+        high: &[f64],
+        low: &[f64],
+        close: &[f64],
+    ) -> FinanceResult<Self> {
+        let mut s = Self::new(params)?;
+        let _ = s.push_bars(high, low, close)?;
+        Ok(s)
+    }
+
+    pub fn params(&self) -> AtrParams {
+        self.atr.params
+    }
+
+    pub fn reset(&mut self) {
+        self.atr.reset();
+        self.last = None;
+    }
+
+    pub fn push(&mut self, high: f64, low: f64, close: f64) -> FinanceResult<Option<f64>> {
+        let a = self.atr.push(high, low, close)?;
+        let out = match a {
+            Some(atr_v) if close != 0.0 => Some(100.0 * atr_v / close),
+            _ => None,
+        };
+        self.last = out;
+        Ok(out)
+    }
+
+    pub fn push_bars(
+        &mut self,
+        high: &[f64],
+        low: &[f64],
+        close: &[f64],
+    ) -> FinanceResult<Vec<Option<f64>>> {
+        require_hlc(high, low, close)?;
+        let mut out = Vec::with_capacity(close.len());
+        for i in 0..close.len() {
+            out.push(self.push(high[i], low[i], close[i])?);
+        }
+        Ok(out)
+    }
+
+    pub fn last(&self) -> Option<f64> {
+        self.last
+    }
 }
 
 fn atr_validated(
@@ -330,6 +465,22 @@ mod tests {
         let s = atr(&high, &low, &close, AtrParams::period_14()).unwrap();
         assert!(s.atr[12].is_none());
         assert!(s.atr[13].is_some()); // period=14 → index 13
+    }
+
+    #[test]
+    fn true_range_and_natr() {
+        let h = [10.0, 12.0];
+        let l = [9.0, 10.0];
+        let c = [9.5, 11.0];
+        let tr = true_range_series(&h, &l, &c).unwrap();
+        assert!((tr[0] - 1.0).abs() < 1e-12);
+        assert!((tr[1] - 2.5).abs() < 1e-12);
+        let n = 30usize;
+        let high: Vec<_> = (0..n).map(|_| 102.0).collect();
+        let low: Vec<_> = (0..n).map(|_| 100.0).collect();
+        let close: Vec<_> = (0..n).map(|_| 100.0).collect();
+        let s = natr(&high, &low, &close, AtrParams::period_14()).unwrap();
+        assert!((s.last().unwrap() - 2.0).abs() < 1e-9);
     }
 
     #[test]
